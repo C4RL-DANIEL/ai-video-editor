@@ -589,12 +589,16 @@ class _ProjectCard extends StatelessWidget {
       case ProjectStatus.processing:
         return AppColors.warning;
       case ProjectStatus.ready:
+      case ProjectStatus.completed:
         return AppColors.success;
       case ProjectStatus.archived:
         return AppColors.textMuted;
       case ProjectStatus.error:
+      case ProjectStatus.failed:
         return AppColors.error;
       case ProjectStatus.draft:
+      case ProjectStatus.uploaded:
+      case ProjectStatus.analyzing:
         return AppColors.textSecondary;
     }
   }
@@ -652,12 +656,16 @@ class _StatusBadge extends StatelessWidget {
       case ProjectStatus.processing:
         return AppColors.warning;
       case ProjectStatus.ready:
+      case ProjectStatus.completed:
         return AppColors.success;
       case ProjectStatus.archived:
         return AppColors.textMuted;
       case ProjectStatus.error:
+      case ProjectStatus.failed:
         return AppColors.error;
       case ProjectStatus.draft:
+      case ProjectStatus.uploaded:
+      case ProjectStatus.analyzing:
         return AppColors.textSecondary;
     }
   }
@@ -668,12 +676,20 @@ class _StatusBadge extends StatelessWidget {
         return 'Processing';
       case ProjectStatus.ready:
         return 'Ready';
+      case ProjectStatus.completed:
+        return 'Completed';
       case ProjectStatus.archived:
         return 'Archived';
       case ProjectStatus.error:
         return 'Error';
+      case ProjectStatus.failed:
+        return 'Failed';
       case ProjectStatus.draft:
         return 'Draft';
+      case ProjectStatus.uploaded:
+        return 'Uploaded';
+      case ProjectStatus.analyzing:
+        return 'Analyzing';
     }
   }
 }
