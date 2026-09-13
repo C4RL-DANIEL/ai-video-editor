@@ -11,6 +11,7 @@ import '../network/api_response.dart';
 import '../../features/analysis/models/transcript.dart';
 import '../../features/analysis/models/video_analysis.dart';
 import '../../features/analysis/models/viral_moment.dart';
+import '../../features/analysis/services/analysis_service.dart' show ContentMap;
 
 // ---------------------------------------------------------------------------
 // Additional models used by the analysis pipeline
