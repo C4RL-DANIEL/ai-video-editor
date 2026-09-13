@@ -12,3 +12,7 @@
 
 # Keep annotation
 -keepattributes *Annotation*
+
+# Google Play Core (missing class warning)
+-dontwarn com.google.android.play.core.splitcompat.SplitCompatApplication
+-dontwarn com.google.android.play.core.**

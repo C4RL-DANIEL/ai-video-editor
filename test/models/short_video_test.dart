@@ -630,8 +630,8 @@ void main() {
     test('versionCount returns number of versions', () {
       final video = createTestVideo().copyWith(versions: [
         const ShortVersion(
-            versionNumber: 1, createdAt: DateTime(2024, 1, 1)),
-        const ShortVersion(
+            versionNumber: 1, createdAt: _ConstDateTime()),
+        ShortVersion(
             versionNumber: 2, createdAt: DateTime(2024, 1, 2)),
       ]);
       expect(video.versionCount, 2);
@@ -639,9 +639,9 @@ void main() {
 
     test('latestVersion returns last version', () {
       final v1 =
-          const ShortVersion(versionNumber: 1, createdAt: DateTime(2024, 1, 1));
+          ShortVersion(versionNumber: 1, createdAt: DateTime(2024, 1, 1));
       final v2 =
-          const ShortVersion(versionNumber: 2, createdAt: DateTime(2024, 1, 2));
+          ShortVersion(versionNumber: 2, createdAt: DateTime(2024, 1, 2));
       final video = createTestVideo().copyWith(versions: [v1, v2]);
       expect(video.latestVersion?.versionNumber, 2);
     });

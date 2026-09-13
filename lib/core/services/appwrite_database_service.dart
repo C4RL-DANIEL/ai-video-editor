@@ -261,7 +261,7 @@ class AppwriteDatabaseService {
   /// List documents in any collection with queries.
   Future<ApiResponse<List<Map<String, dynamic>>>> listDocuments({
     required String collectionId,
-    List<Query>? queries,
+    List<String>? queries,
   }) async {
     try {
       final result = await _databases.listDocuments(

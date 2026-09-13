@@ -320,11 +320,17 @@ class TimelineNotifier extends StateNotifier<TimelineState> {
       duration: relativePoint,
       sourceOutPoint: clip.sourceInPoint + relativePoint,
     );
-    final right = clip.copyWith(
+    final right = TimelineClip(
       id: '${clip.id}_split_${DateTime.now().millisecondsSinceEpoch}',
+      sourceId: clip.sourceId,
+      label: clip.label,
       startTime: clip.startTime + relativePoint,
       duration: clip.duration - relativePoint,
       sourceInPoint: clip.sourceInPoint + relativePoint,
+      sourceOutPoint: clip.sourceOutPoint,
+      volume: clip.volume,
+      isMuted: clip.isMuted,
+      trackIndex: clip.trackIndex,
     );
 
     _recordAction('split_clip', clip.toJson(), {

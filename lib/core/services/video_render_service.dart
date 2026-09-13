@@ -279,7 +279,7 @@ class VideoRenderService {
       onProgress?.call(0.35, 'encoding');
       final execResult = await _executor.run(
         command,
-        onProgress: (p) {
+        onProgress: (double p, String stage) {
           // Map 0..1 native progress into 35%–90% of total
           onProgress?.call(0.35 + p * 0.55, 'encoding');
         },
@@ -424,7 +424,7 @@ class VideoRenderService {
       onProgress?.call(0.20, 'encoding');
       final execResult = await _executor.run(
         command,
-        onProgress: (p) {
+        onProgress: (double p, String stage) {
           onProgress?.call(0.20 + p * 0.70, 'encoding');
         },
       );
@@ -1098,11 +1098,9 @@ class VideoRenderService {
   /// X-position expression for drawtext based on [CaptionPosition].
   static String _captionXPosition(CaptionPosition pos) {
     switch (pos) {
-      case CaptionPosition.left:
       case CaptionPosition.topLeft:
       case CaptionPosition.bottomLeft:
         return '20';
-      case CaptionPosition.right:
       case CaptionPosition.topRight:
       case CaptionPosition.bottomRight:
         return 'w-tw-20';
@@ -1126,10 +1124,6 @@ class VideoRenderService {
       case CaptionPosition.bottomLeft:
       case CaptionPosition.bottomRight:
         return 'h-th-40';
-      case CaptionPosition.left:
-        return '(h-th)/2';
-      case CaptionPosition.right:
-        return '(h-th)/2';
     }
   }
 }

@@ -20,7 +20,7 @@ class _CacheEntry<T> {
 /// rather than directly hitting the service so that identical network calls are
 /// de-duplicated and cached for a short period.
 class ProjectRepository {
-  ProjectRepository({ProjectService? service, Duration cacheTtl})
+  ProjectRepository({ProjectService? service, Duration? cacheTtl})
       : _service = service ?? ProjectService(),
         _cacheTtl = cacheTtl ?? const Duration(minutes: 5);
 

@@ -66,7 +66,7 @@ extension DateTimeExtensions on DateTime {
       'July', 'August', 'September', 'October', 'November', 'December',
     ];
 
-    final month = months[month - 1];
+    final month = months[this.month - 1];
     final day = this.day;
     final year = this.year;
     final hour = this.hour > 12 ? this.hour - 12 : (this.hour == 0 ? 12 : this.hour);

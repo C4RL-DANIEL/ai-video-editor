@@ -279,7 +279,7 @@ class LongFormListNotifier extends AsyncNotifier<List<LongFormVideo>> {
     return video;
   }
 
-  Future<void> update(String longFormId, {String? title, String? description}) async {
+  Future<void> updateLongForm(String longFormId, {String? title, String? description}) async {
     await _service.updateLongForm(longFormId, title: title, description: description);
     ref.invalidateSelf();
   }
@@ -327,7 +327,7 @@ class ChapterListNotifier extends AsyncNotifier<List<Chapter>> {
     return chapter;
   }
 
-  Future<void> update(String chapterId, {String? title, String? description, double? startTime, double? endTime}) async {
+  Future<void> updateChapter(String chapterId, {String? title, String? description, double? startTime, double? endTime}) async {
     await _service.updateChapter(chapterId, title: title, description: description, startTime: startTime, endTime: endTime);
     ref.invalidateSelf();
   }

@@ -80,7 +80,7 @@ extension DoubleExtensions on double {
   /// 150.0.clampValue(0, 100); // 100.0
   /// 50.0.clampValue(0, 100); // 50.0
   /// ```
-  double clampValue(double min, double max) => clamp(min, max);
+  double clampValue(double min, double max) => clamp(min, max).toDouble();
 
   /// Returns true if the value is approximately equal to another value.
   ///

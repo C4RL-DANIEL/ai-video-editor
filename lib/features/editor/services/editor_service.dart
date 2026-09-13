@@ -166,6 +166,15 @@ class EditDecision {
   final String type;
   final Map<String, dynamic> payload;
   final DateTime timestamp;
+
+  Map<String, dynamic> toJson() {
+    return {
+      'id': id,
+      'type': type,
+      'payload': payload,
+      'timestamp': timestamp.toIso8601String(),
+    };
+  }
 }
 
 /// Service layer for timeline editing operations.
