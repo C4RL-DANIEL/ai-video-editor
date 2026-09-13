@@ -163,7 +163,9 @@ class LongFormEditorNotifier extends StateNotifier<LongFormEditorState> {
 
 // ─── Long Form Editor Page ───────────────────────────────────────────────────
 class LongFormEditorPage extends ConsumerWidget {
-  const LongFormEditorPage({super.key});
+  const LongFormEditorPage({super.key, this.projectId, this.longFormId});
+  final String? projectId;
+  final String? longFormId;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {

@@ -11,7 +11,7 @@ const Color _borderColor = Color(0xFF222228);
 const Color _accentColor = Color(0xFF3B82F6);
 const Color _purpleColor = Color(0xFF8B5CF6);
 const Color _successColor = Color(0xFF22C55E);
-const Color _warningColor = Color(FFF59E0B);
+const Color _warningColor = Color(0xFFF59E0B);
 const Color _errorColor = Color(0xFFEF4444);
 const Color _playheadColor = Color(0xFFEF4444);
 const Color _textPrimary = Color(0xFFF5F5F7);
@@ -263,7 +263,8 @@ class AIChatNotifier extends StateNotifier<List<ChatMessage>> {
 
 // ─── Editor Page ─────────────────────────────────────────────────────────────
 class EditorPage extends ConsumerWidget {
-  const EditorPage({super.key});
+  const EditorPage({super.key, this.projectId});
+  final String? projectId;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {

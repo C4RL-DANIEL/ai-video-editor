@@ -3,34 +3,13 @@ import 'package:flutter_animate/flutter_animate.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:phosphor_flutter/phosphor_flutter.dart';
 
-import 'package:ai_video_editor/features/dashboard/presentation/dashboard_page.dart';
 import 'package:ai_video_editor/features/projects/presentation/create_project_page.dart';
 import 'package:ai_video_editor/features/projects/presentation/project_detail_page.dart';
+import 'package:ai_video_editor/features/projects/presentation/project_providers.dart';
 
-// ────────────────────────────────────────────────────────────────
-// Data model (lightweight, enough for UI)
-// ────────────────────────────────────────────────────────────────
-enum ProjectStatus { processing, ready, archived, error }
-
-class Project {
-  final String id;
-  final String name;
-  final String? thumbnailUrl;
-  final ProjectStatus status;
-  final int shortsCount;
-  final int longFormCount;
-  final DateTime createdAt;
-
-  const Project({
-    required this.id,
-    required this.name,
-    this.thumbnailUrl,
-    this.status = ProjectStatus.ready,
-    this.shortsCount = 0,
-    this.longFormCount = 0,
-    required this.createdAt,
-  });
-}
+// Re-export for backward compatibility
+export 'package:ai_video_editor/features/projects/presentation/project_providers.dart'
+    show Project, ProjectStatus;
 
 // ────────────────────────────────────────────────────────────────
 // Projects list page
@@ -289,10 +268,10 @@ class _ProjectsListPageState extends State<ProjectsListPage> {
               duration: const Duration(milliseconds: 200),
               padding: const EdgeInsets.symmetric(horizontal: 16),
               decoration: BoxDecoration(
-                color: isSelected ? AppColors.accent.withValues(alpha: 0.15) : AppColors.card,
+                color: isSelected ? AppColors.accent.withOpacity(0.15) : AppColors.card,
                 borderRadius: BorderRadius.circular(20),
                 border: Border.all(
-                  color: isSelected ? AppColors.accent.withValues(alpha: 0.4) : AppColors.border,
+                  color: isSelected ? AppColors.accent.withOpacity(0.4) : AppColors.border,
                   width: 1,
                 ),
               ),
@@ -412,7 +391,7 @@ class _ProjectsListPageState extends State<ProjectsListPage> {
         onPlay: (c) => c.repeat(reverse: true),
       ).shimmer(
         duration: 1200.ms,
-        color: AppColors.border.withValues(alpha: 0.3),
+        color: AppColors.border.withOpacity(0.3),
       ),
     );
   }
@@ -429,7 +408,7 @@ class _ProjectsListPageState extends State<ProjectsListPage> {
               width: 80,
               height: 80,
               decoration: BoxDecoration(
-                color: AppColors.accent.withValues(alpha: 0.1),
+                color: AppColors.accent.withOpacity(0.1),
                 shape: BoxShape.circle,
               ),
               child: const Icon(
@@ -523,7 +502,7 @@ class _ProjectCard extends StatelessWidget {
                     decoration: BoxDecoration(
                       gradient: LinearGradient(
                         colors: [
-                          _statusColor.withValues(alpha: 0.3),
+                          _statusColor.withOpacity(0.3),
                           AppColors.surface,
                         ],
                         begin: Alignment.topLeft,
@@ -535,7 +514,7 @@ class _ProjectCard extends StatelessWidget {
                       child: Icon(
                         PhosphorIconsBold.filmStrip,
                         size: 36,
-                        color: _statusColor.withValues(alpha: 0.5),
+                        color: _statusColor.withOpacity(0.5),
                       ),
                     ),
                   ),
@@ -639,9 +618,9 @@ class _StatusBadge extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       decoration: BoxDecoration(
-        color: _color.withValues(alpha: 0.2),
+        color: _color.withOpacity(0.2),
         borderRadius: BorderRadius.circular(6),
-        border: Border.all(color: _color.withValues(alpha: 0.4)),
+        border: Border.all(color: _color.withOpacity(0.4)),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,

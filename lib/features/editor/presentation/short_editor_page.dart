@@ -178,7 +178,9 @@ class ShortEditorNotifier extends StateNotifier<ShortEditorState> {
 
 // ─── Short Editor Page ───────────────────────────────────────────────────────
 class ShortEditorPage extends ConsumerWidget {
-  const ShortEditorPage({super.key});
+  const ShortEditorPage({super.key, this.projectId, this.shortId});
+  final String? projectId;
+  final String? shortId;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {

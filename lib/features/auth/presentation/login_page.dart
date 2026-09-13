@@ -82,10 +82,10 @@ class _LoginPageState extends State<LoginPage> {
                           width: logoSize,
                           height: logoSize,
                           decoration: BoxDecoration(
-                            color: const Color(0xFF3B82F6).withValues(alpha: 0.15),
+                            color: const Color(0xFF3B82F6).withOpacity(0.15),
                             borderRadius: BorderRadius.circular(logoSize * 0.28),
                             border: Border.all(
-                              color: const Color(0xFF3B82F6).withValues(alpha: 0.3),
+                              color: const Color(0xFF3B82F6).withOpacity(0.3),
                               width: 1.5,
                             ),
                           ),
@@ -130,7 +130,7 @@ class _LoginPageState extends State<LoginPage> {
                           color: const Color(0xFF1A1A1F),
                           borderRadius: BorderRadius.circular(16),
                           border: Border.all(
-                            color: Colors.white.withValues(alpha: 0.06),
+                            color: Colors.white.withOpacity(0.06),
                             width: 1,
                           ),
                         ),
@@ -231,7 +231,7 @@ class _LoginPageState extends State<LoginPage> {
                                   backgroundColor: const Color(0xFF3B82F6),
                                   foregroundColor: Colors.white,
                                   disabledBackgroundColor:
-                                      const Color(0xFF3B82F6).withValues(alpha: 0.5),
+                                      const Color(0xFF3B82F6).withOpacity(0.5),
                                   shape: RoundedRectangleBorder(
                                     borderRadius: BorderRadius.circular(12),
                                   ),
@@ -267,7 +267,7 @@ class _LoginPageState extends State<LoginPage> {
                           Expanded(
                             child: Container(
                               height: 1,
-                              color: Colors.white.withValues(alpha: 0.08),
+                              color: Colors.white.withOpacity(0.08),
                             ),
                           ),
                           Padding(
@@ -283,7 +283,7 @@ class _LoginPageState extends State<LoginPage> {
                           Expanded(
                             child: Container(
                               height: 1,
-                              color: Colors.white.withValues(alpha: 0.08),
+                              color: Colors.white.withOpacity(0.08),
                             ),
                           ),
                         ],
@@ -423,14 +423,14 @@ class _LoginPageState extends State<LoginPage> {
             border: OutlineInputBorder(
               borderRadius: BorderRadius.circular(10),
               borderSide: BorderSide(
-                color: Colors.white.withValues(alpha: 0.08),
+                color: Colors.white.withOpacity(0.08),
                 width: 1,
               ),
             ),
             enabledBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(10),
               borderSide: BorderSide(
-                color: Colors.white.withValues(alpha: 0.08),
+                color: Colors.white.withOpacity(0.08),
                 width: 1,
               ),
             ),
@@ -489,7 +489,7 @@ class _SocialButton extends StatelessWidget {
           foregroundColor: Colors.white,
           backgroundColor: const Color(0xFF141418),
           side: BorderSide(
-            color: Colors.white.withValues(alpha: 0.08),
+            color: Colors.white.withOpacity(0.08),
             width: 1,
           ),
           shape: RoundedRectangleBorder(

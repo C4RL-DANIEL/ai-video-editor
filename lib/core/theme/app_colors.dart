@@ -16,19 +16,19 @@ abstract final class AppColors {
   // ---------------------------------------------------------------------------
   // Surface / Cards
   // ---------------------------------------------------------------------------
-  static const Color surface = Color(0x0DFFFFFF); // rgba(255,255,255,0.05)
-  static const Color surfaceHover = Color(0x14FFFFFF); // rgba(255,255,255,0.08)
-  static const Color surfaceActive = Color(0x1FFFFFF); // rgba(255,255,255,0.12)
+  static const Color surface = Color(0xFF141418);
+  static const Color surfaceHover = Color(0xFF1A1A1F);
+  static const Color surfaceActive = Color(0xFF222228);
   static const Color surfaceElevated = Color(0xFF1E1E24);
   static const Color surfaceOverlay = Color(0x80000000); // rgba(0,0,0,0.5)
 
   // ---------------------------------------------------------------------------
   // Borders & Dividers
   // ---------------------------------------------------------------------------
-  static const Color border = Color(0x1FFFFFF); // rgba(255,255,255,0.12)
-  static const Color borderSubtle = Color(0x0FFFFFF); // rgba(255,255,255,0.06)
-  static const Color borderStrong = Color(0x33FFFFFF); // rgba(255,255,255,0.20)
-  static const Color divider = Color(0x0FFFFFF); // rgba(255,255,255,0.06)
+  static const Color border = Color(0xFF2A2A32);
+  static const Color borderSubtle = Color(0xFF222228);
+  static const Color borderStrong = Color(0xFF3A3A44);
+  static const Color divider = Color(0xFF222228);
 
   // ---------------------------------------------------------------------------
   // Accent — Blue (primary brand)
@@ -204,6 +204,19 @@ abstract final class AppColors {
   // ---------------------------------------------------------------------------
   // Utility: Convert to Material ColorSwatch
   // ---------------------------------------------------------------------------
+
+  // ---------------------------------------------------------------------------
+  // Convenience aliases (used by feature screens)
+  // ---------------------------------------------------------------------------
+  static const Color background = backgroundPrimary;
+  static const Color textMuted = textTertiary;
+  static const Color card = backgroundTertiary;
+  static const Color timelineVideo = blue500;
+  static const Color timelineAudio = purple500;
+  static const Color timelineCaption = green500;
+  static const Color timelineEffect = amber500;
+  static const Color timelineSfx = const Color(0xFF06B6D4);
+  static const Color playhead = blue500;
 
   /// Returns a [MaterialColor] swatch derived from the primary blue accent.
   static MaterialColor get blueSwatch => const MaterialColor(

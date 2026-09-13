@@ -339,7 +339,7 @@ class _CreateProjectPageState extends State<CreateProjectPage> {
         duration: const Duration(milliseconds: 200),
         padding: const EdgeInsets.symmetric(vertical: 28, horizontal: 20),
         decoration: BoxDecoration(
-          color: isSelected ? AppColors.accent.withValues(alpha: 0.08) : AppColors.card,
+          color: isSelected ? AppColors.accent.withOpacity(0.08) : AppColors.card,
           borderRadius: BorderRadius.circular(16),
           border: Border.all(
             color: isSelected ? AppColors.accent : AppColors.border,
@@ -353,12 +353,12 @@ class _CreateProjectPageState extends State<CreateProjectPage> {
               height: 56,
               decoration: BoxDecoration(
                 color: isSelected
-                    ? AppColors.accent.withValues(alpha: 0.15)
+                    ? AppColors.accent.withOpacity(0.15)
                     : AppColors.surface,
                 shape: BoxShape.circle,
                 border: Border.all(
                   color: isSelected
-                      ? AppColors.accent.withValues(alpha: 0.4)
+                      ? AppColors.accent.withOpacity(0.4)
                       : AppColors.border,
                 ),
               ),
@@ -402,7 +402,7 @@ class _CreateProjectPageState extends State<CreateProjectPage> {
         duration: const Duration(milliseconds: 200),
         padding: const EdgeInsets.symmetric(vertical: 28, horizontal: 20),
         decoration: BoxDecoration(
-          color: isSelected ? AppColors.purple.withValues(alpha: 0.08) : AppColors.card,
+          color: isSelected ? AppColors.purple.withOpacity(0.08) : AppColors.card,
           borderRadius: BorderRadius.circular(16),
           border: Border.all(
             color: isSelected ? AppColors.purple : AppColors.border,
@@ -416,12 +416,12 @@ class _CreateProjectPageState extends State<CreateProjectPage> {
               height: 56,
               decoration: BoxDecoration(
                 color: isSelected
-                    ? AppColors.purple.withValues(alpha: 0.15)
+                    ? AppColors.purple.withOpacity(0.15)
                     : AppColors.surface,
                 shape: BoxShape.circle,
                 border: Border.all(
                   color: isSelected
-                      ? AppColors.purple.withValues(alpha: 0.4)
+                      ? AppColors.purple.withOpacity(0.4)
                       : AppColors.border,
                 ),
               ),
@@ -519,9 +519,9 @@ class _CreateProjectPageState extends State<CreateProjectPage> {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.06),
+        color: color.withOpacity(0.06),
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: color.withValues(alpha: 0.3)),
+        border: Border.all(color: color.withOpacity(0.3)),
       ),
       child: Row(
         children: [
@@ -585,7 +585,7 @@ class _CreateProjectPageState extends State<CreateProjectPage> {
               value: _useReferenceStyle,
               onChanged: (v) => setState(() => _useReferenceStyle = v),
               activeColor: AppColors.accent,
-              activeTrackColor: AppColors.accent.withValues(alpha: 0.3),
+              activeTrackColor: AppColors.accent.withOpacity(0.3),
               inactiveThumbColor: AppColors.textMuted,
               inactiveTrackColor: AppColors.surface,
             ),
@@ -605,12 +605,12 @@ class _CreateProjectPageState extends State<CreateProjectPage> {
                     padding: const EdgeInsets.symmetric(vertical: 14),
                     decoration: BoxDecoration(
                       color: _referenceSource == SourceType.file
-                          ? AppColors.accent.withValues(alpha: 0.08)
+                          ? AppColors.accent.withOpacity(0.08)
                           : AppColors.surface,
                       borderRadius: BorderRadius.circular(10),
                       border: Border.all(
                         color: _referenceSource == SourceType.file
-                            ? AppColors.accent.withValues(alpha: 0.4)
+                            ? AppColors.accent.withOpacity(0.4)
                             : AppColors.border,
                       ),
                     ),
@@ -644,12 +644,12 @@ class _CreateProjectPageState extends State<CreateProjectPage> {
                     padding: const EdgeInsets.symmetric(vertical: 14),
                     decoration: BoxDecoration(
                       color: _referenceSource == SourceType.link
-                          ? AppColors.purple.withValues(alpha: 0.08)
+                          ? AppColors.purple.withOpacity(0.08)
                           : AppColors.surface,
                       borderRadius: BorderRadius.circular(10),
                       border: Border.all(
                         color: _referenceSource == SourceType.link
-                            ? AppColors.purple.withValues(alpha: 0.4)
+                            ? AppColors.purple.withOpacity(0.4)
                             : AppColors.border,
                       ),
                     ),
@@ -740,7 +740,7 @@ class _CreateProjectPageState extends State<CreateProjectPage> {
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
             decoration: BoxDecoration(
               color: isSelected
-                  ? AppColors.accent.withValues(alpha: 0.08)
+                  ? AppColors.accent.withOpacity(0.08)
                   : AppColors.card,
               borderRadius: BorderRadius.circular(12),
               border: Border.all(

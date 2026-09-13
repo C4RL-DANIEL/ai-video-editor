@@ -4,30 +4,11 @@ import 'package:flutter_animate/flutter_animate.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:phosphor_flutter/phosphor_flutter.dart';
 
+import 'package:ai_video_editor/core/theme/app_colors.dart';
 import 'package:ai_video_editor/features/projects/presentation/projects_list_page.dart';
 import 'package:ai_video_editor/features/upload/presentation/upload_page.dart' as upload;
-import 'package:ai_video_editor/features/analysis/presentation/analytics_page.dart' as analytics;
+import 'package:ai_video_editor/features/dashboard/presentation/analytics_page.dart' as analytics;
 import 'package:ai_video_editor/features/settings/presentation/settings_page.dart' as settings;
-
-// ────────────────────────────────────────────────────────────────
-// Color palette
-// ────────────────────────────────────────────────────────────────
-class AppColors {
-  AppColors._();
-
-  static const background = Color(0xFF0D0D0F);
-  static const surface = Color(0xFF141418);
-  static const card = Color(0xFF1A1A1F);
-  static const border = Color(0xFF222228);
-  static const accent = Color(0xFF3B82F6);
-  static const purple = Color(0xFF8B5CF6);
-  static const success = Color(0xFF22C55E);
-  static const warning = Color(0xFFF59E0B);
-  static const error = Color(0xFFEF4444);
-  static const textPrimary = Colors.white;
-  static const textSecondary = Color(0xFFA0A0A0);
-  static const textMuted = Color(0xFF6B6B6B);
-}
 
 // ────────────────────────────────────────────────────────────────
 // Dashboard page – main shell with bottom navigation
@@ -340,7 +321,7 @@ class _NavItem extends StatelessWidget {
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
         decoration: BoxDecoration(
           color: isSelected
-              ? AppColors.accent.withValues(alpha: 0.12)
+              ? AppColors.accent.withOpacity(0.12)
               : Colors.transparent,
           borderRadius: BorderRadius.circular(12),
         ),
@@ -394,7 +375,7 @@ class _RailNavItem extends StatelessWidget {
           padding: const EdgeInsets.symmetric(vertical: 10),
           decoration: BoxDecoration(
             color: isSelected
-                ? AppColors.accent.withValues(alpha: 0.12)
+                ? AppColors.accent.withOpacity(0.12)
                 : Colors.transparent,
             borderRadius: BorderRadius.circular(12),
           ),

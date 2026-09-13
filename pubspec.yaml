@@ -23,6 +23,7 @@ dependencies:
   flutter_svg: ^2.0.10+1
   cached_network_image: ^3.3.1
   percent_indicator: ^4.2.3
+  dotted_border: ^2.1.0
   
   # File Handling
   file_picker: ^8.0.0

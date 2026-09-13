@@ -225,7 +225,8 @@ class LongFormBuilderNotifier extends StateNotifier<LongFormBuilderState> {
 
 // ─── Long Form Builder Page ──────────────────────────────────────────────────
 class LongFormBuilderPage extends ConsumerWidget {
-  const LongFormBuilderPage({super.key});
+  const LongFormBuilderPage({super.key, this.projectId});
+  final String? projectId;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {

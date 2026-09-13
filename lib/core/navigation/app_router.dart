@@ -2,7 +2,22 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
-import '../../features/projects/presentation/project_providers.dart';
+// ── Feature screen imports ──────────────────────────────────────────
+import '../../features/splash/presentation/splash_page.dart';
+import '../../features/auth/presentation/login_page.dart';
+import '../../features/auth/presentation/register_page.dart';
+import '../../features/dashboard/presentation/dashboard_page.dart';
+import '../../features/projects/presentation/projects_list_page.dart';
+import '../../features/projects/presentation/project_detail_page.dart';
+import '../../features/projects/presentation/create_project_page.dart';
+import '../../features/shorts/presentation/shorts_discovery_page.dart';
+import '../../features/shorts/presentation/short_preview_page.dart';
+import '../../features/editor/presentation/editor_page.dart';
+import '../../features/editor/presentation/short_editor_page.dart';
+import '../../features/longform/presentation/long_form_builder_page.dart';
+import '../../features/longform/presentation/long_form_editor_page.dart';
+import '../../features/upload/presentation/upload_page.dart';
+import '../../features/settings/presentation/settings_page.dart';
 
 // ── Route path constants ─────────────────────────────────────────────
 abstract final class RoutePaths {
@@ -468,196 +483,8 @@ class AppNavigator {
       context.push(RoutePaths.shortEditorPath(projectId, shortId));
 }
 
-// ── Placeholder screens (replace with real feature pages) ───────────
-
-class SplashPage extends StatelessWidget {
-  const SplashPage({super.key});
-  @override
-  Widget build(BuildContext context) {
-    return const Scaffold(
-      body: Center(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(Icons.play_circle_fill, size: 72),
-            SizedBox(height: 16),
-            Text('AI Video Editor', style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
-            SizedBox(height: 8),
-            CircularProgressIndicator(),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class LoginPage extends StatelessWidget {
-  const LoginPage({super.key});
-  @override
-  Widget build(BuildContext context) {
-    return const _PlaceholderPage(title: 'Login', icon: Icons.login);
-  }
-}
-
-class RegisterPage extends StatelessWidget {
-  const RegisterPage({super.key});
-  @override
-  Widget build(BuildContext context) {
-    return const _PlaceholderPage(title: 'Register', icon: Icons.person_add);
-  }
-}
-
-class ProjectsListPage extends StatelessWidget {
-  const ProjectsListPage({super.key});
-  @override
-  Widget build(BuildContext context) {
-    return const _PlaceholderPage(title: 'Projects', icon: Icons.folder_open);
-  }
-}
-
-class CreateProjectPage extends StatelessWidget {
-  const CreateProjectPage({super.key});
-  @override
-  Widget build(BuildContext context) {
-    return const _PlaceholderPage(title: 'Create Project', icon: Icons.add_circle_outline);
-  }
-}
-
-class ProjectDetailPage extends StatelessWidget {
-  const ProjectDetailPage({super.key, this.projectId});
-  final String? projectId;
-  @override
-  Widget build(BuildContext context) {
-    return _PlaceholderPage(
-      title: 'Project ${projectId ?? ""}',
-      icon: Icons.movie_creation_outlined,
-    );
-  }
-}
-
-class ShortsDiscoveryPage extends StatelessWidget {
-  const ShortsDiscoveryPage({super.key, this.projectId});
-  final String? projectId;
-  @override
-  Widget build(BuildContext context) {
-    return const _PlaceholderPage(title: 'Shorts Discovery', icon: Icons.short_text);
-  }
-}
-
-class ShortPreviewPage extends StatelessWidget {
-  const ShortPreviewPage({super.key, this.projectId, this.shortId});
-  final String? projectId;
-  final String? shortId;
-  @override
-  Widget build(BuildContext context) {
-    return _PlaceholderPage(
-      title: 'Short ${shortId ?? ""}',
-      icon: Icons.play_circle_outline,
-    );
-  }
-}
-
-class EditorPage extends StatelessWidget {
-  const EditorPage({super.key, this.projectId});
-  final String? projectId;
-  @override
-  Widget build(BuildContext context) {
-    return const _PlaceholderPage(title: 'Video Editor', icon: Icons.edit_video_camera);
-  }
-}
-
-class ShortEditorPage extends StatelessWidget {
-  const ShortEditorPage({super.key, this.projectId, this.shortId});
-  final String? projectId;
-  final String? shortId;
-  @override
-  Widget build(BuildContext context) {
-    return _PlaceholderPage(
-      title: 'Short Editor ${shortId ?? ""}',
-      icon: Icons.movie_edit,
-    );
-  }
-}
-
-class LongFormBuilderPage extends StatelessWidget {
-  const LongFormBuilderPage({super.key, this.projectId});
-  final String? projectId;
-  @override
-  Widget build(BuildContext context) {
-    return const _PlaceholderPage(title: 'Long-Form Builder', icon: Icons.movie_filter);
-  }
-}
-
-class LongFormEditorPage extends StatelessWidget {
-  const LongFormEditorPage({super.key, this.projectId, this.longFormId});
-  final String? projectId;
-  final String? longFormId;
-  @override
-  Widget build(BuildContext context) {
-    return _PlaceholderPage(
-      title: 'Long-Form Editor ${longFormId ?? ""}',
-      icon: Icons.movie_creation,
-    );
-  }
-}
-
-class UploadPage extends StatelessWidget {
-  const UploadPage({super.key});
-  @override
-  Widget build(BuildContext context) {
-    return const _PlaceholderPage(
-      title: 'Upload',
-      subtitle: 'File upload & link paste',
-      icon: Icons.cloud_upload_outlined,
-    );
-  }
-}
-
-class SettingsPage extends StatelessWidget {
-  const SettingsPage({super.key});
-  @override
-  Widget build(BuildContext context) {
-    return const _PlaceholderPage(title: 'Settings', icon: Icons.settings);
-  }
-}
-
-// ── Shared placeholder ──────────────────────────────────────────────
-
-class _PlaceholderPage extends StatelessWidget {
-  const _PlaceholderPage({
-    required this.title,
-    required this.icon,
-    this.subtitle,
-  });
-
-  final String title;
-  final IconData icon;
-  final String? subtitle;
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: Text(title)),
-      body: Center(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(icon, size: 64, color: Theme.of(context).colorScheme.primary),
-            const SizedBox(height: 16),
-            Text(title, style: Theme.of(context).textTheme.headlineSmall),
-            const SizedBox(height: 8),
-            Text(
-              subtitle ?? 'Screen under construction',
-              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                    color: Colors.white54,
-                  ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
+// ── All screen widgets are now imported from their feature files ────
+// See imports at top of file.
 
 // ── Error page ──────────────────────────────────────────────────────
 

@@ -106,10 +106,10 @@ class _RegisterPageState extends State<RegisterPage> {
                           width: logoSize,
                           height: logoSize,
                           decoration: BoxDecoration(
-                            color: const Color(0xFF3B82F6).withValues(alpha: 0.15),
+                            color: const Color(0xFF3B82F6).withOpacity(0.15),
                             borderRadius: BorderRadius.circular(logoSize * 0.28),
                             border: Border.all(
-                              color: const Color(0xFF3B82F6).withValues(alpha: 0.3),
+                              color: const Color(0xFF3B82F6).withOpacity(0.3),
                               width: 1.5,
                             ),
                           ),
@@ -154,7 +154,7 @@ class _RegisterPageState extends State<RegisterPage> {
                           color: const Color(0xFF1A1A1F),
                           borderRadius: BorderRadius.circular(16),
                           border: Border.all(
-                            color: Colors.white.withValues(alpha: 0.06),
+                            color: Colors.white.withOpacity(0.06),
                             width: 1,
                           ),
                         ),
@@ -311,7 +311,7 @@ class _RegisterPageState extends State<RegisterPage> {
                                     activeColor: const Color(0xFF3B82F6),
                                     checkColor: Colors.white,
                                     side: BorderSide(
-                                      color: Colors.white.withValues(alpha: 0.2),
+                                      color: Colors.white.withOpacity(0.2),
                                     ),
                                     shape: RoundedRectangleBorder(
                                       borderRadius: BorderRadius.circular(4),
@@ -371,7 +371,7 @@ class _RegisterPageState extends State<RegisterPage> {
                                   backgroundColor: const Color(0xFF3B82F6),
                                   foregroundColor: Colors.white,
                                   disabledBackgroundColor:
-                                      const Color(0xFF3B82F6).withValues(alpha: 0.5),
+                                      const Color(0xFF3B82F6).withOpacity(0.5),
                                   shape: RoundedRectangleBorder(
                                     borderRadius: BorderRadius.circular(12),
                                   ),
@@ -504,14 +504,14 @@ class _RegisterPageState extends State<RegisterPage> {
             border: OutlineInputBorder(
               borderRadius: BorderRadius.circular(10),
               borderSide: BorderSide(
-                color: Colors.white.withValues(alpha: 0.08),
+                color: Colors.white.withOpacity(0.08),
                 width: 1,
               ),
             ),
             enabledBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(10),
               borderSide: BorderSide(
-                color: Colors.white.withValues(alpha: 0.08),
+                color: Colors.white.withOpacity(0.08),
                 width: 1,
               ),
             ),

@@ -4,16 +4,16 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:phosphor_flutter/phosphor_flutter.dart';
 import 'package:percent_indicator/circular_percent_indicator.dart';
 
-import 'package:ai_video_editor/features/dashboard/presentation/dashboard_page.dart';
-import 'package:ai_video_editor/features/projects/presentation/projects_list_page.dart';
+import 'package:ai_video_editor/features/projects/presentation/project_providers.dart';
 
 // ────────────────────────────────────────────────────────────────
 // Project detail page
 // ────────────────────────────────────────────────────────────────
 class ProjectDetailPage extends StatefulWidget {
-  final Project project;
+  final Project? project;
+  final String? projectId;
 
-  const ProjectDetailPage({super.key, required this.project});
+  const ProjectDetailPage({super.key, this.project, this.projectId});
 
   @override
   State<ProjectDetailPage> createState() => _ProjectDetailPageState();
@@ -39,7 +39,14 @@ class _ProjectDetailPageState extends State<ProjectDetailPage>
 
   @override
   Widget build(BuildContext context) {
-    final project = widget.project;
+    // If navigated with just a projectId, create a demo project
+    final project = widget.project ?? Project(
+      id: widget.projectId ?? 'unknown',
+      name: 'Project ${widget.projectId ?? ""}',
+      status: ProjectStatus.ready,
+      createdAt: DateTime.now(),
+      updatedAt: DateTime.now(),
+    );
 
     return Scaffold(
       backgroundColor: AppColors.background,
@@ -248,9 +255,9 @@ class _DetailStatusChip extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
       decoration: BoxDecoration(
-        color: _color.withValues(alpha: 0.15),
+        color: _color.withOpacity(0.15),
         borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: _color.withValues(alpha: 0.4)),
+        border: Border.all(color: _color.withOpacity(0.4)),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
@@ -331,7 +338,7 @@ class _ActionButton extends StatelessWidget {
   Widget build(BuildContext context) {
     return Expanded(
       child: Material(
-        color: color.withValues(alpha: 0.1),
+        color: color.withOpacity(0.1),
         borderRadius: BorderRadius.circular(10),
         child: InkWell(
           onTap: onTap,
@@ -340,7 +347,7 @@ class _ActionButton extends StatelessWidget {
             padding: const EdgeInsets.symmetric(vertical: 12),
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(10),
-              border: Border.all(color: color.withValues(alpha: 0.3)),
+              border: Border.all(color: color.withOpacity(0.3)),
             ),
             child: Column(
               mainAxisSize: MainAxisSize.min,
@@ -469,7 +476,7 @@ class _OverviewTab extends StatelessWidget {
                       height: 28,
                       decoration: BoxDecoration(
                         color: stage.isCompleted
-                            ? AppColors.success.withValues(alpha: 0.15)
+                            ? AppColors.success.withOpacity(0.15)
                             : AppColors.surface,
                         shape: BoxShape.circle,
                         border: Border.all(
@@ -487,7 +494,7 @@ class _OverviewTab extends StatelessWidget {
                         width: 2,
                         height: 24,
                         color: stage.isCompleted
-                            ? AppColors.success.withValues(alpha: 0.5)
+                            ? AppColors.success.withOpacity(0.5)
                             : AppColors.border,
                       ),
                   ],
@@ -616,7 +623,7 @@ class _OverviewTab extends StatelessWidget {
                   children: [
                     Icon(
                       PhosphorIconsFill.videoCamera,
-                      color: AppColors.purple.withValues(alpha: 0.6),
+                      color: AppColors.purple.withOpacity(0.6),
                       size: 24,
                     ),
                     const SizedBox(height: 6),
@@ -836,7 +843,7 @@ class _ShortsTab extends StatelessWidget {
                 ),
                 child: Icon(
                   PhosphorIconsFill.videoCamera,
-                  color: AppColors.purple.withValues(alpha: 0.5),
+                  color: AppColors.purple.withOpacity(0.5),
                 ),
               ),
               const SizedBox(width: 14),
@@ -864,7 +871,7 @@ class _ShortsTab extends StatelessWidget {
                     Container(
                       padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                       decoration: BoxDecoration(
-                        color: AppColors.success.withValues(alpha: 0.12),
+                        color: AppColors.success.withOpacity(0.12),
                         borderRadius: BorderRadius.circular(4),
                       ),
                       child: Text(
@@ -940,7 +947,7 @@ class _LongFormTab extends StatelessWidget {
                 ),
                 child: Icon(
                   PhosphorIconsFill.filmStrip,
-                  color: AppColors.accent.withValues(alpha: 0.5),
+                  color: AppColors.accent.withOpacity(0.5),
                 ),
               ),
               const SizedBox(width: 14),
@@ -1146,7 +1153,7 @@ class _EditorTab extends StatelessWidget {
               width: 80,
               height: 80,
               decoration: BoxDecoration(
-                color: AppColors.success.withValues(alpha: 0.1),
+                color: AppColors.success.withOpacity(0.1),
                 shape: BoxShape.circle,
               ),
               child: const Icon(

@@ -112,15 +112,15 @@ class _SplashPageState extends State<SplashPage> with SingleTickerProviderStateM
                           width: logoSize,
                           height: logoSize,
                           decoration: BoxDecoration(
-                            color: const Color(0xFF3B82F6).withValues(alpha: 0.15),
+                            color: const Color(0xFF3B82F6).withOpacity(0.15),
                             borderRadius: BorderRadius.circular(logoSize * 0.28),
                             border: Border.all(
-                              color: const Color(0xFF3B82F6).withValues(alpha: 0.3),
+                              color: const Color(0xFF3B82F6).withOpacity(0.3),
                               width: 1.5,
                             ),
                             boxShadow: [
                               BoxShadow(
-                                color: const Color(0xFF3B82F6).withValues(alpha: 0.2),
+                                color: const Color(0xFF3B82F6).withOpacity(0.2),
                                 blurRadius: 40,
                                 spreadRadius: 4,
                               ),
@@ -178,7 +178,7 @@ class _SplashPageState extends State<SplashPage> with SingleTickerProviderStateM
                           height: 28,
                           child: CircularProgressIndicator(
                             strokeWidth: 2.5,
-                            color: const Color(0xFF3B82F6).withValues(alpha: 0.8),
+                            color: const Color(0xFF3B82F6).withOpacity(0.8),
                           ),
                         ),
                       ),
