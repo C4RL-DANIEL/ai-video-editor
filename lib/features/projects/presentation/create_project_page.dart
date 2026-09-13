@@ -4,9 +4,9 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:phosphor_flutter/phosphor_flutter.dart';
 import 'package:file_picker/file_picker.dart';
 
-import 'package:ai_video_editor/features/dashboard/presentation/dashboard_page.dart';
+import 'package:ai_video_editor/core/theme/app_colors.dart';
+import 'package:ai_video_editor/features/projects/presentation/project_providers.dart';
 import 'package:ai_video_editor/features/projects/presentation/project_detail_page.dart';
-import 'package:ai_video_editor/features/projects/presentation/projects_list_page.dart';
 
 // ────────────────────────────────────────────────────────────────
 // Source selection enum

@@ -176,7 +176,7 @@ class TimelineClip {
 }
 
 // ─── Editor State Provider ───────────────────────────────────────────────────
-final editorStateProvider = StateNotifierProvider<EditorNotifier, EditorState>((ref) => EditorNotifier());
+final localEditorProvider = StateNotifierProvider<EditorNotifier, EditorState>((ref) => EditorNotifier());
 
 class EditorNotifier extends StateNotifier<EditorState> {
   EditorNotifier() : super(EditorState());
@@ -268,7 +268,7 @@ class EditorPage extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final state = ref.watch(editorStateProvider);
+    final state = ref.watch(localEditorProvider);
     final size = MediaQuery.of(context).size;
     final isCompact = size.width < 900;
 
@@ -368,7 +368,7 @@ class _EditorTopBar extends StatelessWidget {
 
           // Zoom Controls
           _ToolBarButton(icon: PhosphorIcons.magnifyingGlassMinus, tooltip: 'Zoom Out', onTap: () {
-            ref.read(editorStateProvider.notifier).setZoom(state.zoom - 0.25);
+            ref.read(localEditorProvider.notifier).setZoom(state.zoom - 0.25);
           }),
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 6),
@@ -378,7 +378,7 @@ class _EditorTopBar extends StatelessWidget {
             ),
           ),
           _ToolBarButton(icon: PhosphorIcons.magnifyingGlassPlus, tooltip: 'Zoom In', onTap: () {
-            ref.read(editorStateProvider.notifier).setZoom(state.zoom + 0.25);
+            ref.read(localEditorProvider.notifier).setZoom(state.zoom + 0.25);
           }),
           const SizedBox(width: 8),
           const _ToolBarDivider(),
@@ -389,7 +389,7 @@ class _EditorTopBar extends StatelessWidget {
           _ToolBarButton(
             icon: PhosphorIcons.chatsCircle,
             tooltip: 'AI Assistant',
-            onTap: () => ref.read(editorStateProvider.notifier).toggleAiChat(),
+            onTap: () => ref.read(localEditorProvider.notifier).toggleAiChat(),
             isActive: state.aiChatOpen,
           ),
           const SizedBox(width: 8),
@@ -1204,10 +1204,10 @@ class _TimelineAreaState extends State<_TimelineArea> {
                       index: index,
                       height: _trackHeight,
                       isSelected: widget.state.selectedTrack == index,
-                      onToggleVisibility: () => widget.ref.read(editorStateProvider.notifier).toggleTrackVisibility(index),
-                      onToggleLock: () => widget.ref.read(editorStateProvider.notifier).toggleTrackLock(index),
-                      onToggleMute: () => widget.ref.read(editorStateProvider.notifier).toggleTrackMute(index),
-                      onSelect: () => widget.ref.read(editorStateProvider.notifier).selectTrack(index),
+                      onToggleVisibility: () => widget.ref.read(localEditorProvider.notifier).toggleTrackVisibility(index),
+                      onToggleLock: () => widget.ref.read(localEditorProvider.notifier).toggleTrackLock(index),
+                      onToggleMute: () => widget.ref.read(localEditorProvider.notifier).toggleTrackMute(index),
+                      onSelect: () => widget.ref.read(localEditorProvider.notifier).selectTrack(index),
                     ),
                   ),
                 ),
@@ -1329,7 +1329,7 @@ class _TimelineHeader extends StatelessWidget {
               value: state.zoom,
               min: 0.25,
               max: 4.0,
-              onChanged: (v) => ref.read(editorStateProvider.notifier).setZoom(v),
+              onChanged: (v) => ref.read(localEditorProvider.notifier).setZoom(v),
               activeColor: _accentColor,
               inactiveColor: _borderColor,
             ),

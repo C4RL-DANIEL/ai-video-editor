@@ -189,7 +189,7 @@ class LongFormBuilderNotifier extends StateNotifier<LongFormBuilderState> {
       footageList.removeAt(footageIndex);
       sections[sectionIndex] = section.copyWith(
         selectedFootage: footageList,
-        estimatedDuration: max(section.estimatedDuration - 15, 0),
+        estimatedDuration: (section.estimatedDuration - 15).clamp(0.0, double.infinity),
       );
       state = state.copyWith(sections: sections);
     }

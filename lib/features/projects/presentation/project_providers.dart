@@ -7,7 +7,27 @@ import '../../../core/navigation/navigation_provider.dart';
 // Domain models
 // ═══════════════════════════════════════════════════════════════════════
 
-enum ProjectStatus { draft, processing, ready, archived }
+enum ProjectStatus {
+  draft('draft'),
+  uploaded('uploaded'),
+  analyzing('analyzing'),
+  processing('processing'),
+  ready('ready'),
+  archived('archived'),
+  completed('completed'),
+  error('error'),
+  failed('failed');
+
+  const ProjectStatus(this.value);
+  final String value;
+
+  factory ProjectStatus.fromString(String value) {
+    return ProjectStatus.values.firstWhere(
+      (e) => e.value == value,
+      orElse: () => ProjectStatus.draft,
+    );
+  }
+}
 
 class Project {
   final String id;
@@ -16,9 +36,11 @@ class Project {
   final ProjectStatus status;
   final String? thumbnailUrl;
   final DateTime createdAt;
-  final DateTime updatedAt;
+  final DateTime? updatedAt;
   final List<String> mediaIds;
   final Map<String, dynamic> metadata;
+  final int shortsCount;
+  final int longFormCount;
 
   const Project({
     required this.id,
@@ -27,9 +49,11 @@ class Project {
     this.status = ProjectStatus.draft,
     this.thumbnailUrl,
     required this.createdAt,
-    required this.updatedAt,
+    this.updatedAt,
     this.mediaIds = const [],
     this.metadata = const {},
+    this.shortsCount = 0,
+    this.longFormCount = 0,
   });
 
   Project copyWith({
@@ -39,6 +63,8 @@ class Project {
     String? thumbnailUrl,
     List<String>? mediaIds,
     Map<String, dynamic>? metadata,
+    int? shortsCount,
+    int? longFormCount,
   }) {
     return Project(
       id: id,
@@ -47,9 +73,11 @@ class Project {
       status: status ?? this.status,
       thumbnailUrl: thumbnailUrl ?? this.thumbnailUrl,
       createdAt: createdAt,
-      updatedAt: DateTime.now(),
+      updatedAt: updatedAt ?? this.updatedAt,
       mediaIds: mediaIds ?? this.mediaIds,
       metadata: metadata ?? this.metadata,
+      shortsCount: shortsCount ?? this.shortsCount,
+      longFormCount: longFormCount ?? this.longFormCount,
     );
   }
 }

@@ -1,6 +1,8 @@
 import 'dart:async';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../projects/presentation/project_providers.dart';
+
 // ═══════════════════════════════════════════════════════════════════════
 // Domain models
 // ═══════════════════════════════════════════════════════════════════════

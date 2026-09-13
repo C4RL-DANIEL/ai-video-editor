@@ -580,8 +580,10 @@ class ShortVideo {
   /// The best-scoring version.
   ShortVersion? get bestVersion {
     if (versions.isEmpty) return null;
-    return versions.where((v) => v.score != null).toList()
-      ..sort((a, b) => b.score!.compareTo(a.score!));
+    final scored = versions.where((v) => v.score != null).toList();
+    if (scored.isEmpty) return null;
+    scored.sort((a, b) => b.score!.compareTo(a.score!));
+    return scored.first;
   }
 
   /// Duration formatted as mm:ss.

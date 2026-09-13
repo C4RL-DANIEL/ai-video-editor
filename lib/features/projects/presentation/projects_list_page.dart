@@ -3,6 +3,7 @@ import 'package:flutter_animate/flutter_animate.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:phosphor_flutter/phosphor_flutter.dart';
 
+import 'package:ai_video_editor/core/theme/app_colors.dart';
 import 'package:ai_video_editor/features/projects/presentation/create_project_page.dart';
 import 'package:ai_video_editor/features/projects/presentation/project_detail_page.dart';
 import 'package:ai_video_editor/features/projects/presentation/project_providers.dart';

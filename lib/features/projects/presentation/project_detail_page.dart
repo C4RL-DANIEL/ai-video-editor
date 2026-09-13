@@ -4,6 +4,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:phosphor_flutter/phosphor_flutter.dart';
 import 'package:percent_indicator/circular_percent_indicator.dart';
 
+import 'package:ai_video_editor/core/theme/app_colors.dart';
 import 'package:ai_video_editor/features/projects/presentation/project_providers.dart';
 
 // ────────────────────────────────────────────────────────────────
