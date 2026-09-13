@@ -89,8 +89,7 @@ class _RegisterPageState extends State<RegisterPage> {
                           onTap: () => Navigator.of(context).pop(),
                           child: Padding(
                             padding: const EdgeInsets.all(8.0),
-                            child: PhosphorIcons.arrowLeft(
-                              PhosphorIconsStyle.light,
+                            child: PhosphorIconsLight.arrowLeft(
                               size: 24,
                               color: const Color(0xFFA0A0A0),
                             ),
@@ -114,8 +113,7 @@ class _RegisterPageState extends State<RegisterPage> {
                             ),
                           ),
                           child: Center(
-                            child: PhosphorIcons.filmStrip(
-                              PhosphorIconsStyle.light,
+                            child: PhosphorIconsLight.filmStrip(
                               size: logoSize * 0.45,
                               color: const Color(0xFF3B82F6),
                             ),
@@ -167,8 +165,7 @@ class _RegisterPageState extends State<RegisterPage> {
                               label: 'Full Name',
                               hint: 'John Doe',
                               keyboardType: TextInputType.name,
-                              icon: PhosphorIcons.user(
-                                PhosphorIconsStyle.light,
+                              icon: PhosphorIconsLight.user(
                                 size: 20,
                               ),
                               isTablet: isTablet,
@@ -191,8 +188,7 @@ class _RegisterPageState extends State<RegisterPage> {
                               label: 'Email',
                               hint: 'you@example.com',
                               keyboardType: TextInputType.emailAddress,
-                              icon: PhosphorIcons.envelopeSimple(
-                                PhosphorIconsStyle.light,
+                              icon: PhosphorIconsLight.envelopeSimple(
                                 size: 20,
                               ),
                               isTablet: isTablet,
@@ -216,8 +212,7 @@ class _RegisterPageState extends State<RegisterPage> {
                               label: 'Password',
                               hint: '••••••••',
                               obscureText: _obscurePassword,
-                              icon: PhosphorIcons.lockSimple(
-                                PhosphorIconsStyle.light,
+                              icon: PhosphorIconsLight.lockSimple(
                                 size: 20,
                               ),
                               isTablet: isTablet,
@@ -226,12 +221,10 @@ class _RegisterPageState extends State<RegisterPage> {
                                     setState(() => _obscurePassword = !_obscurePassword),
                                 child: Icon(
                                   _obscurePassword
-                                      ? PhosphorIcons.eyeClosed(
-                                          PhosphorIconsStyle.light,
+                                      ? PhosphorIconsLight.eyeClosed(
                                           size: 20,
                                         )
-                                      : PhosphorIcons.eye(
-                                          PhosphorIconsStyle.light,
+                                      : PhosphorIconsLight.eye(
                                           size: 20,
                                         ),
                                   color: const Color(0xFFA0A0A0),
@@ -262,8 +255,7 @@ class _RegisterPageState extends State<RegisterPage> {
                               label: 'Confirm Password',
                               hint: '••••••••',
                               obscureText: _obscureConfirmPassword,
-                              icon: PhosphorIcons.lockSimple(
-                                PhosphorIconsStyle.light,
+                              icon: PhosphorIconsLight.lockSimple(
                                 size: 20,
                               ),
                               isTablet: isTablet,
@@ -272,12 +264,10 @@ class _RegisterPageState extends State<RegisterPage> {
                                     () => _obscureConfirmPassword = !_obscureConfirmPassword),
                                 child: Icon(
                                   _obscureConfirmPassword
-                                      ? PhosphorIcons.eyeClosed(
-                                          PhosphorIconsStyle.light,
+                                      ? PhosphorIconsLight.eyeClosed(
                                           size: 20,
                                         )
-                                      : PhosphorIcons.eye(
-                                          PhosphorIconsStyle.light,
+                                      : PhosphorIconsLight.eye(
                                           size: 20,
                                         ),
                                   color: const Color(0xFFA0A0A0),

@@ -38,12 +38,12 @@ class AppwriteAuthService {
       // Auto sign-in after registration
       await signIn(email: email, password: password);
 
-      return ApiResponse.success(data: user);
+      return ApiResponse.success(user);
     } on AppwriteException catch (e) {
       debugPrint('Appwrite signUp error: ${e.message}');
       return ApiResponse.error(
+        _mapError(e.type ?? 'unknown'),
         statusCode: e.code ?? 500,
-        message: _mapError(e.type ?? 'unknown'),
       );
     }
   }
@@ -60,12 +60,12 @@ class AppwriteAuthService {
       );
 
       _current_user = await _account.get();
-      return ApiResponse.success(data: _current_user!);
+      return ApiResponse.success(_current_user!);
     } on AppwriteException catch (e) {
       debugPrint('Appwrite signIn error: ${e.message}');
       return ApiResponse.error(
+        _mapError(e.type ?? 'unknown'),
         statusCode: e.code ?? 500,
-        message: _mapError(e.type ?? 'unknown'),
       );
     }
   }
@@ -75,12 +75,12 @@ class AppwriteAuthService {
     try {
       final user = await _account.createAnonymousSession();
       _current_user = await _account.get();
-      return ApiResponse.success(data: _current_user!);
+      return ApiResponse.success(_current_user!);
     } on AppwriteException catch (e) {
       debugPrint('Appwrite anonymous sign-in error: ${e.message}');
       return ApiResponse.error(
+        _mapError(e.type ?? 'unknown'),
         statusCode: e.code ?? 500,
-        message: _mapError(e.type ?? 'unknown'),
       );
     }
   }
@@ -90,12 +90,12 @@ class AppwriteAuthService {
     try {
       await _account.deleteSession(sessionId: 'current');
       _current_user = null;
-      return ApiResponse.success(data: null);
+      return ApiResponse.success(null);
     } on AppwriteException catch (e) {
       debugPrint('Appwrite signOut error: ${e.message}');
       return ApiResponse.error(
+        _mapError(e.type ?? 'unknown'),
         statusCode: e.code ?? 500,
-        message: _mapError(e.type ?? 'unknown'),
       );
     }
   }
@@ -107,12 +107,12 @@ class AppwriteAuthService {
         email: email,
         url: 'https://your-app.com/reset-password',
       );
-      return ApiResponse.success(data: null);
+      return ApiResponse.success(null);
     } on AppwriteException catch (e) {
       debugPrint('Appwrite resetPassword error: ${e.message}');
       return ApiResponse.error(
+        _mapError(e.type ?? 'unknown'),
         statusCode: e.code ?? 500,
-        message: _mapError(e.type ?? 'unknown'),
       );
     }
   }
@@ -132,12 +132,12 @@ class AppwriteAuthService {
         await _account.updatePrefs(prefs: {'photoUrl': photoUrl});
       }
       _current_user = await _account.get();
-      return ApiResponse.success(data: _current_user!);
+      return ApiResponse.success(_current_user!);
     } on AppwriteException catch (e) {
       debugPrint('Appwrite updateProfile error: ${e.message}');
       return ApiResponse.error(
+        _mapError(e.type ?? 'unknown'),
         statusCode: e.code ?? 500,
-        message: _mapError(e.type ?? 'unknown'),
       );
     }
   }

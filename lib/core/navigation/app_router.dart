@@ -6,7 +6,6 @@ import 'package:go_router/go_router.dart';
 import '../../features/splash/presentation/splash_page.dart';
 import '../../features/auth/presentation/login_page.dart';
 import '../../features/auth/presentation/register_page.dart';
-import '../../features/dashboard/presentation/dashboard_page.dart';
 import '../../features/projects/presentation/projects_list_page.dart';
 import '../../features/projects/presentation/project_detail_page.dart';
 import '../../features/projects/presentation/create_project_page.dart';
@@ -337,7 +336,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
                     path: ':id',
                     name: RouteNames.projectDetail,
                     builder: (context, state) => ProjectDetailPage(
-                      projectId: state.pathParameters['id'],
+                      projectId: state.pathParameters['id'] ?? '',
                     ),
                     routes: [
                       // ── Shorts ────────────────────────────
@@ -345,7 +344,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
                         path: 'shorts',
                         name: RouteNames.shorts,
                         builder: (context, state) => ShortsDiscoveryPage(
-                          projectId: state.pathParameters['id'],
+                          projectId: state.pathParameters['id'] ?? '',
                         ),
                         routes: [
                           GoRoute(
@@ -356,8 +355,8 @@ final appRouterProvider = Provider<GoRouter>((ref) {
                               context,
                               state,
                               ShortPreviewPage(
-                                projectId: state.pathParameters['id'],
-                                shortId: state.pathParameters['shortId'],
+                                projectId: state.pathParameters['id'] ?? '',
+                                shortId: state.pathParameters['shortId'] ?? '',
                               ),
                             ),
                           ),
@@ -369,7 +368,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
                         path: 'editor',
                         name: RouteNames.editor,
                         builder: (context, state) => EditorPage(
-                          projectId: state.pathParameters['id'],
+                          projectId: state.pathParameters['id'] ?? '',
                         ),
                         routes: [
                           GoRoute(
@@ -381,8 +380,8 @@ final appRouterProvider = Provider<GoRouter>((ref) {
                               context,
                               state,
                               ShortEditorPage(
-                                projectId: state.pathParameters['id'],
-                                shortId: state.pathParameters['shortId'],
+                                projectId: state.pathParameters['id'] ?? '',
+                                shortId: state.pathParameters['shortId'] ?? '',
                               ),
                             ),
                           ),
@@ -394,7 +393,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
                         path: 'longform',
                         name: RouteNames.longForm,
                         builder: (context, state) => LongFormBuilderPage(
-                          projectId: state.pathParameters['id'],
+                          projectId: state.pathParameters['id'] ?? '',
                         ),
                         routes: [
                           GoRoute(
@@ -406,8 +405,8 @@ final appRouterProvider = Provider<GoRouter>((ref) {
                               context,
                               state,
                               LongFormEditorPage(
-                                projectId: state.pathParameters['id'],
-                                longFormId: state.pathParameters['longFormId'],
+                                projectId: state.pathParameters['id'] ?? '',
+                                longFormId: state.pathParameters['longFormId'] ?? '',
                               ),
                             ),
                           ),

@@ -683,7 +683,7 @@ class _ContentMapPageState extends State<ContentMapPage> {
             child: Row(
               children: [
                 const PhosphorIcon(
-                  PhosphorIconsLight.transcription,
+                  PhosphorIconsLight.textAlignLeft,
                   color: AppColors.textSecondary,
                   size: 18,
                 ),

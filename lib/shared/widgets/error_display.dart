@@ -29,7 +29,7 @@ class ErrorDisplay extends StatelessWidget {
         details = details ?? 'Please check your connection and try again.',
         retryLabel = 'Retry',
         onRetry = onRetry,
-        icon = PhosphorIcons.wifiSlash,
+        icon = PhosphorIconsRegular.wifiSlash,
         super(key: key);
 
   /// Generic error.
@@ -42,7 +42,7 @@ class ErrorDisplay extends StatelessWidget {
         details = details,
         retryLabel = 'Retry',
         onRetry = onRetry,
-        icon = PhosphorIcons.warningCircle,
+        icon = PhosphorIconsRegular.warningCircle,
         super(key: key);
 
   /// Server error.
@@ -54,7 +54,7 @@ class ErrorDisplay extends StatelessWidget {
         details = details ?? 'The server is unavailable. Please try again later.',
         retryLabel = 'Retry',
         onRetry = onRetry,
-        icon = PhosphorIcons.server,
+        icon = PhosphorIconsRegular.cloud,
         super(key: key);
 
   @override
@@ -78,7 +78,7 @@ class ErrorDisplay extends StatelessWidget {
               ),
               child: Center(
                 child: Icon(
-                  icon ?? PhosphorIcons.warningCircle,
+                  icon ?? PhosphorIconsRegular.warningCircle,
                   size: 32,
                   color: const Color(0xFFEF4444),
                 ),
@@ -118,7 +118,7 @@ class ErrorDisplay extends StatelessWidget {
               AppButton.outline(
                 label: retryLabel!,
                 icon: const Icon(
-                  PhosphorIcons.arrowClockwise,
+                  PhosphorIconsRegular.arrowClockwise,
                   size: 16,
                   color: Color(0xFFA0A0A0),
                 ),

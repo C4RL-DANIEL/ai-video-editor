@@ -1,4 +1,3 @@
-import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
@@ -59,10 +58,8 @@ class NavigationState {
 
 class NavigationNotifier extends StateNotifier<NavigationState> {
   final GoRouter _router;
-  late final GoRouterObserver _observer;
 
   NavigationNotifier(this._router) : super(const NavigationState(location: '/')) {
-    _observer = _AppRouterObserver(_onRouteChanged);
     _router.routerDelegate.addListener(_onRouteChanged);
     // Capture initial route
     _onRouteChanged();
@@ -82,7 +79,6 @@ class NavigationNotifier extends StateNotifier<NavigationState> {
       location: location,
       name: name,
       pathParameters: Map.from(matchList.pathParameters),
-      queryParameters: Map.from(matchList.queryParameters),
     );
   }
 
@@ -136,30 +132,4 @@ final currentRouteNameProvider = Provider<String>((ref) {
   return ref.watch(navigationStateProvider).name;
 });
 
-// ── Observer (internal) ─────────────────────────────────────────────
 
-class _AppRouterObserver extends GoRouterObserver {
-  final VoidCallback onChange;
-
-  _AppRouterObserver(this.onChange);
-
-  @override
-  void didPush(Route<dynamic> route, Route<dynamic>? previousRoute) {
-    onChange();
-  }
-
-  @override
-  void didPop(Route<dynamic> route, Route<dynamic>? previousRoute) {
-    onChange();
-  }
-
-  @override
-  void didReplace({Route<dynamic>? newRoute, Route<dynamic>? oldRoute}) {
-    onChange();
-  }
-
-  @override
-  void didRemove(Route<dynamic> route, Route<dynamic>? previousRoute) {
-    onChange();
-  }
-}

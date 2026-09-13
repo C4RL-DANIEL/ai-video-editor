@@ -1,18 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:appwrite/appwrite.dart';
 
-import 'config/appwrite_config.dart';
 import 'core/navigation/app_router.dart';
-import 'core/services/appwrite_initializer.dart';
 import 'core/theme/app_theme.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-
-  // Initialize Appwrite and auto-create collections on first launch
-  final client = createAppwriteClient();
-  await AppwriteInitializer.initialize(client);
 
   runApp(const ProviderScope(child: AiVideoEditorApp()));
 }

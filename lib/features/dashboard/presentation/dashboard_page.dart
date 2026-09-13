@@ -23,7 +23,7 @@ class DashboardPage extends StatefulWidget {
 class _DashboardPageState extends State<DashboardPage> {
   int _currentIndex = 0;
 
-  final List<_TabItem> _tabs = const [
+  final List<_TabItem> _tabs = [
     _TabItem(
       label: 'Projects',
       icon: PhosphorIconsRegular.folder,
@@ -79,7 +79,7 @@ class _DashboardPageState extends State<DashboardPage> {
               height: 32,
               decoration: BoxDecoration(
                 gradient: const LinearGradient(
-                  colors: [AppColors.accent, AppColors.purple],
+                  colors: [AppColors.accent, AppColors.accentSecondary],
                   begin: Alignment.topLeft,
                   end: Alignment.bottomRight,
                 ),

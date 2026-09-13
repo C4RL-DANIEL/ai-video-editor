@@ -75,7 +75,7 @@ abstract final class AppTheme {
         ),
 
         // ----- Card -----
-        cardTheme: CardThemeData(
+        cardTheme: CardTheme(
           color: AppColors.surface,
           elevation: 0,
           margin: EdgeInsets.zero,
@@ -230,7 +230,7 @@ abstract final class AppTheme {
         ),
 
         // ----- Dialog -----
-        dialogTheme: DialogThemeData(
+        dialogTheme: DialogTheme(
           backgroundColor: AppColors.backgroundTertiary,
           elevation: 24,
           shape: RoundedRectangleBorder(
@@ -299,7 +299,7 @@ abstract final class AppTheme {
         ),
 
         // ----- TabBar -----
-        tabBarTheme: TabBarThemeData(
+        tabBarTheme: TabBarTheme(
           labelColor: AppColors.accent,
           unselectedLabelColor: AppColors.textTertiary,
           labelStyle: AppTypography.labelLarge,
@@ -520,7 +520,7 @@ abstract final class AppTheme {
           elevation: 0,
         ),
 
-        cardTheme: CardThemeData(
+        cardTheme: CardTheme(
           color: AppColors.white,
           elevation: 0,
           margin: EdgeInsets.zero,
@@ -625,7 +625,7 @@ abstract final class AppTheme {
           space: 0,
         ),
 
-        dialogTheme: DialogThemeData(
+        dialogTheme: DialogTheme(
           backgroundColor: AppColors.white,
           elevation: 24,
           shape: RoundedRectangleBorder(
@@ -669,7 +669,7 @@ abstract final class AppTheme {
           circularTrackColor: AppColors.gray200,
         ),
 
-        tabBarTheme: TabBarThemeData(
+        tabBarTheme: TabBarTheme(
           labelColor: AppColors.blue600,
           unselectedLabelColor: AppColors.gray500,
           labelStyle: AppTypography.labelLarge,

@@ -100,7 +100,7 @@ class VideoThumbnail extends StatelessWidget {
                     ),
                     child: const Center(
                       child: Icon(
-                        PhosphorIcons.play,
+                        PhosphorIconsRegular.play,
                         color: Colors.white,
                         size: 20,
                       ),
@@ -144,7 +144,7 @@ class VideoThumbnail extends StatelessWidget {
       color: const Color(0xFF1A1A1F),
       child: const Center(
         child: Icon(
-          PhosphorIcons.filmStrip,
+          PhosphorIconsRegular.filmStrip,
           color: Color(0xFF6B6B6B),
           size: 32,
         ),

@@ -194,7 +194,7 @@ class ShortEditorPage extends ConsumerWidget {
         backgroundColor: _surfaceColor,
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(PhosphorIcons.arrowLeft, size: 18),
+          icon: const Icon(PhosphorIconsRegular.arrowLeft, size: 18),
           color: _textSecondary,
           onPressed: () => Navigator.of(context).pop(),
         ),
@@ -215,7 +215,7 @@ class ShortEditorPage extends ConsumerWidget {
         actions: [
           // Before/After Toggle
           _AppBarButton(
-            icon: PhosphorIcons.arrowBendDoubleUpLeft,
+            icon: PhosphorIconsRegular.arrowBendDoubleUpLeft,
             label: 'A/B',
             isActive: state.showBeforeAfter,
             onTap: () => ref.read(shortEditorProvider.notifier).toggleBeforeAfter(),
@@ -224,7 +224,7 @@ class ShortEditorPage extends ConsumerWidget {
 
           // Regenerate
           _AppBarButton(
-            icon: PhosphorIcons.arrowsClockwise,
+            icon: PhosphorIconsRegular.arrowsClockwise,
             label: 'Regenerate',
             isActive: false,
             onTap: () => ref.read(shortEditorProvider.notifier).regenerate(),
@@ -244,7 +244,7 @@ class ShortEditorPage extends ConsumerWidget {
             child: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
-                const Icon(PhosphorIcons.export, size: 14, color: Colors.white),
+                const Icon(PhosphorIconsRegular.export, size: 14, color: Colors.white),
                 const SizedBox(width: 6),
                 Text('Export Short', style: GoogleFonts.inter(color: Colors.white, fontSize: 12, fontWeight: FontWeight.w600)),
               ],
@@ -337,7 +337,7 @@ class _PreviewArea extends StatelessWidget {
                         child: Column(
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
-                            Icon(PhosphorIcons.playCircle, size: 32, color: _textMuted),
+                            Icon(PhosphorIconsRegular.playCircle, size: 32, color: _textMuted),
                             const SizedBox(height: 8),
                             Text('BEFORE', style: GoogleFonts.inter(color: _textMuted, fontSize: 10, fontWeight: FontWeight.w600)),
                           ],
@@ -357,7 +357,7 @@ class _PreviewArea extends StatelessWidget {
                         child: Column(
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
-                            Icon(PhosphorIcons.playCircle, size: 32, color: _accentColor),
+                            Icon(PhosphorIconsRegular.playCircle, size: 32, color: _accentColor),
                             const SizedBox(height: 8),
                             Text('AFTER', style: GoogleFonts.inter(color: _accentColor, fontSize: 10, fontWeight: FontWeight.w600)),
                           ],
@@ -371,7 +371,7 @@ class _PreviewArea extends StatelessWidget {
                 Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    Icon(PhosphorIcons.filmSlate, size: 40, color: _textMuted),
+                    Icon(PhosphorIconsRegular.filmSlate, size: 40, color: _textMuted),
                     const SizedBox(height: 8),
                     Text('9:16 Preview', style: GoogleFonts.inter(color: _textMuted, fontSize: 12)),
                     const SizedBox(height: 4),
@@ -507,7 +507,7 @@ class _HookTab extends StatelessWidget {
     return ListView(
       padding: const EdgeInsets.all(16),
       children: [
-        _SectionHeader(title: 'Hook Text', icon: PhosphorIcons.fishHook),
+        _SectionHeader(title: 'Hook Text', icon: PhosphorIconsRegular.hook),
         const SizedBox(height: 12),
 
         // Hook text input
@@ -544,7 +544,7 @@ class _HookTab extends StatelessWidget {
         const SizedBox(height: 16),
 
         // Quick presets
-        _SectionHeader(title: 'Quick Presets', icon: PhosphorIcons.lightning),
+        _SectionHeader(title: 'Quick Presets', icon: PhosphorIconsRegular.lightning),
         const SizedBox(height: 8),
         Wrap(
           spacing: 8,
@@ -573,7 +573,7 @@ class _CaptionsTab extends StatelessWidget {
     return ListView(
       padding: const EdgeInsets.all(16),
       children: [
-        _SectionHeader(title: 'Caption Style', icon: PhosphorIcons.subtitles),
+        _SectionHeader(title: 'Caption Style', icon: PhosphorIconsRegular.subtitles),
         const SizedBox(height: 12),
 
         _DropdownControl(
@@ -619,7 +619,7 @@ class _CaptionsTab extends StatelessWidget {
         const SizedBox(height: 16),
 
         // Color picker row
-        _SectionHeader(title: 'Color', icon: PhosphorIcons.paintBucket),
+        _SectionHeader(title: 'Color', icon: PhosphorIconsRegular.paintBucket),
         const SizedBox(height: 8),
         Row(
           children: [
@@ -657,7 +657,7 @@ class _EffectsTab extends StatelessWidget {
     return ListView(
       padding: const EdgeInsets.all(16),
       children: [
-        _SectionHeader(title: 'Visual Effects', icon: PhosphorIcons.sparkle),
+        _SectionHeader(title: 'Visual Effects', icon: PhosphorIconsRegular.sparkle),
         const SizedBox(height: 12),
 
         _SliderControl(
@@ -681,7 +681,7 @@ class _EffectsTab extends StatelessWidget {
         const SizedBox(height: 16),
 
         // Toggle effects
-        _SectionHeader(title: 'Toggles', icon: PhosphorIcons.toggleRight),
+        _SectionHeader(title: 'Toggles', icon: PhosphorIconsRegular.toggleRight),
         const SizedBox(height: 8),
         _ToggleRow(
           label: 'Freeze Frame',
@@ -713,7 +713,7 @@ class _AudioTab extends StatelessWidget {
     return ListView(
       padding: const EdgeInsets.all(16),
       children: [
-        _SectionHeader(title: 'Audio Levels', icon: PhosphorIcons.speakerHigh),
+        _SectionHeader(title: 'Audio Levels', icon: PhosphorIconsRegular.speakerHigh),
         const SizedBox(height: 12),
 
         _SliderControl(
@@ -768,15 +768,15 @@ class _SfxTab extends StatelessWidget {
     return ListView(
       padding: const EdgeInsets.all(16),
       children: [
-        _SectionHeader(title: 'Sound Effects', icon: PhosphorIcons.speakerHigh),
+        _SectionHeader(title: 'Sound Effects', icon: PhosphorIconsRegular.speakerHigh),
         const SizedBox(height: 12),
 
         // SFX items
-        _SfxItem(name: 'Whoosh', time: '00:02', icon: PhosphorIcons.wind),
-        _SfxItem(name: 'Impact Boom', time: '00:08', icon: PhosphorIcons.explosion),
-        _SfxItem(name: 'Ding', time: '00:15', icon: PhosphorIcons.bell),
-        _SfxItem(name: 'Crowd Ooh', time: '00:22', icon: PhosphorIcons.users),
-        _SfxItem(name: 'Record Scratch', time: '00:30', icon: PhosphorIcons.record),
+        _SfxItem(name: 'Whoosh', time: '00:02', icon: PhosphorIconsRegular.wind),
+        _SfxItem(name: 'Impact Boom', time: '00:08', icon: PhosphorIconsRegular.warning),
+        _SfxItem(name: 'Ding', time: '00:15', icon: PhosphorIconsRegular.bell),
+        _SfxItem(name: 'Crowd Ooh', time: '00:22', icon: PhosphorIconsRegular.users),
+        _SfxItem(name: 'Record Scratch', time: '00:30', icon: PhosphorIconsRegular.record),
 
         const SizedBox(height: 16),
         Container(
@@ -789,7 +789,7 @@ class _SfxTab extends StatelessWidget {
           child: Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Icon(PhosphorIcons.plus, size: 16, color: _accentColor),
+              Icon(PhosphorIconsRegular.plus, size: 16, color: _accentColor),
               const SizedBox(width: 8),
               Text('Add SFX', style: GoogleFonts.inter(color: _accentColor, fontSize: 12, fontWeight: FontWeight.w600)),
             ],
@@ -811,7 +811,7 @@ class _OverridesTab extends StatelessWidget {
     return ListView(
       padding: const EdgeInsets.all(16),
       children: [
-        _SectionHeader(title: 'AI Decision Overrides', icon: PhosphorIcons.brain),
+        _SectionHeader(title: 'AI Decision Overrides', icon: PhosphorIconsRegular.brain),
         const SizedBox(height: 4),
         Text(
           'Override AI-generated decisions for specific aspects.',
@@ -868,12 +868,12 @@ class _MiniTimeline extends StatelessWidget {
         children: [
           Row(
             children: [
-              Icon(PhosphorIcons.filmStrip, size: 10, color: _textMuted),
+              Icon(PhosphorIconsRegular.filmStrip, size: 10, color: _textMuted),
               const SizedBox(width: 4),
               Text('Timeline', style: GoogleFonts.inter(color: _textMuted, fontSize: 9)),
               const Spacer(),
               // Playback controls
-              Icon(PhosphorIcons.skipBack, size: 10, color: _textSecondary),
+              Icon(PhosphorIconsRegular.skipBack, size: 10, color: _textSecondary),
               const SizedBox(width: 4),
               Container(
                 width: 20,
@@ -882,10 +882,10 @@ class _MiniTimeline extends StatelessWidget {
                   color: _accentColor,
                   shape: BoxShape.circle,
                 ),
-                child: const Icon(PhosphorIcons.play, size: 8, color: Colors.white),
+                child: const Icon(PhosphorIconsRegular.play, size: 8, color: Colors.white),
               ),
               const SizedBox(width: 4),
-              Icon(PhosphorIcons.skipForward, size: 10, color: _textSecondary),
+              Icon(PhosphorIconsRegular.skipForward, size: 10, color: _textSecondary),
             ],
           ),
           const SizedBox(height: 4),
@@ -1093,7 +1093,7 @@ class _ToggleRow extends StatelessWidget {
                 ],
               ),
             ),
-            Icon(value ? PhosphorIcons.toggleRight : PhosphorIcons.toggleLeft, size: 24, color: value ? color : _textMuted),
+            Icon(value ? PhosphorIconsRegular.toggleRight : PhosphorIconsRegular.toggleLeft, size: 24, color: value ? color : _textMuted),
           ],
         ),
       ),
@@ -1190,7 +1190,7 @@ class _SfxItem extends StatelessWidget {
             child: Text(time, style: GoogleFonts.inter(color: _textMuted, fontSize: 10)),
           ),
           const SizedBox(width: 8),
-          Icon(PhosphorIcons.gear, size: 12, color: _textMuted),
+          Icon(PhosphorIconsRegular.gear, size: 12, color: _textMuted),
         ],
       ),
     );
@@ -1222,7 +1222,7 @@ class _OverrideRow extends StatelessWidget {
           children: [
             Row(
               children: [
-                Icon(PhosphorIcons.brain, size: 12, color: enabled ? _purpleColor : _textMuted),
+                Icon(PhosphorIconsRegular.brain, size: 12, color: enabled ? _purpleColor : _textMuted),
                 const SizedBox(width: 6),
                 Text(label, style: GoogleFonts.inter(color: _textPrimary, fontSize: 12, fontWeight: FontWeight.w500)),
                 const Spacer(),

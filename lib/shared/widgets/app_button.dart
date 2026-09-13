@@ -253,7 +253,7 @@ class _AppButtonState extends State<AppButton> {
           duration: const Duration(milliseconds: 150),
           constraints: BoxConstraints(
             minHeight: minHeight,
-            minWidth: widget.width,
+            minWidth: widget.width ?? 0,
           ),
           padding: padding,
           decoration: BoxDecoration(

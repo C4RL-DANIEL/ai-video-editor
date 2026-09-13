@@ -64,6 +64,10 @@ class _AppTextFieldState extends State<AppTextField> {
   late bool _obscureText;
   late FocusNode _focusNode;
   bool _isFocused = false;
+  TextEditingController? _internalController;
+
+  TextEditingController get _effectiveController =>
+      widget.controller ?? _internalController!;
 
   @override
   void initState() {
@@ -71,6 +75,11 @@ class _AppTextFieldState extends State<AppTextField> {
     _obscureText = widget.obscureText;
     _focusNode = widget.focusNode ?? FocusNode();
     _focusNode.addListener(_onFocusChange);
+    if (widget.controller == null && widget.initialValue != null) {
+      _internalController = TextEditingController(text: widget.initialValue);
+    } else if (widget.controller == null) {
+      _internalController = TextEditingController();
+    }
   }
 
   @override
@@ -78,6 +87,7 @@ class _AppTextFieldState extends State<AppTextField> {
     if (widget.focusNode == null) {
       _focusNode.dispose();
     }
+    _internalController?.dispose();
     super.dispose();
   }
 
@@ -126,14 +136,13 @@ class _AppTextFieldState extends State<AppTextField> {
             ],
           ),
           child: TextField(
-            controller: widget.controller,
+            controller: _effectiveController,
             focusNode: _focusNode,
             keyboardType: widget.keyboardType,
             textInputAction: widget.textInputAction,
             onChanged: widget.onChanged,
             onEditingComplete: widget.onEditingComplete,
             onSubmitted: widget.onSubmitted,
-            initialValue: widget.initialValue,
             maxLength: widget.maxLength,
             readOnly: widget.readOnly,
             onTap: widget.onTap,

@@ -215,7 +215,7 @@ abstract final class AppColors {
   static const Color timelineAudio = purple500;
   static const Color timelineCaption = green500;
   static const Color timelineEffect = amber500;
-  static const Color timelineSfx = const Color(0xFF06B6D4);
+  static const Color timelineSfx = Color(0xFF06B6D4);
   static const Color playhead = blue500;
 
   /// Returns a [MaterialColor] swatch derived from the primary blue accent.

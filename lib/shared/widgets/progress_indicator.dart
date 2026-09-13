@@ -184,12 +184,12 @@ class SteppedProgressIndicator extends StatelessWidget {
   ];
 
   static const List<PhosphorIconData> _stageIcons = [
-    PhosphorIcons.uploadSimple,
-    PhosphorIcons.brain,
-    PhosphorIcons.magnifyingGlass,
-    PhosphorIcons.pencilSimple,
-    PhosphorIcons.filmStrip,
-    PhosphorIcons.checkCircle,
+    PhosphorIconsRegular.uploadSimple,
+    PhosphorIconsRegular.brain,
+    PhosphorIconsRegular.magnifyingGlass,
+    PhosphorIconsRegular.pencilSimple,
+    PhosphorIconsRegular.filmStrip,
+    PhosphorIconsRegular.checkCircle,
   ];
 
   @override
@@ -286,7 +286,7 @@ class SteppedProgressIndicator extends StatelessWidget {
           child: Center(
             child: isCompleted
                 ? Icon(
-                    PhosphorIcons.check,
+                    PhosphorIconsRegular.check,
                     size: 16,
                     color: iconColor,
                   )

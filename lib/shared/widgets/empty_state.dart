@@ -28,7 +28,7 @@ class EmptyState extends StatelessWidget {
   const EmptyState.noProjects({
     Key? key,
     VoidCallback? onAction,
-  })  : icon = PhosphorIcons.folderOpen,
+  })  : icon = PhosphorIconsRegular.folderOpen,
         title = 'No projects yet',
         description = 'Create your first project to get started with AI-powered video editing.',
         actionLabel = 'Create Project',
@@ -42,7 +42,7 @@ class EmptyState extends StatelessWidget {
     Key? key,
     String? customTitle,
     String? customDescription,
-  })  : icon = PhosphorIcons.magnifyingGlass,
+  })  : icon = PhosphorIconsRegular.magnifyingGlass,
         title = customTitle ?? 'No results found',
         description = customDescription ?? 'Try adjusting your search or filters.',
         actionLabel = null,
@@ -55,7 +55,7 @@ class EmptyState extends StatelessWidget {
   const EmptyState.noMedia({
     Key? key,
     VoidCallback? onAction,
-  })  : icon = PhosphorIcons.filmStrip,
+  })  : icon = PhosphorIconsRegular.filmStrip,
         title = 'No media uploaded',
         description = 'Upload videos to start editing with AI assistance.',
         actionLabel = 'Upload Video',

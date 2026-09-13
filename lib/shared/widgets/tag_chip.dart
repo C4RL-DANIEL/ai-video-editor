@@ -135,7 +135,7 @@ class TagChip extends StatelessWidget {
             GestureDetector(
               onTap: onRemove,
               child: Icon(
-                PhosphorIcons.x,
+                PhosphorIconsRegular.x,
                 size: 12,
                 color: tagColor.withOpacity(0.7),
               ),

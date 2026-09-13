@@ -48,12 +48,12 @@ class AppwriteDatabaseService {
           Permission.write(Role.any()),
         ],
       );
-      return ApiResponse.success(data: doc.$id);
+      return ApiResponse.success(doc.$id);
     } on AppwriteException catch (e) {
       debugPrint('Appwrite createProject error: ${e.message}');
       return ApiResponse.error(
+        'Failed to create project: ${e.message}',
         statusCode: e.code ?? 500,
-        message: 'Failed to create project: ${e.message}',
       );
     }
   }
@@ -66,12 +66,12 @@ class AppwriteDatabaseService {
         collectionId: AppwriteConfig.projectsCollectionId,
         documentId: id,
       );
-      return ApiResponse.success(data: doc.data);
+      return ApiResponse.success(doc.data);
     } on AppwriteException catch (e) {
       debugPrint('Appwrite getProject error: ${e.message}');
       return ApiResponse.error(
+        'Failed to get project: ${e.message}',
         statusCode: e.code ?? 500,
-        message: 'Failed to get project: ${e.message}',
       );
     }
   }
@@ -92,13 +92,13 @@ class AppwriteDatabaseService {
         ],
       );
       return ApiResponse.success(
-        data: result.documents.map((d) => d.data).toList(),
+        result.documents.map((d) => d.data).toList(),
       );
     } on AppwriteException catch (e) {
       debugPrint('Appwrite listProjects error: ${e.message}');
       return ApiResponse.error(
+        'Failed to list projects: ${e.message}',
         statusCode: e.code ?? 500,
-        message: 'Failed to list projects: ${e.message}',
       );
     }
   }
@@ -116,12 +116,12 @@ class AppwriteDatabaseService {
         documentId: id,
         data: data,
       );
-      return ApiResponse.success(data: null);
+      return ApiResponse.success(null);
     } on AppwriteException catch (e) {
       debugPrint('Appwrite updateProject error: ${e.message}');
       return ApiResponse.error(
+        'Failed to update project: ${e.message}',
         statusCode: e.code ?? 500,
-        message: 'Failed to update project: ${e.message}',
       );
     }
   }
@@ -134,12 +134,12 @@ class AppwriteDatabaseService {
         collectionId: AppwriteConfig.projectsCollectionId,
         documentId: id,
       );
-      return ApiResponse.success(data: null);
+      return ApiResponse.success(null);
     } on AppwriteException catch (e) {
       debugPrint('Appwrite deleteProject error: ${e.message}');
       return ApiResponse.error(
+        'Failed to delete project: ${e.message}',
         statusCode: e.code ?? 500,
-        message: 'Failed to delete project: ${e.message}',
       );
     }
   }
@@ -177,11 +177,11 @@ class AppwriteDatabaseService {
           Permission.write(Role.any()),
         ],
       );
-      return ApiResponse.success(data: doc.$id);
+      return ApiResponse.success(doc.$id);
     } on AppwriteException catch (e) {
       return ApiResponse.error(
+        'Failed to create short: ${e.message}',
         statusCode: e.code ?? 500,
-        message: 'Failed to create short: ${e.message}',
       );
     }
   }
@@ -200,12 +200,12 @@ class AppwriteDatabaseService {
         ],
       );
       return ApiResponse.success(
-        data: result.documents.map((d) => d.data).toList(),
+        result.documents.map((d) => d.data).toList(),
       );
     } on AppwriteException catch (e) {
       return ApiResponse.error(
+        'Failed to list shorts: ${e.message}',
         statusCode: e.code ?? 500,
-        message: 'Failed to list shorts: ${e.message}',
       );
     }
   }
@@ -222,11 +222,11 @@ class AppwriteDatabaseService {
         documentId: id,
         data: data,
       );
-      return ApiResponse.success(data: null);
+      return ApiResponse.success(null);
     } on AppwriteException catch (e) {
       return ApiResponse.error(
+        'Failed to update short: ${e.message}',
         statusCode: e.code ?? 500,
-        message: 'Failed to update short: ${e.message}',
       );
     }
   }
@@ -251,11 +251,11 @@ class AppwriteDatabaseService {
           Permission.write(Role.any()),
         ],
       );
-      return ApiResponse.success(data: doc.$id);
+      return ApiResponse.success(doc.$id);
     } on AppwriteException catch (e) {
       return ApiResponse.error(
+        'Failed to create document: ${e.message}',
         statusCode: e.code ?? 500,
-        message: 'Failed to create document: ${e.message}',
       );
     }
   }
@@ -272,12 +272,12 @@ class AppwriteDatabaseService {
         queries: queries,
       );
       return ApiResponse.success(
-        data: result.documents.map((d) => d.data).toList(),
+        result.documents.map((d) => d.data).toList(),
       );
     } on AppwriteException catch (e) {
       return ApiResponse.error(
+        'Failed to list documents: ${e.message}',
         statusCode: e.code ?? 500,
-        message: 'Failed to list documents: ${e.message}',
       );
     }
   }

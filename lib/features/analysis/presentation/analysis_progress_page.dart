@@ -504,7 +504,7 @@ class _AnalysisProgressPageState extends State<AnalysisProgressPage>
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  const PhosphorIcon(PhosphorIconsLight.minimize, size: 18),
+                  const PhosphorIcon(PhosphorIconsLight.arrowsIn, size: 18),
                   const SizedBox(width: 8),
                   Text(
                     'View in Background',

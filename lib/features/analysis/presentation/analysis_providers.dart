@@ -217,16 +217,17 @@ final viralMomentsProvider = Provider<List<ViralMoment>>((ref) {
   return analysis.whenOrNull(
     data: (data) {
       if (data == null) return <ViralMoment>[];
-      return data.viralMoments.where((m) {
+      final moments = data.viralMoments.where((m) {
         if (m.viralityScore < filter.minScore) return false;
         if (filter.tagFilter != null && filter.tagFilter!.isNotEmpty) {
           return m.tags.contains(filter.tagFilter);
         }
         return true;
-      }).toList()
-        ..sort((a, b) => b.viralityScore.compareTo(a.viralityScore));
+      }).toList();
+      moments.sort((a, b) => b.viralityScore.compareTo(a.viralityScore));
+      return moments;
     },
-  );
+  ) ?? <ViralMoment>[];
 });
 
 /// Derived: transcript from the completed analysis.

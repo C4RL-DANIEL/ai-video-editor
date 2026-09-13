@@ -47,7 +47,7 @@ class EditorState {
   static List<TimelineTrack> get _defaultTracks => [
     TimelineTrack(
       name: 'Video',
-      icon: PhosphorIcons.videoCamera,
+      icon: PhosphorIconsRegular.videoCamera,
       color: _accentColor,
       clips: [
         TimelineClip(id: 'v1', name: 'Intro', start: 0, duration: 120, color: _accentColor),
@@ -57,7 +57,7 @@ class EditorState {
     ),
     TimelineTrack(
       name: 'Commentary',
-      icon: PhosphorIcons.microphone,
+      icon: PhosphorIconsRegular.microphone,
       color: _purpleColor,
       clips: [
         TimelineClip(id: 'c1', name: 'Intro VO', start: 10, duration: 100, color: _purpleColor),
@@ -66,7 +66,7 @@ class EditorState {
     ),
     TimelineTrack(
       name: 'Music',
-      icon: PhosphorIcons.musicNote,
+      icon: PhosphorIconsRegular.musicNote,
       color: _successColor,
       clips: [
         TimelineClip(id: 'm1', name: 'Background', start: 0, duration: 300, color: _successColor.withOpacity(0.6)),
@@ -74,7 +74,7 @@ class EditorState {
     ),
     TimelineTrack(
       name: 'SFX',
-      icon: PhosphorIcons.speakerHigh,
+      icon: PhosphorIconsRegular.speakerHigh,
       color: _warningColor,
       clips: [
         TimelineClip(id: 's1', name: 'Whoosh', start: 55, duration: 5, color: _warningColor),
@@ -83,7 +83,7 @@ class EditorState {
     ),
     TimelineTrack(
       name: 'Captions',
-      icon: PhosphorIcons.subtitles,
+      icon: PhosphorIconsRegular.subtitles,
       color: const Color(0xFF06B6D4),
       clips: [
         TimelineClip(id: 'cp1', name: 'Caption 1', start: 10, duration: 90, color: const Color(0xFF06B6D4)),
@@ -92,7 +92,7 @@ class EditorState {
     ),
     TimelineTrack(
       name: 'Effects',
-      icon: PhosphorIcons.sparkle,
+      icon: PhosphorIconsRegular.sparkle,
       color: const Color(0xFFF472B6),
       clips: [
         TimelineClip(id: 'e1', name: 'Zoom In', start: 50, duration: 10, color: const Color(0xFFF472B6)),
@@ -338,7 +338,7 @@ class _EditorTopBar extends StatelessWidget {
         children: [
           // Menu
           IconButton(
-            icon: const Icon(PhosphorIcons.list, size: 18),
+            icon: const Icon(PhosphorIconsRegular.list, size: 18),
             color: _textSecondary,
             onPressed: () {},
             tooltip: 'Menu',
@@ -361,13 +361,13 @@ class _EditorTopBar extends StatelessWidget {
           const SizedBox(width: 12),
 
           // Undo / Redo
-          _ToolBarButton(icon: PhosphorIcons.arrowUUpLeft, tooltip: 'Undo', onTap: () {}),
-          _ToolBarButton(icon: PhosphorIcons.arrowUUpRight, tooltip: 'Redo', onTap: () {}),
+          _ToolBarButton(icon: PhosphorIconsRegular.arrowUUpLeft, tooltip: 'Undo', onTap: () {}),
+          _ToolBarButton(icon: PhosphorIconsRegular.arrowUUpRight, tooltip: 'Redo', onTap: () {}),
           const SizedBox(width: 8),
           const _ToolBarDivider(),
 
           // Zoom Controls
-          _ToolBarButton(icon: PhosphorIcons.magnifyingGlassMinus, tooltip: 'Zoom Out', onTap: () {
+          _ToolBarButton(icon: PhosphorIconsRegular.magnifyingGlassMinus, tooltip: 'Zoom Out', onTap: () {
             ref.read(localEditorProvider.notifier).setZoom(state.zoom - 0.25);
           }),
           Container(
@@ -377,7 +377,7 @@ class _EditorTopBar extends StatelessWidget {
               style: GoogleFonts.inter(color: _textSecondary, fontSize: 11),
             ),
           ),
-          _ToolBarButton(icon: PhosphorIcons.magnifyingGlassPlus, tooltip: 'Zoom In', onTap: () {
+          _ToolBarButton(icon: PhosphorIconsRegular.magnifyingGlassPlus, tooltip: 'Zoom In', onTap: () {
             ref.read(localEditorProvider.notifier).setZoom(state.zoom + 0.25);
           }),
           const SizedBox(width: 8),
@@ -387,7 +387,7 @@ class _EditorTopBar extends StatelessWidget {
 
           // AI Chat Toggle
           _ToolBarButton(
-            icon: PhosphorIcons.chatsCircle,
+            icon: PhosphorIconsRegular.chatsCircle,
             tooltip: 'AI Assistant',
             onTap: () => ref.read(localEditorProvider.notifier).toggleAiChat(),
             isActive: state.aiChatOpen,
@@ -395,7 +395,7 @@ class _EditorTopBar extends StatelessWidget {
           const SizedBox(width: 8),
 
           // Save
-          _ToolBarButton(icon: PhosphorIcons.floppyDisk, tooltip: 'Save', onTap: () {}),
+          _ToolBarButton(icon: PhosphorIconsRegular.floppyDisk, tooltip: 'Save', onTap: () {}),
           const SizedBox(width: 4),
 
           // Export
@@ -409,7 +409,7 @@ class _EditorTopBar extends StatelessWidget {
             child: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
-                const Icon(PhosphorIcons.export, size: 14, color: Colors.white),
+                const Icon(PhosphorIconsRegular.export, size: 14, color: Colors.white),
                 const SizedBox(width: 6),
                 Text('Export', style: GoogleFonts.inter(color: Colors.white, fontSize: 12, fontWeight: FontWeight.w600)),
               ],
@@ -533,37 +533,37 @@ class _AiAnalysisPanel extends StatelessWidget {
     return ListView(
       padding: const EdgeInsets.all(12),
       children: [
-        _SectionHeader(title: 'AI Analysis', icon: PhosphorIcons.brain),
+        _SectionHeader(title: 'AI Analysis', icon: PhosphorIconsRegular.brain),
         const SizedBox(height: 12),
         _AnalysisCard(
           title: 'Overall Score',
           value: '87/100',
           color: _successColor,
-          icon: PhosphorIcons.star,
+          icon: PhosphorIconsRegular.star,
         ),
         const SizedBox(height: 8),
         _AnalysisCard(
           title: 'Engagement',
           value: 'High',
           color: _accentColor,
-          icon: PhosphorIcons.chartLineUp,
+          icon: PhosphorIconsRegular.chartLineUp,
         ),
         const SizedBox(height: 8),
         _AnalysisCard(
           title: 'Pacing',
           value: 'Good',
           color: _warningColor,
-          icon: PhosphorIcons.gauge,
+          icon: PhosphorIconsRegular.gauge,
         ),
         const SizedBox(height: 8),
         _AnalysisCard(
           title: 'Hook Strength',
           value: 'Strong',
           color: _purpleColor,
-          icon: PhosphorIcons.fishHook,
+          icon: PhosphorIconsRegular.hook,
         ),
         const SizedBox(height: 16),
-        _SectionHeader(title: 'Suggestions', icon: PhosphorIcons.lightbulb),
+        _SectionHeader(title: 'Suggestions', icon: PhosphorIconsRegular.lightbulb),
         const SizedBox(height: 8),
         _SuggestionItem(text: 'Add hook text in first 2 seconds'),
         _SuggestionItem(text: 'Tighten pacing at 01:23 - 01:45'),
@@ -580,7 +580,7 @@ class _ContentMapTree extends StatelessWidget {
     return ListView(
       padding: const EdgeInsets.all(12),
       children: [
-        _SectionHeader(title: 'Content Map', icon: PhosphorIcons.mapTrifold),
+        _SectionHeader(title: 'Content Map', icon: PhosphorIconsRegular.mapTrifold),
         const SizedBox(height: 12),
         _TreeNode(label: 'Scene 1: Opening', depth: 0, clipCount: 3, duration: '00:45'),
         _TreeNode(label: 'Interview Clip', depth: 1, clipCount: 1, duration: '00:30'),
@@ -601,7 +601,7 @@ class _ViralMomentsList extends StatelessWidget {
     return ListView(
       padding: const EdgeInsets.all(12),
       children: [
-        _SectionHeader(title: 'Viral Moments', icon: PhosphorIcons.fire),
+        _SectionHeader(title: 'Viral Moments', icon: PhosphorIconsRegular.fire),
         const SizedBox(height: 12),
         _ViralMomentCard(time: '00:15', title: 'Unexpected reaction', score: 95, type: 'Comedy'),
         _ViralMomentCard(time: '01:23', title: 'Key reveal moment', score: 92, type: 'Dramatic'),
@@ -619,34 +619,34 @@ class _AssetBrowser extends StatelessWidget {
     return ListView(
       padding: const EdgeInsets.all(12),
       children: [
-        _SectionHeader(title: 'Assets', icon: PhosphorIcons.folderOpen),
+        _SectionHeader(title: 'Assets', icon: PhosphorIconsRegular.folderOpen),
         const SizedBox(height: 12),
         _AssetCategory(
-          icon: PhosphorIcons.microphone,
+          icon: PhosphorIconsRegular.microphone,
           label: 'Commentary',
           count: 12,
           color: _purpleColor,
         ),
         _AssetCategory(
-          icon: PhosphorIcons.speakerHigh,
+          icon: PhosphorIconsRegular.speakerHigh,
           label: 'Sound Effects',
           count: 48,
           color: _warningColor,
         ),
         _AssetCategory(
-          icon: PhosphorIcons.musicNote,
+          icon: PhosphorIconsRegular.musicNote,
           label: 'Music',
           count: 24,
           color: _successColor,
         ),
         _AssetCategory(
-          icon: PhosphorIcons.subtitles,
+          icon: PhosphorIconsRegular.subtitles,
           label: 'Caption Styles',
           count: 8,
           color: const Color(0xFF06B6D4),
         ),
         const SizedBox(height: 16),
-        _SectionHeader(title: 'Recent', icon: PhosphorIcons.clock),
+        _SectionHeader(title: 'Recent', icon: PhosphorIconsRegular.clock),
         const SizedBox(height: 8),
         _AssetItem(name: 'dramatic_sting.mp3', type: 'SFX'),
         _AssetItem(name: 'bgm_epic.mp3', type: 'Music'),
@@ -686,7 +686,7 @@ class _VideoPreviewArea extends StatelessWidget {
                   Column(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      Icon(PhosphorIcons.filmSlate, size: 48, color: _textMuted),
+                      Icon(PhosphorIconsRegular.filmSlate, size: 48, color: _textMuted),
                       const SizedBox(height: 12),
                       Text(
                         'Video Preview',
@@ -750,20 +750,20 @@ class _PlaybackControls extends StatelessWidget {
     return Row(
       children: [
         IconButton(
-          icon: const Icon(PhosphorIcons.skipBack, size: 16),
+          icon: const Icon(PhosphorIconsRegular.skipBack, size: 16),
           color: _textSecondary,
           onPressed: () {},
         ),
         IconButton(
           icon: Icon(
-            state.isPlaying ? PhosphorIcons.pause : PhosphorIcons.play,
+            state.isPlaying ? PhosphorIconsRegular.pause : PhosphorIconsRegular.play,
             size: 20,
           ),
           color: Colors.white,
           onPressed: () {},
         ),
         IconButton(
-          icon: const Icon(PhosphorIcons.skipForward, size: 16),
+          icon: const Icon(PhosphorIconsRegular.skipForward, size: 16),
           color: _textSecondary,
           onPressed: () {},
         ),
@@ -778,19 +778,19 @@ class _PlaybackControls extends StatelessWidget {
         ),
         const Spacer(),
         IconButton(
-          icon: const Icon(PhosphorIcons.captions, size: 16),
+          icon: const Icon(PhosphorIconsRegular.subtitles, size: 16),
           color: _textSecondary,
           onPressed: () {},
           tooltip: 'Captions',
         ),
         IconButton(
-          icon: const Icon(PhosphorIcons.speakerHigh, size: 16),
+          icon: const Icon(PhosphorIconsRegular.speakerHigh, size: 16),
           color: _textSecondary,
           onPressed: () {},
           tooltip: 'Audio',
         ),
         IconButton(
-          icon: const Icon(PhosphorIcons.arrowsOutSimple, size: 16),
+          icon: const Icon(PhosphorIconsRegular.arrowsOutSimple, size: 16),
           color: _textSecondary,
           onPressed: () {},
           tooltip: 'Fullscreen',
@@ -827,7 +827,7 @@ class _AiChatPanel extends ConsumerWidget {
             ),
             child: Row(
               children: [
-                Icon(PhosphorIcons.brain, size: 14, color: _purpleColor),
+                Icon(PhosphorIconsRegular.brain, size: 14, color: _purpleColor),
                 const SizedBox(width: 8),
                 Text(
                   'AI Assistant',
@@ -866,7 +866,7 @@ class _AiChatPanel extends ConsumerWidget {
                         CircleAvatar(
                           radius: 12,
                           backgroundColor: _purpleColor.withOpacity(0.2),
-                          child: Icon(PhosphorIcons.robot, size: 12, color: _purpleColor),
+                          child: Icon(PhosphorIconsRegular.robot, size: 12, color: _purpleColor),
                         ),
                         const SizedBox(width: 8),
                       ],
@@ -937,7 +937,7 @@ class _AiChatPanel extends ConsumerWidget {
                     borderRadius: BorderRadius.circular(8),
                   ),
                   child: IconButton(
-                    icon: const Icon(PhosphorIcons.paperPlaneRight, size: 14, color: Colors.white),
+                    icon: const Icon(PhosphorIconsRegular.paperPlaneRight, size: 14, color: Colors.white),
                     onPressed: () {},
                   ),
                 ),
@@ -1039,7 +1039,7 @@ class _PropertiesPanel extends StatelessWidget {
     return ListView(
       padding: const EdgeInsets.all(12),
       children: [
-        _SectionHeader(title: 'Clip Properties', icon: PhosphorIcons.slidersHorizontal),
+        _SectionHeader(title: 'Clip Properties', icon: PhosphorIconsRegular.slidersHorizontal),
         const SizedBox(height: 12),
         _PropertyRow(label: 'Duration', value: '00:04:30'),
         _PropertyRow(label: 'Resolution', value: '1920×1080'),
@@ -1047,13 +1047,13 @@ class _PropertiesPanel extends StatelessWidget {
         _PropertyRow(label: 'Codec', value: 'H.264'),
         _PropertyRow(label: 'Bitrate', value: '12 Mbps'),
         const SizedBox(height: 16),
-        _SectionHeader(title: 'Transform', icon: PhosphorIcons.crop),
+        _SectionHeader(title: 'Transform', icon: PhosphorIconsRegular.crop),
         const SizedBox(height: 12),
         _SliderRow(label: 'Scale', value: 1.0, min: 0.1, max: 3.0),
         _SliderRow(label: 'Rotation', value: 0, min: -180, max: 180),
         _SliderRow(label: 'Opacity', value: 1.0, min: 0, max: 1),
         const SizedBox(height: 16),
-        _SectionHeader(title: 'Speed', icon: PhosphorIcons.gauge),
+        _SectionHeader(title: 'Speed', icon: PhosphorIconsRegular.gauge),
         const SizedBox(height: 12),
         _SliderRow(label: 'Playback Speed', value: 1.0, min: 0.25, max: 4.0),
       ],
@@ -1067,7 +1067,7 @@ class _EditDecisionPanel extends StatelessWidget {
     return ListView(
       padding: const EdgeInsets.all(12),
       children: [
-        _SectionHeader(title: 'Edit Decisions', icon: PhosphorIcons.scissors),
+        _SectionHeader(title: 'Edit Decisions', icon: PhosphorIconsRegular.scissors),
         const SizedBox(height: 12),
         _DecisionCard(
           time: '00:15',
@@ -1098,7 +1098,7 @@ class _AiDecisionsPanel extends StatelessWidget {
     return ListView(
       padding: const EdgeInsets.all(12),
       children: [
-        _SectionHeader(title: 'AI Decisions', icon: PhosphorIcons.brain),
+        _SectionHeader(title: 'AI Decisions', icon: PhosphorIconsRegular.brain),
         const SizedBox(height: 12),
         _AiDecisionCard(
           title: 'Hook Placement',
@@ -1129,7 +1129,7 @@ class _StyleSettingsPanel extends StatelessWidget {
     return ListView(
       padding: const EdgeInsets.all(12),
       children: [
-        _SectionHeader(title: 'Caption Style', icon: PhosphorIcons.subtitles),
+        _SectionHeader(title: 'Caption Style', icon: PhosphorIconsRegular.subtitles),
         const SizedBox(height: 12),
         _StyleOption(label: 'Font', value: 'Montserrat Bold'),
         _StyleOption(label: 'Size', value: 'Large'),
@@ -1137,14 +1137,14 @@ class _StyleSettingsPanel extends StatelessWidget {
         _StyleOption(label: 'Background', value: 'Shadow'),
         _StyleOption(label: 'Animation', value: 'Word-by-word'),
         const SizedBox(height: 16),
-        _SectionHeader(title: 'Color Grade', icon: PhosphorIcons.palette),
+        _SectionHeader(title: 'Color Grade', icon: PhosphorIconsRegular.palette),
         const SizedBox(height: 12),
         _StyleOption(label: 'Preset', value: 'Cinematic Warm'),
         _SliderRow(label: 'Saturation', value: 1.1, min: 0, max: 2),
         _SliderRow(label: 'Contrast', value: 1.05, min: 0, max: 2),
         _SliderRow(label: 'Brightness', value: 0, min: -1, max: 1),
         const SizedBox(height: 16),
-        _SectionHeader(title: 'Transitions', icon: PhosphorIcons.arrowsLeftRight),
+        _SectionHeader(title: 'Transitions', icon: PhosphorIconsRegular.arrowsLeftRight),
         const SizedBox(height: 12),
         _StyleOption(label: 'Default', value: 'Cross Dissolve'),
         _StyleOption(label: 'Duration', value: '0.5s'),
@@ -1317,12 +1317,12 @@ class _TimelineHeader extends StatelessWidget {
       ),
       child: Row(
         children: [
-          Icon(PhosphorIcons.filmStrip, size: 14, color: _textSecondary),
+          Icon(PhosphorIconsRegular.filmStrip, size: 14, color: _textSecondary),
           const SizedBox(width: 6),
           Text('Timeline', style: GoogleFonts.inter(color: _textSecondary, fontSize: 11, fontWeight: FontWeight.w600)),
           const Spacer(),
           // Zoom slider
-          Icon(PhosphorIcons.magnifyingGlassMinus, size: 12, color: _textMuted),
+          Icon(PhosphorIconsRegular.magnifyingGlassMinus, size: 12, color: _textMuted),
           SizedBox(
             width: 80,
             child: Slider(
@@ -1334,10 +1334,10 @@ class _TimelineHeader extends StatelessWidget {
               inactiveColor: _borderColor,
             ),
           ),
-          Icon(PhosphorIcons.magnifyingGlassPlus, size: 12, color: _textMuted),
+          Icon(PhosphorIconsRegular.magnifyingGlassPlus, size: 12, color: _textMuted),
           const SizedBox(width: 12),
-          _ToolBarButton(icon: PhosphorIcons.plus, tooltip: 'Add Track', onTap: () {}),
-          _ToolBarButton(icon: PhosphorIcons.trash, tooltip: 'Delete Selected', onTap: () {}),
+          _ToolBarButton(icon: PhosphorIconsRegular.plus, tooltip: 'Add Track', onTap: () {}),
+          _ToolBarButton(icon: PhosphorIconsRegular.trash, tooltip: 'Delete Selected', onTap: () {}),
         ],
       ),
     );
@@ -1468,20 +1468,20 @@ class _TrackHeader extends StatelessWidget {
               ),
             ),
             _TrackControlButton(
-              icon: track.visible ? PhosphorIcons.eye : PhosphorIcons.eyeSlash,
+              icon: track.visible ? PhosphorIconsRegular.eye : PhosphorIconsRegular.eyeSlash,
               onTap: onToggleVisibility,
               color: track.visible ? _textMuted : _errorColor,
               size: 10,
             ),
             _TrackControlButton(
-              icon: track.locked ? PhosphorIcons.lockSimple : PhosphorIcons.lockSimpleOpen,
+              icon: track.locked ? PhosphorIconsRegular.lockSimple : PhosphorIconsRegular.lockSimpleOpen,
               onTap: onToggleLock,
               color: track.locked ? _warningColor : _textMuted,
               size: 10,
             ),
             if (track.name == 'Music' || track.name == 'SFX' || track.name == 'Commentary')
               _TrackControlButton(
-                icon: track.muted ? PhosphorIcons.speakerSlash : PhosphorIcons.speakerHigh,
+                icon: track.muted ? PhosphorIconsRegular.speakerSlash : PhosphorIconsRegular.speakerHigh,
                 onTap: onToggleMute,
                 color: track.muted ? _errorColor : _textMuted,
                 size: 10,
@@ -1733,7 +1733,7 @@ class _SuggestionItem extends StatelessWidget {
       ),
       child: Row(
         children: [
-          Icon(PhosphorIcons.lightbulb, size: 12, color: _warningColor),
+          Icon(PhosphorIconsRegular.lightbulb, size: 12, color: _warningColor),
           const SizedBox(width: 8),
           Expanded(
             child: Text(text, style: GoogleFonts.inter(color: _textSecondary, fontSize: 11)),
@@ -1759,10 +1759,10 @@ class _TreeNode extends StatelessWidget {
       child: Row(
         children: [
           if (depth > 0) ...[
-            Icon(PhosphorIcons.caretRight, size: 10, color: _textMuted),
+            Icon(PhosphorIconsRegular.caretRight, size: 10, color: _textMuted),
             const SizedBox(width: 4),
           ],
-          Icon(depth > 0 ? PhosphorIcons.filmStrip : PhosphorIcons.scene, size: 12, color: _accentColor),
+          Icon(depth > 0 ? PhosphorIconsRegular.filmStrip : PhosphorIconsRegular.monitorPlay, size: 12, color: _accentColor),
           const SizedBox(width: 6),
           Expanded(
             child: Text(label, style: GoogleFonts.inter(color: _textPrimary, fontSize: 11)),
@@ -1827,7 +1827,7 @@ class _ViralMomentCard extends StatelessWidget {
                 child: Text(type, style: GoogleFonts.inter(color: _typeColor, fontSize: 10)),
               ),
               const Spacer(),
-              Icon(PhosphorIcons.fire, size: 12, color: _warningColor),
+              Icon(PhosphorIconsRegular.fire, size: 12, color: _warningColor),
               const SizedBox(width: 4),
               Text('$score', style: GoogleFonts.inter(color: _warningColor, fontSize: 11, fontWeight: FontWeight.w600)),
             ],
@@ -1902,7 +1902,7 @@ class _AssetItem extends StatelessWidget {
       ),
       child: Row(
         children: [
-          Icon(PhosphorIcons.fileAudio, size: 12, color: _textMuted),
+          Icon(PhosphorIconsRegular.fileAudio, size: 12, color: _textMuted),
           const SizedBox(width: 8),
           Expanded(child: Text(name, style: GoogleFonts.inter(color: _textSecondary, fontSize: 10), overflow: TextOverflow.ellipsis)),
           Text(type, style: GoogleFonts.inter(color: _textMuted, fontSize: 9)),
@@ -2041,7 +2041,7 @@ class _AiDecisionCard extends StatelessWidget {
         children: [
           Row(
             children: [
-              Icon(PhosphorIcons.brain, size: 12, color: _purpleColor),
+              Icon(PhosphorIconsRegular.brain, size: 12, color: _purpleColor),
               const SizedBox(width: 6),
               Expanded(
                 child: Text(title, style: GoogleFonts.inter(color: _textPrimary, fontSize: 11, fontWeight: FontWeight.w600)),
@@ -2089,7 +2089,7 @@ class _StyleOption extends StatelessWidget {
             const Spacer(),
             Text(value, style: GoogleFonts.inter(color: _textPrimary, fontSize: 11)),
             const SizedBox(width: 4),
-            Icon(PhosphorIcons.caretDown, size: 10, color: _textMuted),
+            Icon(PhosphorIconsRegular.caretDown, size: 10, color: _textMuted),
           ],
         ),
       ),

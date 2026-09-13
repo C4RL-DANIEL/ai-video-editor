@@ -143,7 +143,16 @@ class ApiClient {
         path,
         data: data,
         queryParameters: queryParameters,
-        options: Options(method: method)..merge(options),
+        options: options != null
+            ? Options(
+                method: method,
+                headers: options.headers,
+                extra: options.extra,
+                responseType: options.responseType,
+                receiveTimeout: options.receiveTimeout,
+                sendTimeout: options.sendTimeout,
+              )
+            : Options(method: method),
         cancelToken: cancelToken,
         onSendProgress: onSendProgress,
       );
