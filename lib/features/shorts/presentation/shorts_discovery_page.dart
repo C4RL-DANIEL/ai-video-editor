@@ -731,7 +731,7 @@ class _ShortsDiscoveryPageState extends ConsumerState<ShortsDiscoveryPage> {
                     Navigator.of(context).push(
                       MaterialPageRoute(
                         builder: (_) => ShortPreviewPage(
-                          projectId: projectId,
+                          projectId: widget.projectId,
                           shortId: candidate.id,
                         ),
                       ),
