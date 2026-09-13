@@ -65,6 +65,9 @@ abstract final class AppColors {
 
   /// Secondary accent — used for creative/AI features, badges, highlights.
   static const Color accentSecondary = purple500;
+
+  /// Alias used by project screens.
+  static const Color purple = purple500;
   static const Color accentSecondaryHover = purple400;
   static const Color accentSecondaryPressed = purple600;
 

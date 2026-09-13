@@ -89,7 +89,8 @@ class _RegisterPageState extends State<RegisterPage> {
                           onTap: () => Navigator.of(context).pop(),
                           child: Padding(
                             padding: const EdgeInsets.all(8.0),
-                            child: PhosphorIconsLight.arrowLeft(
+                            child: Icon(
+                              PhosphorIconsLight.arrowLeft,
                               size: 24,
                               color: const Color(0xFFA0A0A0),
                             ),
@@ -113,7 +114,8 @@ class _RegisterPageState extends State<RegisterPage> {
                             ),
                           ),
                           child: Center(
-                            child: PhosphorIconsLight.filmStrip(
+                            child: Icon(
+                              PhosphorIconsLight.filmStrip,
                               size: logoSize * 0.45,
                               color: const Color(0xFF3B82F6),
                             ),
@@ -165,9 +167,7 @@ class _RegisterPageState extends State<RegisterPage> {
                               label: 'Full Name',
                               hint: 'John Doe',
                               keyboardType: TextInputType.name,
-                              icon: PhosphorIconsLight.user(
-                                size: 20,
-                              ),
+                              icon: Icon(PhosphorIconsLight.user, size: 20),
                               isTablet: isTablet,
                               validator: (value) {
                                 if (value == null || value.trim().isEmpty) {
@@ -188,9 +188,7 @@ class _RegisterPageState extends State<RegisterPage> {
                               label: 'Email',
                               hint: 'you@example.com',
                               keyboardType: TextInputType.emailAddress,
-                              icon: PhosphorIconsLight.envelopeSimple(
-                                size: 20,
-                              ),
+                              icon: Icon(PhosphorIconsLight.envelopeSimple, size: 20),
                               isTablet: isTablet,
                               validator: (value) {
                                 if (value == null || value.trim().isEmpty) {
@@ -212,21 +210,16 @@ class _RegisterPageState extends State<RegisterPage> {
                               label: 'Password',
                               hint: '••••••••',
                               obscureText: _obscurePassword,
-                              icon: PhosphorIconsLight.lockSimple(
-                                size: 20,
-                              ),
+                              icon: Icon(PhosphorIconsLight.lockSimple, size: 20),
                               isTablet: isTablet,
                               suffixIcon: GestureDetector(
                                 onTap: () =>
                                     setState(() => _obscurePassword = !_obscurePassword),
                                 child: Icon(
                                   _obscurePassword
-                                      ? PhosphorIconsLight.eyeClosed(
-                                          size: 20,
-                                        )
-                                      : PhosphorIconsLight.eye(
-                                          size: 20,
-                                        ),
+                                      ? PhosphorIconsLight.eyeClosed
+                                      : PhosphorIconsLight.eye,
+                                  size: 20,
                                   color: const Color(0xFFA0A0A0),
                                 ),
                               ),
@@ -255,21 +248,16 @@ class _RegisterPageState extends State<RegisterPage> {
                               label: 'Confirm Password',
                               hint: '••••••••',
                               obscureText: _obscureConfirmPassword,
-                              icon: PhosphorIconsLight.lockSimple(
-                                size: 20,
-                              ),
+                              icon: Icon(PhosphorIconsLight.lockSimple, size: 20),
                               isTablet: isTablet,
                               suffixIcon: GestureDetector(
                                 onTap: () => setState(
                                     () => _obscureConfirmPassword = !_obscureConfirmPassword),
                                 child: Icon(
                                   _obscureConfirmPassword
-                                      ? PhosphorIconsLight.eyeClosed(
-                                          size: 20,
-                                        )
-                                      : PhosphorIconsLight.eye(
-                                          size: 20,
-                                        ),
+                                      ? PhosphorIconsLight.eyeClosed
+                                      : PhosphorIconsLight.eye,
+                                  size: 20,
                                   color: const Color(0xFFA0A0A0),
                                 ),
                               ),

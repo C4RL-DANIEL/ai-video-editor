@@ -69,4 +69,42 @@ abstract final class AppTypography {
         fontWeight: FontWeight.w500,
         color: AppColors.textSecondary,
       );
+
+  static TextStyle get labelSmall => GoogleFonts.inter(
+        fontSize: 11,
+        fontWeight: FontWeight.w500,
+        color: AppColors.textTertiary,
+      );
+
+  /// Full dark theme TextMaterial.
+  static TextTheme get darkTextTheme => TextTheme(
+        displayLarge: displayLarge,
+        displayMedium: displayMedium,
+        headlineLarge: headlineLarge,
+        headlineMedium: headlineMedium,
+        titleLarge: titleLarge,
+        titleMedium: titleMedium,
+        bodyLarge: bodyLarge,
+        bodyMedium: bodyMedium,
+        bodySmall: bodySmall,
+        labelLarge: labelLarge,
+        labelMedium: labelMedium,
+        labelSmall: labelSmall,
+      );
+
+  /// Full light theme TextMaterial.
+  static TextTheme get lightTextTheme => TextTheme(
+        displayLarge: displayLarge.copyWith(color: AppColors.textInverse),
+        displayMedium: displayMedium.copyWith(color: AppColors.textInverse),
+        headlineLarge: headlineLarge.copyWith(color: AppColors.textInverse),
+        headlineMedium: headlineMedium.copyWith(color: AppColors.textInverse),
+        titleLarge: titleLarge.copyWith(color: AppColors.textInverse),
+        titleMedium: titleMedium.copyWith(color: AppColors.textInverse),
+        bodyLarge: bodyLarge.copyWith(color: AppColors.textInverse),
+        bodyMedium: bodyMedium.copyWith(color: AppColors.gray600),
+        bodySmall: bodySmall.copyWith(color: AppColors.gray500),
+        labelLarge: labelLarge.copyWith(color: AppColors.textInverse),
+        labelMedium: labelMedium.copyWith(color: AppColors.gray600),
+        labelSmall: labelSmall.copyWith(color: AppColors.gray500),
+      );
 }

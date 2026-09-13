@@ -289,7 +289,7 @@ class ProjectListNotifier extends AsyncNotifier<List<Project>> {
     return project;
   }
 
-  Future<void> update(String id, {String? name, String? description, ProjectStatus? status}) async {
+  Future<void> updateProject(String id, {String? name, String? description, ProjectStatus? status}) async {
     await _service.updateProject(id, name: name, description: description, status: status);
     ref.invalidateSelf();
   }

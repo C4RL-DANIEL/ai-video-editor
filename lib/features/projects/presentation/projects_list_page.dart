@@ -594,6 +594,8 @@ class _ProjectCard extends StatelessWidget {
         return AppColors.textMuted;
       case ProjectStatus.error:
         return AppColors.error;
+      case ProjectStatus.draft:
+        return AppColors.textSecondary;
     }
   }
 
@@ -655,6 +657,8 @@ class _StatusBadge extends StatelessWidget {
         return AppColors.textMuted;
       case ProjectStatus.error:
         return AppColors.error;
+      case ProjectStatus.draft:
+        return AppColors.textSecondary;
     }
   }
 
@@ -668,6 +672,8 @@ class _StatusBadge extends StatelessWidget {
         return 'Archived';
       case ProjectStatus.error:
         return 'Error';
+      case ProjectStatus.draft:
+        return 'Draft';
     }
   }
 }

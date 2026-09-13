@@ -507,7 +507,7 @@ class _HookTab extends StatelessWidget {
     return ListView(
       padding: const EdgeInsets.all(16),
       children: [
-        _SectionHeader(title: 'Hook Text', icon: PhosphorIconsRegular.hook),
+        _SectionHeader(title: 'Hook Text', icon: PhosphorIconsRegular.link),
         const SizedBox(height: 12),
 
         // Hook text input

@@ -90,7 +90,8 @@ class _LoginPageState extends State<LoginPage> {
                             ),
                           ),
                           child: Center(
-                            child: PhosphorIconsLight.filmStrip(
+                            child: Icon(
+                              PhosphorIconsLight.filmStrip,
                               size: logoSize * 0.45,
                               color: const Color(0xFF3B82F6),
                             ),
@@ -142,9 +143,7 @@ class _LoginPageState extends State<LoginPage> {
                               label: 'Email',
                               hint: 'you@example.com',
                               keyboardType: TextInputType.emailAddress,
-                              icon: PhosphorIconsLight.envelopeSimple(
-                                size: 20,
-                              ),
+                              icon: Icon(PhosphorIconsLight.envelopeSimple, size: 20),
                               isTablet: isTablet,
                               validator: (value) {
                                 if (value == null || value.trim().isEmpty) {
@@ -166,21 +165,15 @@ class _LoginPageState extends State<LoginPage> {
                               label: 'Password',
                               hint: '••••••••',
                               obscureText: _obscurePassword,
-                              icon: PhosphorIconsLight.lockSimple(
-                                size: 20,
-                              ),
+                              icon: Icon(PhosphorIconsLight.lockSimple, size: 20),
                               isTablet: isTablet,
                               suffixIcon: GestureDetector(
                                 onTap: () =>
                                     setState(() => _obscurePassword = !_obscurePassword),
                                 child: Icon(
                                   _obscurePassword
-                                      ? PhosphorIconsLight.eyeClosed(
-                                          size: 20,
-                                        )
-                                      : PhosphorIconsLight.eye(
-                                          size: 20,
-                                        ),
+                                      ? PhosphorIconsLight.eyeClosed
+                                      : PhosphorIconsLight.eye,
                                   color: const Color(0xFFA0A0A0),
                                 ),
                               ),
@@ -292,9 +285,7 @@ class _LoginPageState extends State<LoginPage> {
                           Expanded(
                             child: _SocialButton(
                               label: 'Google',
-                              icon: PhosphorIconsLight.googleLogo(
-                                size: 20,
-                              ),
+                              icon: Icon(PhosphorIconsLight.googleLogo, size: 20),
                               onTap: () => _showComingSoonSnackBar('Google'),
                               isTablet: isTablet,
                             ),
@@ -303,9 +294,7 @@ class _LoginPageState extends State<LoginPage> {
                           Expanded(
                             child: _SocialButton(
                               label: 'Apple',
-                              icon: PhosphorIconsLight.appleLogo(
-                                size: 20,
-                              ),
+                              icon: Icon(PhosphorIconsLight.appleLogo, size: 20),
                               onTap: () => _showComingSoonSnackBar('Apple'),
                               isTablet: isTablet,
                             ),

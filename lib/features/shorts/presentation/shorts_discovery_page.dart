@@ -4,6 +4,8 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:phosphor_flutter/phosphor_flutter.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 
+import 'short_preview_page.dart';
+
 // ── Theme Colors ────────────────────────────────────────────────────
 const _bgColor = Color(0xFF0D0D0F);
 const _surfaceColor = Color(0xFF141418);
@@ -163,7 +165,7 @@ enum SortOption {
       case SortOption.viralScore:
         return PhosphorIconsRegular.trendUp;
       case SortOption.hookScore:
-        return PhosphorIconsRegular.hook;
+        return PhosphorIconsRegular.link;
       case SortOption.recent:
         return PhosphorIconsRegular.clock;
       case SortOption.duration:
@@ -1242,10 +1244,9 @@ class _ShortCandidateCard extends StatelessWidget {
         const SizedBox(width: 5),
         Text(
           '${candidate.sourceStart} → ${candidate.sourceEnd}',
-          style: GoogleFonts.inter(
+          style: GoogleFonts.jetBrainsMono(
             fontSize: 12,
             color: _textTertiary,
-            fontFamily: 'monospace',
           ),
         ),
       ],

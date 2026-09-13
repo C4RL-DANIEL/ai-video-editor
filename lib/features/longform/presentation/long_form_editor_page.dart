@@ -460,7 +460,7 @@ class _PacingMap extends StatelessWidget {
                 return Expanded(
                   flex: (width * 1000).round().clamp(1, 1000),
                   child: Tooltip(
-                    message: '${ch.title}\n${_formatDuration(ch.startTime)} → ${_formatDuration(ch.endTime)}',
+                    message: '${ch.title}\n${_formatDuration(Duration(milliseconds: (ch.startTime * 1000).round()))} → ${_formatDuration(Duration(milliseconds: (ch.endTime * 1000).round()))}',
                     child: Container(
                       decoration: BoxDecoration(
                         color: ch.color.withOpacity(0.5),
@@ -546,7 +546,7 @@ class _ChapterItem extends StatelessWidget {
                 children: [
                   Text(chapter.title, style: GoogleFonts.inter(color: _textPrimary, fontSize: 11, fontWeight: FontWeight.w500)),
                   Text(
-                    '${_formatDuration(chapter.startTime)} → ${_formatDuration(chapter.endTime)}',
+                    '${_formatDuration(Duration(milliseconds: (chapter.startTime * 1000).round()))} → ${_formatDuration(Duration(milliseconds: (chapter.endTime * 1000).round()))}',
                     style: GoogleFonts.inter(color: _textMuted, fontSize: 9),
                   ),
                 ],
@@ -1040,7 +1040,7 @@ class _PacingPanel extends StatelessWidget {
                       child: Text(ch.title, style: GoogleFonts.inter(color: _textPrimary, fontSize: 10)),
                     ),
                     Text(
-                      _formatDuration(ch.endTime - ch.startTime),
+                      _formatDuration(Duration(milliseconds: ((ch.endTime - ch.startTime) * 1000).round())),
                       style: GoogleFonts.inter(color: _textMuted, fontSize: 9),
                     ),
                   ],
@@ -1054,7 +1054,7 @@ class _PacingPanel extends StatelessWidget {
                   ),
                   child: FractionallySizedBox(
                     alignment: Alignment.centerLeft,
-                    widthFactor: normalizedDuration.clamp(0.0, 1.0),
+                    widthFactor: normalizedDuration.clamp(0.0, 1.0).toDouble(),
                     child: Container(
                       decoration: BoxDecoration(
                         color: ch.color.withOpacity(0.5),
@@ -1163,7 +1163,7 @@ class _TransitionsPanel extends StatelessWidget {
                 const SizedBox(height: 6),
                 Row(
                   children: [
-                    Icon(PhosphorIconsRegular.transition, size: 12, color: _accentColor),
+                    Icon(PhosphorIconsRegular.arrowsClockwise, size: 12, color: _accentColor),
                     const SizedBox(width: 6),
                     Text(t.type, style: GoogleFonts.inter(color: _textPrimary, fontSize: 11)),
                     const Spacer(),
@@ -1258,7 +1258,7 @@ class _ExportPanel extends StatelessWidget {
     return ListView(
       padding: const EdgeInsets.all(12),
       children: [
-        _SectionHeader(title: 'Export Settings', icon: PhosphorIcons.export),
+        _SectionHeader(title: 'Export Settings', icon: PhosphorIconsRegular.export),
         const SizedBox(height: 12),
 
         _ExportOption(label: 'Format', value: 'MP4 (H.264)'),

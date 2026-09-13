@@ -19,7 +19,7 @@ const Color _textMuted = Color(0xFF6B7280);
 
 // ─── Story Structure ─────────────────────────────────────────────────────────
 enum StorySectionType {
-  hook('HOOK', PhosphorIconsRegular.hook, _errorColor),
+  hook('HOOK', PhosphorIconsRegular.link, _errorColor),
   setup('SETUP', PhosphorIconsRegular.treeStructure, _accentColor),
   context('CONTEXT', PhosphorIconsRegular.bookmarkSimple, _accentColor),
   story('STORY', PhosphorIconsRegular.bookOpenText, _purpleColor),
@@ -798,7 +798,7 @@ class _PacingVisualization extends StatelessWidget {
                       ),
                       child: FractionallySizedBox(
                         alignment: Alignment.centerLeft,
-                        widthFactor: normalizedDuration.clamp(0.0, 1.0),
+                        widthFactor: normalizedDuration.clamp(0.0, 1.0).toDouble(),
                         child: Container(
                           decoration: BoxDecoration(
                             color: section.type.color.withOpacity(0.6),

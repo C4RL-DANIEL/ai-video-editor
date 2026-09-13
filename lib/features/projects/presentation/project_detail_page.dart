@@ -302,6 +302,8 @@ class _DetailStatusChip extends StatelessWidget {
         return AppColors.textMuted;
       case ProjectStatus.error:
         return AppColors.error;
+      case ProjectStatus.draft:
+        return AppColors.textSecondary;
     }
   }
 
@@ -315,6 +317,8 @@ class _DetailStatusChip extends StatelessWidget {
         return 'Archived';
       case ProjectStatus.error:
         return 'Error';
+      case ProjectStatus.draft:
+        return 'Draft';
     }
   }
 }

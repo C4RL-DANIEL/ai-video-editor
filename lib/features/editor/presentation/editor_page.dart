@@ -560,7 +560,7 @@ class _AiAnalysisPanel extends StatelessWidget {
           title: 'Hook Strength',
           value: 'Strong',
           color: _purpleColor,
-          icon: PhosphorIconsRegular.hook,
+          icon: PhosphorIconsRegular.link,
         ),
         const SizedBox(height: 16),
         _SectionHeader(title: 'Suggestions', icon: PhosphorIconsRegular.lightbulb),
