@@ -57,6 +57,16 @@ macos/Flutter/GeneratedPluginRegistrant.swift
 coverage/
 *.lcov
 
+# Environment
+.env
+.env.local
+.env.*.local
+
+# Firebase
+google-services.json
+GoogleService-Info.plist
+**/firebase_options.dart
+
 # Misc
 *.log
 *.pyc
