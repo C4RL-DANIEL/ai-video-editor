@@ -1,0 +1,173 @@
+{
+    "organizationId": "6aa6c22200213aff0275",
+    "projectId": "6aa6c23100337d473370",
+    "projectName": "AI Video Editor",
+    "endpoint": "https://sgp.cloud.appwrite.io/v1",
+    "settings": {
+        "services": {
+            "account": true,
+            "avatars": true,
+            "databases": true,
+            "locale": true,
+            "health": true,
+            "storage": true,
+            "teams": true,
+            "users": true,
+            "sites": true,
+            "functions": true,
+            "graphql": true,
+            "messaging": true
+        },
+        "protocols": {
+            "rest": true,
+            "graphql": true,
+            "websocket": true
+        },
+        "auth": {
+            "methods": {
+                "jwt": true,
+                "phone": true,
+                "invites": true,
+                "anonymous": true,
+                "email-otp": true,
+                "magic-url": true,
+                "email-password": true
+            },
+            "security": {
+                "duration": 31536000,
+                "limit": null,
+                "sessionsLimit": 10,
+                "passwordHistory": null,
+                "passwordDictionary": false,
+                "personalDataCheck": false,
+                "sessionAlerts": false,
+                "mockNumbers": []
+            }
+        }
+    },
+    "tablesDB": [
+        {
+            "$id": "6aa6c27e000c9c9ccc71",
+            "name": "Production TablesDB",
+            "enabled": true,
+            "tables": [
+                {
+                    "$id": "projects",
+                    "name": "Projects",
+                    "enabled": true,
+                    "columns": [
+                        { "$id": "name", "key": "name", "type": "varchar", "size": 255, "required": true },
+                        { "$id": "description", "key": "description", "type": "longtext", "required": false },
+                        { "$id": "status", "key": "status", "type": "varchar", "size": 50, "required": true },
+                        { "$id": "sourceType", "key": "sourceType", "type": "varchar", "size": 20, "required": true },
+                        { "$id": "sourcePath", "key": "sourcePath", "type": "varchar", "size": 500, "required": false },
+                        { "$id": "sourceUrl", "key": "sourceUrl", "type": "varchar", "size": 2000, "required": false },
+                        { "$id": "shortsCount", "key": "shortsCount", "type": "integer", "required": false },
+                        { "$id": "longFormCount", "key": "longFormCount", "type": "integer", "required": false },
+                        { "$id": "createdAt", "key": "createdAt", "type": "varchar", "size": 50, "required": true },
+                        { "$id": "updatedAt", "key": "updatedAt", "type": "varchar", "size": 50, "required": true }
+                    ]
+                },
+                {
+                    "$id": "shorts",
+                    "name": "Shorts",
+                    "enabled": true,
+                    "columns": [
+                        { "$id": "projectId", "key": "projectId", "type": "varchar", "size": 50, "required": true },
+                        { "$id": "title", "key": "title", "type": "varchar", "size": 255, "required": true },
+                        { "$id": "sourceStartTime", "key": "sourceStartTime", "type": "float", "required": true },
+                        { "$id": "sourceEndTime", "key": "sourceEndTime", "type": "float", "required": true },
+                        { "$id": "hookText", "key": "hookText", "type": "longtext", "required": false },
+                        { "$id": "viralScore", "key": "viralScore", "type": "integer", "required": false },
+                        { "$id": "hookScore", "key": "hookScore", "type": "integer", "required": false },
+                        { "$id": "category", "key": "category", "type": "varchar", "size": 50, "required": false },
+                        { "$id": "status", "key": "status", "type": "varchar", "size": 50, "required": true },
+                        { "$id": "duration", "key": "duration", "type": "float", "required": false },
+                        { "$id": "createdAt", "key": "createdAt", "type": "varchar", "size": 50, "required": true }
+                    ]
+                },
+                {
+                    "$id": "long_forms",
+                    "name": "Long Forms",
+                    "enabled": true,
+                    "columns": [
+                        { "$id": "projectId", "key": "projectId", "type": "varchar", "size": 50, "required": true },
+                        { "$id": "title", "key": "title", "type": "varchar", "size": 255, "required": true },
+                        { "$id": "targetDuration", "key": "targetDuration", "type": "float", "required": false },
+                        { "$id": "actualDuration", "key": "actualDuration", "type": "float", "required": false },
+                        { "$id": "status", "key": "status", "type": "varchar", "size": 50, "required": true },
+                        { "$id": "chapterCount", "key": "chapterCount", "type": "integer", "required": false },
+                        { "$id": "createdAt", "key": "createdAt", "type": "varchar", "size": 50, "required": true }
+                    ]
+                },
+                {
+                    "$id": "analysis",
+                    "name": "Analysis",
+                    "enabled": true,
+                    "columns": [
+                        { "$id": "projectId", "key": "projectId", "type": "varchar", "size": 50, "required": true },
+                        { "$id": "status", "key": "status", "type": "varchar", "size": 50, "required": true },
+                        { "$id": "transcriptText", "key": "transcriptText", "type": "longtext", "required": false },
+                        { "$id": "sceneCount", "key": "sceneCount", "type": "integer", "required": false },
+                        { "$id": "speakerCount", "key": "speakerCount", "type": "integer", "required": false },
+                        { "$id": "duration", "key": "duration", "type": "float", "required": false },
+                        { "$id": "completedAt", "key": "completedAt", "type": "varchar", "size": 50, "required": false }
+                    ]
+                },
+                {
+                    "$id": "moments",
+                    "name": "Moments",
+                    "enabled": true,
+                    "columns": [
+                        { "$id": "projectId", "key": "projectId", "type": "varchar", "size": 50, "required": true },
+                        { "$id": "startTime", "key": "startTime", "type": "float", "required": true },
+                        { "$id": "endTime", "key": "endTime", "type": "float", "required": true },
+                        { "$id": "type", "key": "type", "type": "varchar", "size": 50, "required": true },
+                        { "$id": "score", "key": "score", "type": "integer", "required": false },
+                        { "$id": "hookScore", "key": "hookScore", "type": "integer", "required": false },
+                        { "$id": "reasoning", "key": "reasoning", "type": "longtext", "required": false },
+                        { "$id": "createdAt", "key": "createdAt", "type": "varchar", "size": 50, "required": true }
+                    ]
+                },
+                {
+                    "$id": "transcripts",
+                    "name": "Transcripts",
+                    "enabled": true,
+                    "columns": [
+                        { "$id": "projectId", "key": "projectId", "type": "varchar", "size": 50, "required": true },
+                        { "$id": "fullText", "key": "fullText", "type": "longtext", "required": false },
+                        { "$id": "language", "key": "language", "type": "varchar", "size": 10, "required": false },
+                        { "$id": "segmentCount", "key": "segmentCount", "type": "integer", "required": false },
+                        { "$id": "wordCount", "key": "wordCount", "type": "integer", "required": false }
+                    ]
+                }
+            ]
+        }
+    ],
+    "buckets": [
+        {
+            "$id": "videos",
+            "name": "Videos",
+            "enabled": true,
+            "maximumFileSize": 20971520,
+            "allowedFileExtensions": ["mp4", "mov", "avi", "mkv", "webm"],
+            "permissions": ["any"]
+        },
+        {
+            "$id": "thumbnails",
+            "name": "Thumbnails",
+            "enabled": true,
+            "maximumFileSize": 5242880,
+            "allowedFileExtensions": ["jpg", "jpeg", "png", "webp"],
+            "permissions": ["any"]
+        },
+        {
+            "$id": "exports",
+            "name": "Exports",
+            "enabled": true,
+            "maximumFileSize": 20971520,
+            "allowedFileExtensions": ["mp4", "mov", "avi", "mkv", "webm"],
+            "permissions": ["any"]
+        }
+    ]
+}

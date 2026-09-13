@@ -1,0 +1,12 @@
+[
+  {"key":"name","type":"varchar","size":255,"required":true},
+  {"key":"description","type":"longtext","required":false},
+  {"key":"status","type":"varchar","size":50,"required":true},
+  {"key":"sourceType","type":"varchar","size":20,"required":true},
+  {"key":"sourcePath","type":"varchar","size":500,"required":false},
+  {"key":"sourceUrl","type":"varchar","size":2000,"required":false},
+  {"key":"shortsCount","type":"integer","required":false},
+  {"key":"longFormCount","type":"integer","required":false},
+  {"key":"createdAt","type":"varchar","size":50,"required":true},
+  {"key":"updatedAt","type":"varchar","size":50,"required":true}
+]

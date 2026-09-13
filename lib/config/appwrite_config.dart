@@ -8,27 +8,14 @@ abstract final class AppwriteConfig {
   /// Your Appwrite project endpoint.
   /// For Appwrite Cloud: 'https://cloud.appwrite.io/v1'
   /// For self-hosted: 'http://YOUR_SERVER:80/v1'
-  static const String endpoint = String.fromEnvironment(
-    'APPWRITE_ENDPOINT',
-    defaultValue: 'https://cloud.appwrite.io/v1',
-  );
+  static const String endpoint = 'https://sgp.cloud.appwrite.io/v1';
+  static const String projectId = '6aa6c23100337d473370';
+  static const String databaseId = '6aa6c27e000c9c9ccc71';
 
-  /// Your Appwrite project ID from the console.
-  static const String projectId = String.fromEnvironment(
-    'APPWRITE_PROJECT_ID',
-    defaultValue: '',
-  );
-
-  /// Database ID for the app's main database.
-  static const String databaseId = String.fromEnvironment(
-    'APPWRITE_DATABASE_ID',
-    defaultValue: 'ai_video_editor',
-  );
-
-  /// Storage bucket IDs
+  /// Storage bucket IDs (free tier: 1 bucket, so all use 'videos')
   static const String videosBucketId = 'videos';
-  static const String thumbnailsBucketId = 'thumbnails';
-  static const String exportsBucketId = 'exports';
+  static const String thumbnailsBucketId = 'videos';
+  static const String exportsBucketId = 'videos';
 
   /// Collection IDs
   static const String projectsCollectionId = 'projects';
@@ -44,6 +31,5 @@ abstract final class AppwriteConfig {
 Client createAppwriteClient() {
   return Client()
     ..setEndpoint(AppwriteConfig.endpoint)
-    ..setProject(AppwriteConfig.projectId)
-    ..setSelfSigned(status: true); // Only for self-hosted; remove for cloud
+    ..setProject(AppwriteConfig.projectId);
 }
