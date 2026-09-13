@@ -1,0 +1,166 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<!-- App Display Name -->
+	<key>CFBundleDisplayName</key>
+	<string>AI Video Editor</string>
+	
+	<!-- Bundle Identifier -->
+	<key>CFBundleIdentifier</key>
+	<string>com.aivideoeditor.app</string>
+	
+	<!-- Bundle Info -->
+	<key>CFBundleName</key>
+	<string>AI Video Editor</string>
+	<key>CFBundleDisplayName</key>
+	<string>AI Video Editor</string>
+	
+	<!-- Version Info -->
+	<key>CFBundleShortVersionString</key>
+	<string>$(FLUTTER_BUILD_NAME)</string>
+	<key>CFBundleVersion</key>
+	<string>$(FLUTTER_BUILD_NUMBER)</string>
+	
+	<!-- Executable Name -->
+	<key>CFBundleExecutable</key>
+	<string>$(EXECUTABLE_NAME)</string>
+	<key>CFBundlePackageType</key>
+	<string>APPL</string>
+	<key>CFBundleInfoDictionaryVersion</key>
+	<string>6.0</string>
+	
+	<!-- URL Types for deep linking -->
+	<key>CFBundleURLTypes</key>
+	<array>
+		<dict>
+			<key>CFBundleTypeRole</key>
+			<string>Editor</string>
+			<key>CFBundleURLName</key>
+			<string>com.aivideoeditor.app</string>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<string>aivideoeditor</string>
+			</array>
+		</dict>
+	</array>
+	
+	<!-- Required Device Capabilities -->
+	<key>UIRequiredDeviceCapabilities</key>
+	<array>
+		<string>armv7</string>
+	</array>
+	
+	<!-- Supported Interface Orientations (iPhone) -->
+	<key>UISupportedInterfaceOrientations</key>
+	<array>
+		<string>UIInterfaceOrientationPortrait</string>
+		<string>UIInterfaceOrientationLandscapeLeft</string>
+		<string>UIInterfaceOrientationLandscapeRight</string>
+	</array>
+	
+	<!-- Supported Interface Orientations (iPad) - include all for tablet support -->
+	<key>UISupportedInterfaceOrientations~ipad</key>
+	<array>
+		<string>UIInterfaceOrientationPortrait</string>
+		<string>UIInterfaceOrientationPortraitUpsideDown</string>
+		<string>UIInterfaceOrientationLandscapeLeft</string>
+		<string>UIInterfaceOrientationLandscapeRight</string>
+	</array>
+	
+	<!-- Status Bar -->
+	<key>UIStatusBarHidden</key>
+	<false/>
+	<key>UIViewControllerBasedStatusBarAppearance</key>
+	<false/>
+	
+	<!-- Privacy Descriptions -->
+	
+	<!-- Camera Usage Description - Required for camera access -->
+	<key>NSCameraUsageDescription</key>
+	<string>AI Video Editor needs camera access to record videos and capture photos for editing.</string>
+	
+	<!-- Microphone Usage Description - Required for audio recording -->
+	<key>NSMicrophoneUsageDescription</key>
+	<string>AI Video Editor needs microphone access to record audio for your videos.</string>
+	
+	<!-- Photo Library Usage Description - Required for accessing media -->
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>AI Video Editor needs access to your photo library to import and edit videos and images.</string>
+	
+	<!-- Photo Library Add Usage Description - Required for saving to gallery -->
+	<key>NSPhotoLibraryAddUsageDescription</key>
+	<string>AI Video Editor needs permission to save edited videos and photos to your library.</string>
+	
+	<!-- Location (if needed for future geo-tagging features) -->
+	<key>NSLocationWhenInUseUsageDescription</key>
+	<string>AI Video Editor may use your location to add location tags to your videos.</string>
+	
+	<!-- Media Library - For accessing Apple Music/ media assets -->
+	<key>NSAppleMusicUsageDescription</key>
+	<string>AI Video Editor needs access to your music library to add background music to videos.</string>
+	
+	<!-- FaceID Usage (for future authentication features) -->
+	<key>NSFaceIDUsageDescription</key>
+	<string>AI Video Editor uses Face ID to securely protect your projects.</string>
+	
+	<!-- App Transport Security - Allow HTTP for development -->
+	<key>NSAppTransportSecurity</key>
+	<dict>
+		<key>NSAllowsArbitraryLoads</key>
+		<true/>
+		<key>NSAllowsLocalNetworking</key>
+		<true/>
+	</dict>
+	
+	<!-- Background Modes -->
+	<key>UIBackgroundModes</key>
+	<array>
+		<string>fetch</string>
+		<string>processing</string>
+	</array>
+	
+	<!-- Launch Screen Storyboard -->
+	<key>UILaunchStoryboardName</key>
+	<string>LaunchScreen</string>
+	
+	<!-- Required for File Provider extensions -->
+	<key>ITSAppUsesNonExemptEncryption</key>
+	<false/>
+	
+	<!-- Minimum OS Version -->
+	<key>MinimumOSVersion</key>
+	<string>13.0</string>
+	
+	<!-- Device Family -->
+	<key>UIDeviceFamily</key>
+	<array>
+		<integer>1</integer>
+		<integer>2</integer>
+	</array>
+	
+	<!-- Supported Platforms -->
+	<key>CFBundleSupportedPlatforms</key>
+	<array>
+		<string>iPhoneOS</string>
+	</array>
+	
+	<!-- Preferred Interface Style -->
+	<key>UIUserInterfaceStyle</key>
+	<string>Automatic</string>
+	
+	<!-- Screen Mode (Allows edge-to-edge) -->
+	<key>UIRequiresFullScreen</key>
+	<true/>
+	
+	<!-- Privacy Manifest (required for API usage declarations) -->
+	<key>NSPrivacyTracking</key>
+	<false/>
+	<key>NSPrivacyTrackingDomains</key>
+	<array/>
+	<key>NSPrivacyCollectedDataTypes</key>
+	<array/>
+	<key>NSPrivacyAccessedAPITypes</key>
+	<array/>
+</dict>
+</plist>

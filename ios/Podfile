@@ -1,0 +1,82 @@
+# AI Video Editor - iOS Podfile Configuration
+# This file manages CocoaPods dependencies for the Flutter iOS project
+# Minimum iOS version: 13.0+ (required for modern AVFoundation and CoreML APIs)
+
+# Uncomment this line to define a global platform for your project
+platform :ios, '13.0'
+
+# CocoaPods analytics sends network stats synchronously affecting flutter build latency.
+ENV['COCOAPODS_DISABLE_STATS'] = 'true'
+
+# Project configuration
+project 'Runner', {
+  'Debug' => :debug,
+  'Profile' => :release,
+  'Release' => :release,
+}
+
+# Flutter iOS Podfile metadata
+# This Podfile is for the Runner target of the AI Video Editor Flutter app
+
+def flutter_root
+  generated_xcode_build_settings_path = File.expand_path(File.join('..', 'Flutter', 'Generated.xcconfig'), __FILE__)
+  unless File.exist?(generated_xcode_build_settings_path)
+    raise "#{generated_xcode_build_settings_path} must exist. If you're running pod install manually, make sure flutter pub get is executed first"
+  end
+
+  File.foreach(generated_xcode_build_settings_path) do |line|
+    matches = line.match(/FLUTTER_ROOT\=(.*)/)
+    return matches[1].strip if matches
+  end
+  raise "FLUTTER_ROOT not found in #{generated_xcode_build_settings_path}. Try deleting Generated.xcconfig, then run flutter pub get"
+end
+
+require File.expand_path(File.join('packages', 'flutter_tools', 'bin', 'podhelper'), flutter_root)
+
+flutter_ios_podfile_setup
+
+target 'Runner' do
+  use_frameworks!
+  use_modular_headers!
+
+  # Flutter iOS dependencies
+  flutter_install_all_ios_pods File.dirname(File.realpath(__FILE__))
+
+  # ============================================================
+  # Future AI Video Editor dependencies (uncomment as needed)
+  # ============================================================
+  
+  # Video processing and editing
+  # pod 'AVFoundation'              # Native video editing (included in iOS SDK)
+  # pod 'GPUImage', '~> 3.0'       # GPU-accelerated image/video processing
+  # pod 'SwiftVideoCompressor'      # Video compression utilities
+  
+  # AI/ML processing
+  # pod 'CoreML'                    # Apple ML framework for on-device AI
+  # pod 'Vision'                    # Vision framework for image analysis
+  
+  # UI components
+  # pod 'SnapKit', '~> 5.6'       # Auto Layout DSL
+  # pod 'SDWebImage', '~> 5.18'   # Image loading and caching
+  
+  # Network and storage
+  # pod 'Alamofire', '~> 5.8'     # Network requests
+  # pod 'RealmSwift', '~> 10.44'  # Local database for project management
+end
+
+post_install do |installer|
+  installer.pods_project.targets.each do |target|
+    flutter_additional_ios_build_settings(target)
+    
+    # Set minimum deployment target for all pods
+    target.build_configurations.each do |config|
+      config.build_settings['IPHONEOS_DEPLOYMENT_TARGET'] = '13.0'
+      
+      # Enable ARC (Automatic Reference Counting) for all pods
+      config.build_settings['CLANG_ENABLE_OBJC_ARC'] = 'YES'
+      
+      # Optimize for architecture
+      config.build_settings['ONLY_ACTIVE_ARCH'] = 'YES'
+    end
+  end
+end
