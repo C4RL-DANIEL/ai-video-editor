@@ -51,5 +51,5 @@ flutter {
 }
 
 dependencies {
-    implementation "org.jetbrains.kotlin:kotlin-stdlib-jdk7:${org.jetbrains.kotlin.gradle.plugin}"
+    // Kotlin stdlib is automatically included by the Kotlin Android plugin
 }
