@@ -62,11 +62,6 @@ coverage/
 .env.local
 .env.*.local
 
-# Firebase
-google-services.json
-GoogleService-Info.plist
-**/firebase_options.dart
-
 # Misc
 *.log
 *.pyc
