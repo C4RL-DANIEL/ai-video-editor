@@ -29,24 +29,21 @@ class AppwriteStorageService {
       // Report initial progress
       onProgress?.call(0.0);
 
-      final file = await _storage.createFile(
+      final result = await _storage.createFile(
         bucketId: AppwriteConfig.videosBucketId,
         fileId: fileId,
-        file: InputFile(
+        file: InputFile.fromPath(
           path: file.path,
           filename: fileName,
         ),
-        onProgress: (progress) {
-          onProgress?.call(progress);
-        },
       );
 
-      return ApiResponse.success(data: file.$id);
+      return ApiResponse.success(result.$id);
     } on AppwriteException catch (e) {
       debugPrint('Appwrite uploadVideo error: ${e.message}');
       return ApiResponse.error(
+        'Failed to upload video: ${e.message}',
         statusCode: e.code ?? 500,
-        message: 'Failed to upload video: ${e.message}',
       );
     }
   }
@@ -62,18 +59,18 @@ class AppwriteStorageService {
       final result = await _storage.createFile(
         bucketId: AppwriteConfig.thumbnailsBucketId,
         fileId: ID.unique(),
-        file: InputFile(
+        file: InputFile.fromPath(
           path: file.path,
           filename: fileName,
         ),
       );
 
-      return ApiResponse.success(data: result.$id);
+      return ApiResponse.success(result.$id);
     } on AppwriteException catch (e) {
       debugPrint('Appwrite uploadThumbnail error: ${e.message}');
       return ApiResponse.error(
+        'Failed to upload thumbnail: ${e.message}',
         statusCode: e.code ?? 500,
-        message: 'Failed to upload thumbnail: ${e.message}',
       );
     }
   }
@@ -88,11 +85,10 @@ class AppwriteStorageService {
         bucketId: bucketId,
         fileId: fileId,
       );
-      return ApiResponse.success(data: url.toString());
+      return ApiResponse.success(url.toString());
     } catch (e) {
       return ApiResponse.error(
-        statusCode: 500,
-        message: 'Failed to get file URL: $e',
+        'Failed to get file URL: $e',
       );
     }
   }
@@ -107,11 +103,10 @@ class AppwriteStorageService {
         bucketId: bucketId,
         fileId: fileId,
       );
-      return ApiResponse.success(data: url.toString());
+      return ApiResponse.success(url.toString());
     } catch (e) {
       return ApiResponse.error(
-        statusCode: 500,
-        message: 'Failed to get download URL: $e',
+        'Failed to get download URL: $e',
       );
     }
   }
@@ -126,12 +121,12 @@ class AppwriteStorageService {
         bucketId: bucketId,
         fileId: fileId,
       );
-      return ApiResponse.success(data: null);
+      return ApiResponse.success(null);
     } on AppwriteException catch (e) {
       debugPrint('Appwrite deleteFile error: ${e.message}');
       return ApiResponse.error(
+        'Failed to delete file: ${e.message}',
         statusCode: e.code ?? 500,
-        message: 'Failed to delete file: ${e.message}',
       );
     }
   }
@@ -144,18 +139,20 @@ class AppwriteStorageService {
     int offset = 0,
   }) async {
     try {
+      final queries = <String>[
+        if (limit != 25) Query.limit(limit),
+        if (offset > 0) Query.offset(offset),
+      ];
       final result = await _storage.listFiles(
         bucketId: bucketId,
-        search: search,
-        limit: limit,
-        offset: offset,
+        queries: queries,
       );
-      return ApiResponse.success(data: result.files);
+      return ApiResponse.success(result.files);
     } on AppwriteException catch (e) {
       debugPrint('Appwrite listFiles error: ${e.message}');
       return ApiResponse.error(
+        'Failed to list files: ${e.message}',
         statusCode: e.code ?? 500,
-        message: 'Failed to list files: ${e.message}',
       );
     }
   }
