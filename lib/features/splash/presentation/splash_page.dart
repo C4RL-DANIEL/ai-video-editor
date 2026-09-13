@@ -127,8 +127,7 @@ class _SplashPageState extends State<SplashPage> with SingleTickerProviderStateM
                             ],
                           ),
                           child: Center(
-                            child: PhosphorIcons.filmStrip(
-                              PhosphorIconsStyle.light,
+                            child: PhosphorIconsLight.filmStrip(
                               size: logoSize * 0.48,
                               color: const Color(0xFF3B82F6),
                             ),

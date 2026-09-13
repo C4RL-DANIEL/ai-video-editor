@@ -19,15 +19,15 @@ const Color _textMuted = Color(0xFF6B7280);
 
 // ─── Story Structure ─────────────────────────────────────────────────────────
 enum StorySectionType {
-  hook('HOOK', PhosphorIcons.fishHook, _errorColor),
-  setup('SETUP', PhosphorIcons.treeStructure, _accentColor),
-  context('CONTEXT', PhosphorIcons.bookmarkSimple, _accentColor),
-  story('STORY', PhosphorIcons.bookOpenText, _purpleColor),
-  escalation('ESCALATION', PhosphorIcons.chartLineUp, _warningColor),
-  majorEvents('MAJOR EVENTS', PhosphorIcons.star, _warningColor),
-  reactions('REACTIONS', PhosphorIcons.smiley, _successColor),
-  payoff('PAYOFF', PhosphorIcons.trophy, _purpleColor),
-  conclusion('CONCLUSION', PhosphorIcons.flag, _textSecondary);
+  hook('HOOK', PhosphorIconsRegular.hook, _errorColor),
+  setup('SETUP', PhosphorIconsRegular.treeStructure, _accentColor),
+  context('CONTEXT', PhosphorIconsRegular.bookmarkSimple, _accentColor),
+  story('STORY', PhosphorIconsRegular.bookOpenText, _purpleColor),
+  escalation('ESCALATION', PhosphorIconsRegular.chartLineUp, _warningColor),
+  majorEvents('MAJOR EVENTS', PhosphorIconsRegular.star, _warningColor),
+  reactions('REACTIONS', PhosphorIconsRegular.smiley, _successColor),
+  payoff('PAYOFF', PhosphorIconsRegular.trophy, _purpleColor),
+  conclusion('CONCLUSION', PhosphorIconsRegular.flag, _textSecondary);
 
   final String label;
   final IconData icon;
@@ -240,13 +240,13 @@ class LongFormBuilderPage extends ConsumerWidget {
         backgroundColor: _surfaceColor,
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(PhosphorIcons.arrowLeft, size: 18),
+          icon: const Icon(PhosphorIconsRegular.arrowLeft, size: 18),
           color: _textSecondary,
           onPressed: () => Navigator.of(context).pop(),
         ),
         title: Row(
           children: [
-            Icon(PhosphorIcons.bookOpenText, size: 18, color: _purpleColor),
+            Icon(PhosphorIconsRegular.bookOpenText, size: 18, color: _purpleColor),
             const SizedBox(width: 8),
             Text('Long-Form Builder', style: GoogleFonts.inter(color: _textPrimary, fontSize: 16, fontWeight: FontWeight.w600)),
           ],
@@ -267,7 +267,7 @@ class LongFormBuilderPage extends ConsumerWidget {
             child: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
-                const Icon(PhosphorIcons.export, size: 14, color: Colors.white),
+                const Icon(PhosphorIconsRegular.export, size: 14, color: Colors.white),
                 const SizedBox(width: 6),
                 Text('Render Long-Form', style: GoogleFonts.inter(color: Colors.white, fontSize: 12, fontWeight: FontWeight.w600)),
               ],
@@ -372,7 +372,7 @@ class _DurationSelector extends StatelessWidget {
         children: [
           Row(
             children: [
-              Icon(PhosphorIcons.clock, size: 14, color: _accentColor),
+              Icon(PhosphorIconsRegular.clock, size: 14, color: _accentColor),
               const SizedBox(width: 6),
               Text('Target Duration', style: GoogleFonts.inter(color: _textPrimary, fontSize: 12, fontWeight: FontWeight.w600)),
             ],
@@ -493,7 +493,7 @@ class _DurationIndicator extends StatelessWidget {
             ],
           ),
           const SizedBox(width: 16),
-          Icon(PhosphorIcons.arrowRight, size: 14, color: _textMuted),
+          Icon(PhosphorIconsRegular.arrowRight, size: 14, color: _textMuted),
           const SizedBox(width: 16),
           // Target
           Column(
@@ -644,7 +644,7 @@ class _SectionCard extends StatelessWidget {
                     ),
                   ),
                   Icon(
-                    section.expanded ? PhosphorIcons.caretUp : PhosphorIcons.caretDown,
+                    section.expanded ? PhosphorIconsRegular.caretUp : PhosphorIconsRegular.caretDown,
                     size: 12,
                     color: _textMuted,
                   ),
@@ -670,14 +670,14 @@ class _SectionCard extends StatelessWidget {
                         ),
                         child: Row(
                           children: [
-                            Icon(PhosphorIcons.filmStrip, size: 10, color: section.type.color),
+                            Icon(PhosphorIconsRegular.filmStrip, size: 10, color: section.type.color),
                             const SizedBox(width: 6),
                             Expanded(
                               child: Text(e.value, style: GoogleFonts.inter(color: _textSecondary, fontSize: 10)),
                             ),
                             GestureDetector(
                               onTap: () => onRemoveFootage(e.key),
-                              child: Icon(PhosphorIcons.x, size: 10, color: _errorColor),
+                              child: Icon(PhosphorIconsRegular.x, size: 10, color: _errorColor),
                             ),
                           ],
                         ),
@@ -720,7 +720,7 @@ class _ChaptersPanel extends StatelessWidget {
             ),
             child: Row(
               children: [
-                Icon(PhosphorIcons.listNumbers, size: 14, color: _accentColor),
+                Icon(PhosphorIconsRegular.listNumbers, size: 14, color: _accentColor),
                 const SizedBox(width: 8),
                 Text('Chapter Preview', style: GoogleFonts.inter(color: _textPrimary, fontSize: 12, fontWeight: FontWeight.w600)),
                 const Spacer(),
@@ -769,7 +769,7 @@ class _PacingVisualization extends StatelessWidget {
         children: [
           Row(
             children: [
-              Icon(PhosphorIcons.chartBar, size: 12, color: _accentColor),
+              Icon(PhosphorIconsRegular.chartBar, size: 12, color: _accentColor),
               const SizedBox(width: 6),
               Text('Pacing Map', style: GoogleFonts.inter(color: _textSecondary, fontSize: 11, fontWeight: FontWeight.w500)),
             ],
@@ -842,7 +842,7 @@ class _ChapterCard extends StatelessWidget {
       child: Row(
         children: [
           // Drag handle
-          Icon(PhosphorIcons.dotsSixVertical, size: 14, color: _textMuted),
+          Icon(PhosphorIconsRegular.dotsSixVertical, size: 14, color: _textMuted),
           const SizedBox(width: 10),
 
           // Chapter number
@@ -918,7 +918,7 @@ class _FootageNarrationPanel extends StatelessWidget {
               children: [
                 Row(
                   children: [
-                    Icon(PhosphorIcons.folderOpen, size: 14, color: _successColor),
+                    Icon(PhosphorIconsRegular.folderOpen, size: 14, color: _successColor),
                     const SizedBox(width: 8),
                     Text('Available Footage', style: GoogleFonts.inter(color: _textPrimary, fontSize: 12, fontWeight: FontWeight.w600)),
                   ],
@@ -976,7 +976,7 @@ class _FootageNarrationPanel extends StatelessWidget {
               children: [
                 Row(
                   children: [
-                    Icon(PhosphorIcons.microphone, size: 14, color: _purpleColor),
+                    Icon(PhosphorIconsRegular.microphone, size: 14, color: _purpleColor),
                     const SizedBox(width: 8),
                     Text('Narration', style: GoogleFonts.inter(color: _textPrimary, fontSize: 12, fontWeight: FontWeight.w600)),
                     const Spacer(),
@@ -1039,7 +1039,7 @@ class _BuildButton extends StatelessWidget {
             if (state.isBuilding)
               SizedBox(width: 12, height: 12, child: CircularProgressIndicator(strokeWidth: 1.5, color: Colors.white))
             else
-              const Icon(PhosphorIcons.magicWand, size: 14, color: Colors.white),
+              const Icon(PhosphorIconsRegular.magicWand, size: 14, color: Colors.white),
             const SizedBox(width: 6),
             Text(
               state.isBuilding ? 'Building...' : 'Build Story',
@@ -1080,7 +1080,7 @@ class _FootageItem extends StatelessWidget {
               color: color.withOpacity(0.15),
               borderRadius: BorderRadius.circular(6),
             ),
-            child: Icon(PhosphorIcons.filmStrip, size: 14, color: color),
+            child: Icon(PhosphorIconsRegular.filmStrip, size: 14, color: color),
           ),
           const SizedBox(width: 10),
           Expanded(
@@ -1092,7 +1092,7 @@ class _FootageItem extends StatelessWidget {
               ],
             ),
           ),
-          Icon(PhosphorIcons.plusCircle, size: 16, color: _textMuted),
+          Icon(PhosphorIconsRegular.plusCircle, size: 16, color: _textMuted),
         ],
       ),
     );

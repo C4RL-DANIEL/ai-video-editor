@@ -234,7 +234,7 @@ class _EditorTopBar extends StatelessWidget {
       child: Row(
         children: [
           IconButton(
-            icon: const Icon(PhosphorIcons.list, size: 18),
+            icon: const Icon(PhosphorIconsRegular.list, size: 18),
             color: _textSecondary,
             onPressed: () {},
           ),
@@ -250,7 +250,7 @@ class _EditorTopBar extends StatelessWidget {
             child: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
-                Icon(PhosphorIcons.bookOpenText, size: 12, color: _purpleColor),
+                Icon(PhosphorIconsRegular.bookOpenText, size: 12, color: _purpleColor),
                 const SizedBox(width: 6),
                 Text(state.projectName, style: GoogleFonts.inter(color: _textPrimary, fontSize: 13, fontWeight: FontWeight.w500)),
               ],
@@ -258,37 +258,37 @@ class _EditorTopBar extends StatelessWidget {
           ),
           const SizedBox(width: 12),
           // Undo/Redo
-          _ToolBarButton(icon: PhosphorIcons.arrowUUpLeft, tooltip: 'Undo', onTap: () {}),
-          _ToolBarButton(icon: PhosphorIcons.arrowUUpRight, tooltip: 'Redo', onTap: () {}),
+          _ToolBarButton(icon: PhosphorIconsRegular.arrowUUpLeft, tooltip: 'Undo', onTap: () {}),
+          _ToolBarButton(icon: PhosphorIconsRegular.arrowUUpRight, tooltip: 'Redo', onTap: () {}),
           const SizedBox(width: 8),
           _ToolBarDivider(),
           // Zoom
-          _ToolBarButton(icon: PhosphorIcons.magnifyingGlassMinus, tooltip: 'Zoom Out', onTap: () {
+          _ToolBarButton(icon: PhosphorIconsRegular.magnifyingGlassMinus, tooltip: 'Zoom Out', onTap: () {
             ref.read(longFormEditorProvider.notifier).setZoom(state.zoom - 0.25);
           }),
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 6),
             child: Text('${(state.zoom * 100).toInt()}%', style: GoogleFonts.inter(color: _textSecondary, fontSize: 11)),
           ),
-          _ToolBarButton(icon: PhosphorIcons.magnifyingGlassPlus, tooltip: 'Zoom In', onTap: () {
+          _ToolBarButton(icon: PhosphorIconsRegular.magnifyingGlassPlus, tooltip: 'Zoom In', onTap: () {
             ref.read(longFormEditorProvider.notifier).setZoom(state.zoom + 0.25);
           }),
           const Spacer(),
           // Chapters toggle
           _ToolBarButton(
-            icon: PhosphorIcons.listNumbers,
+            icon: PhosphorIconsRegular.listNumbers,
             tooltip: 'Chapters',
             onTap: () => ref.read(longFormEditorProvider.notifier).toggleLeftPanel(),
             isActive: state.leftPanelOpen,
           ),
           _ToolBarButton(
-            icon: PhosphorIcons.gearSix,
+            icon: PhosphorIconsRegular.gearSix,
             tooltip: 'Properties',
             onTap: () => ref.read(longFormEditorProvider.notifier).toggleRightPanel(),
             isActive: state.rightPanelOpen,
           ),
           const SizedBox(width: 8),
-          _ToolBarButton(icon: PhosphorIcons.floppyDisk, tooltip: 'Save', onTap: () {}),
+          _ToolBarButton(icon: PhosphorIconsRegular.floppyDisk, tooltip: 'Save', onTap: () {}),
           const SizedBox(width: 4),
           // Export
           Container(
@@ -301,7 +301,7 @@ class _EditorTopBar extends StatelessWidget {
             child: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
-                const Icon(PhosphorIcons.youtubeLogo, size: 14, color: Colors.white),
+                const Icon(PhosphorIconsRegular.youtubeLogo, size: 14, color: Colors.white),
                 const SizedBox(width: 6),
                 Text('Export for YouTube', style: GoogleFonts.inter(color: Colors.white, fontSize: 12, fontWeight: FontWeight.w600)),
               ],
@@ -373,7 +373,7 @@ class _ChapterSidebar extends StatelessWidget {
             ),
             child: Row(
               children: [
-                Icon(PhosphorIcons.listNumbers, size: 14, color: _accentColor),
+                Icon(PhosphorIconsRegular.listNumbers, size: 14, color: _accentColor),
                 const SizedBox(width: 8),
                 Text('Chapters', style: GoogleFonts.inter(color: _textPrimary, fontSize: 12, fontWeight: FontWeight.w600)),
                 const Spacer(),
@@ -441,7 +441,7 @@ class _PacingMap extends StatelessWidget {
         children: [
           Row(
             children: [
-              Icon(PhosphorIcons.chartBar, size: 12, color: _accentColor),
+              Icon(PhosphorIconsRegular.chartBar, size: 12, color: _accentColor),
               const SizedBox(width: 6),
               Text('Pacing Map', style: GoogleFonts.inter(color: _textSecondary, fontSize: 10, fontWeight: FontWeight.w500)),
             ],
@@ -597,7 +597,7 @@ class _VideoPreviewArea extends StatelessWidget {
                   Column(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      Icon(PhosphorIcons.filmSlate, size: 48, color: _textMuted),
+                      Icon(PhosphorIconsRegular.filmSlate, size: 48, color: _textMuted),
                       const SizedBox(height: 12),
                       Text('Long-Form Preview', style: GoogleFonts.inter(color: _textMuted, fontSize: 14)),
                       const SizedBox(height: 4),
@@ -635,17 +635,17 @@ class _PlaybackControls extends StatelessWidget {
     return Row(
       children: [
         IconButton(
-          icon: const Icon(PhosphorIcons.skipBack, size: 16),
+          icon: const Icon(PhosphorIconsRegular.skipBack, size: 16),
           color: _textSecondary,
           onPressed: () {},
         ),
         IconButton(
-          icon: Icon(state.isPlaying ? PhosphorIcons.pause : PhosphorIcons.play, size: 20),
+          icon: Icon(state.isPlaying ? PhosphorIconsRegular.pause : PhosphorIconsRegular.play, size: 20),
           color: Colors.white,
           onPressed: () {},
         ),
         IconButton(
-          icon: const Icon(PhosphorIcons.skipForward, size: 16),
+          icon: const Icon(PhosphorIconsRegular.skipForward, size: 16),
           color: _textSecondary,
           onPressed: () {},
         ),
@@ -654,12 +654,12 @@ class _PlaybackControls extends StatelessWidget {
         Text(' / ${_formatDuration(state.totalDuration)}', style: GoogleFonts.inter(color: _textMuted, fontSize: 11)),
         const Spacer(),
         IconButton(
-          icon: const Icon(PhosphorIcons.captions, size: 16),
+          icon: const Icon(PhosphorIconsRegular.subtitles, size: 16),
           color: _textSecondary,
           onPressed: () {},
         ),
         IconButton(
-          icon: const Icon(PhosphorIcons.arrowsOutSimple, size: 16),
+          icon: const Icon(PhosphorIconsRegular.arrowsOutSimple, size: 16),
           color: _textSecondary,
           onPressed: () {},
         ),
@@ -695,11 +695,11 @@ class _TimelineArea extends StatelessWidget {
             ),
             child: Row(
               children: [
-                Icon(PhosphorIcons.filmStrip, size: 14, color: _textSecondary),
+                Icon(PhosphorIconsRegular.filmStrip, size: 14, color: _textSecondary),
                 const SizedBox(width: 6),
                 Text('Timeline', style: GoogleFonts.inter(color: _textSecondary, fontSize: 11, fontWeight: FontWeight.w600)),
                 const Spacer(),
-                Icon(PhosphorIcons.magnifyingGlassMinus, size: 12, color: _textMuted),
+                Icon(PhosphorIconsRegular.magnifyingGlassMinus, size: 12, color: _textMuted),
                 SizedBox(
                   width: 80,
                   child: Slider(
@@ -711,7 +711,7 @@ class _TimelineArea extends StatelessWidget {
                     inactiveColor: _borderColor,
                   ),
                 ),
-                Icon(PhosphorIcons.magnifyingGlassPlus, size: 12, color: _textMuted),
+                Icon(PhosphorIconsRegular.magnifyingGlassPlus, size: 12, color: _textMuted),
               ],
             ),
           ),
@@ -725,10 +725,10 @@ class _TimelineArea extends StatelessWidget {
                   width: 120,
                   child: Column(
                     children: [
-                      _TrackLabel(label: 'Video', icon: PhosphorIcons.videoCamera, color: _accentColor),
-                      _TrackLabel(label: 'Commentary', icon: PhosphorIcons.microphone, color: _purpleColor),
-                      _TrackLabel(label: 'Music', icon: PhosphorIcons.musicNote, color: _successColor),
-                      _TrackLabel(label: 'Chapters', icon: PhosphorIcons.bookmarkSimple, color: _warningColor),
+                      _TrackLabel(label: 'Video', icon: PhosphorIconsRegular.videoCamera, color: _accentColor),
+                      _TrackLabel(label: 'Commentary', icon: PhosphorIconsRegular.microphone, color: _purpleColor),
+                      _TrackLabel(label: 'Music', icon: PhosphorIconsRegular.musicNote, color: _successColor),
+                      _TrackLabel(label: 'Chapters', icon: PhosphorIconsRegular.bookmarkSimple, color: _warningColor),
                     ],
                   ),
                 ),
@@ -1011,7 +1011,7 @@ class _PacingPanel extends StatelessWidget {
     return ListView(
       padding: const EdgeInsets.all(12),
       children: [
-        _SectionHeader(title: 'Pacing Analysis', icon: PhosphorIcons.chartBar),
+        _SectionHeader(title: 'Pacing Analysis', icon: PhosphorIconsRegular.chartBar),
         const SizedBox(height: 12),
 
         // Pacing visualization
@@ -1069,7 +1069,7 @@ class _PacingPanel extends StatelessWidget {
         }),
 
         const SizedBox(height: 16),
-        _SectionHeader(title: 'Pacing Score', icon: PhosphorIcons.star),
+        _SectionHeader(title: 'Pacing Score', icon: PhosphorIconsRegular.star),
         const SizedBox(height: 8),
         Container(
           padding: const EdgeInsets.all(12),
@@ -1119,7 +1119,7 @@ class _TransitionsPanel extends StatelessWidget {
     return ListView(
       padding: const EdgeInsets.all(12),
       children: [
-        _SectionHeader(title: 'Chapter Transitions', icon: PhosphorIcons.arrowsLeftRight),
+        _SectionHeader(title: 'Chapter Transitions', icon: PhosphorIconsRegular.arrowsLeftRight),
         const SizedBox(height: 12),
         ...state.transitions.map((t) {
           final from = state.chapters.firstWhere((c) => c.number == t.fromChapter, orElse: () => state.chapters.first);
@@ -1146,7 +1146,7 @@ class _TransitionsPanel extends StatelessWidget {
                       child: Text('Ch.${t.fromChapter}', style: GoogleFonts.inter(color: from.color, fontSize: 9, fontWeight: FontWeight.w600)),
                     ),
                     const SizedBox(width: 4),
-                    Icon(PhosphorIcons.arrowRight, size: 10, color: _textMuted),
+                    Icon(PhosphorIconsRegular.arrowRight, size: 10, color: _textMuted),
                     const SizedBox(width: 4),
                     Container(
                       padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
@@ -1163,11 +1163,11 @@ class _TransitionsPanel extends StatelessWidget {
                 const SizedBox(height: 6),
                 Row(
                   children: [
-                    Icon(PhosphorIcons.transition, size: 12, color: _accentColor),
+                    Icon(PhosphorIconsRegular.transition, size: 12, color: _accentColor),
                     const SizedBox(width: 6),
                     Text(t.type, style: GoogleFonts.inter(color: _textPrimary, fontSize: 11)),
                     const Spacer(),
-                    Icon(PhosphorIcons.gear, size: 12, color: _textMuted),
+                    Icon(PhosphorIconsRegular.gearSix, size: 12, color: _textMuted),
                   ],
                 ),
               ],
@@ -1190,7 +1190,7 @@ class _CommentaryPanel extends StatelessWidget {
     return ListView(
       padding: const EdgeInsets.all(12),
       children: [
-        _SectionHeader(title: 'Chapter Commentary', icon: PhosphorIcons.microphone),
+        _SectionHeader(title: 'Chapter Commentary', icon: PhosphorIconsRegular.microphone),
         const SizedBox(height: 12),
         ...state.chapters.asMap().entries.map((e) {
           final ch = e.value;
@@ -1267,12 +1267,12 @@ class _ExportPanel extends StatelessWidget {
         _ExportOption(label: 'Bitrate', value: '12 Mbps'),
 
         const SizedBox(height: 16),
-        _SectionHeader(title: 'Destination', icon: PhosphorIcons.shareNetwork),
+        _SectionHeader(title: 'Destination', icon: PhosphorIconsRegular.shareNetwork),
         const SizedBox(height: 12),
 
-        _ExportDestination(label: 'YouTube', icon: PhosphorIcons.youtubeLogo, color: _errorColor),
-        _ExportDestination(label: 'Download File', icon: PhosphorIcons.downloadSimple, color: _accentColor),
-        _ExportDestination(label: 'Share Link', icon: PhosphorIcons.link, color: _successColor),
+        _ExportDestination(label: 'YouTube', icon: PhosphorIconsRegular.youtubeLogo, color: _errorColor),
+        _ExportDestination(label: 'Download File', icon: PhosphorIconsRegular.downloadSimple, color: _accentColor),
+        _ExportDestination(label: 'Share Link', icon: PhosphorIconsRegular.link, color: _successColor),
 
         const SizedBox(height: 16),
         // Export button
@@ -1287,7 +1287,7 @@ class _ExportPanel extends StatelessWidget {
             child: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
-                const Icon(PhosphorIcons.youtubeLogo, size: 16, color: Colors.white),
+                const Icon(PhosphorIconsRegular.youtubeLogo, size: 16, color: Colors.white),
                 const SizedBox(width: 8),
                 Text('Export as YouTube Video', style: GoogleFonts.inter(color: Colors.white, fontSize: 13, fontWeight: FontWeight.w600)),
               ],
@@ -1341,7 +1341,7 @@ class _ExportOption extends StatelessWidget {
             const Spacer(),
             Text(value, style: GoogleFonts.inter(color: _textPrimary, fontSize: 11)),
             const SizedBox(width: 4),
-            Icon(PhosphorIcons.caretDown, size: 10, color: _textMuted),
+            Icon(PhosphorIconsRegular.caretDown, size: 10, color: _textMuted),
           ],
         ),
       ),
@@ -1380,7 +1380,7 @@ class _ExportDestination extends StatelessWidget {
           const SizedBox(width: 10),
           Text(label, style: GoogleFonts.inter(color: _textPrimary, fontSize: 12)),
           const Spacer(),
-          Icon(PhosphorIcons.caretRight, size: 12, color: _textMuted),
+          Icon(PhosphorIconsRegular.caretRight, size: 12, color: _textMuted),
         ],
       ),
     );
