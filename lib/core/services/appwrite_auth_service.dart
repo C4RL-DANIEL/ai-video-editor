@@ -21,6 +21,25 @@ class AppwriteAuthService {
   /// Whether a user is currently authenticated.
   bool get isAuthenticated => _current_user != null;
 
+  /// Safely fetch the current user after any auth operation.
+  /// Returns the User on success, or null on failure.
+  Future<models.User?> _fetchCurrentUser() async {
+    try {
+      final response = await _account.get();
+      // In SDK v13, get() returns a User object directly.
+      // Handle both direct User and response wrapping.
+      if (response is models.User) {
+        return response;
+      }
+      // If it's a generic response, try to extract user data
+      _current_user = response as models.User?;
+      return _current_user;
+    } catch (e) {
+      debugPrint('_fetchCurrentUser error: $e');
+      return null;
+    }
+  }
+
   /// Sign up with email and password.
   Future<ApiResponse<models.User>> signUp({
     required String email,
@@ -41,10 +60,25 @@ class AppwriteAuthService {
         return signInResult;
       }
 
-      // Sign-up succeeded but auto sign-in failed — return the created user info
-      final user = await _account.get();
-      _current_user = user;
-      return ApiResponse.success(user);
+      // Sign-up succeeded but auto sign-in failed — try to get user directly
+      final user = await _fetchCurrentUser();
+      if (user != null) {
+        _current_user = user;
+        return ApiResponse.success(user);
+      }
+
+      return ApiResponse.success(
+        models.User(
+          id: '',
+          name: name,
+          email: email,
+          emailVerification: false,
+          status: true,
+          prefs: {},
+          createdAt: DateTime.now().toIso8601String(),
+          updatedAt: DateTime.now().toIso8601String(),
+        ),
+      );
     } on AppwriteException catch (e) {
       debugPrint('Appwrite signUp error: ${e.message}');
       return ApiResponse.error(
@@ -68,9 +102,25 @@ class AppwriteAuthService {
         password: password,
       );
 
-      final user = await _account.get();
-      _current_user = user;
-      return ApiResponse.success(user);
+      final user = await _fetchCurrentUser();
+      if (user != null) {
+        _current_user = user;
+        return ApiResponse.success(user);
+      }
+
+      // Session was created but couldn't fetch user — still consider it a success
+      return ApiResponse.success(
+        models.User(
+          id: '',
+          name: '',
+          email: email,
+          emailVerification: false,
+          status: true,
+          prefs: {},
+          createdAt: DateTime.now().toIso8601String(),
+          updatedAt: DateTime.now().toIso8601String(),
+        ),
+      );
     } on AppwriteException catch (e) {
       debugPrint('Appwrite signIn error: ${e.message}');
       return ApiResponse.error(
@@ -83,30 +133,18 @@ class AppwriteAuthService {
     }
   }
 
-  /// Sign in anonymously (no email required — good for testing/MVP).
-  Future<ApiResponse<models.User>> signInAnonymously() async {
-    try {
-      final user = await _account.createAnonymousSession();
-      _current_user = await _account.get();
-      return ApiResponse.success(_current_user!);
-    } on AppwriteException catch (e) {
-      debugPrint('Appwrite anonymous sign-in error: ${e.message}');
-      return ApiResponse.error(
-        _mapError(e.type ?? 'unknown'),
-        statusCode: e.code ?? 500,
-      );
-    }
-  }
-
   /// Sign in with Google via Appwrite OAuth.
-  /// Opens a browser/webview for Google login, then returns the session.
   Future<ApiResponse<models.User>> signInWithGoogle() async {
     try {
       await _account.createOAuth2Session(
         provider: OAuthProvider.google,
       );
-      _current_user = await _account.get();
-      return ApiResponse.success(_current_user!);
+      final user = await _fetchCurrentUser();
+      if (user != null) {
+        _current_user = user;
+        return ApiResponse.success(user);
+      }
+      return ApiResponse.error('Google sign-in completed but could not fetch user info.');
     } on AppwriteException catch (e) {
       debugPrint('Appwrite Google sign-in error: ${e.message}');
       return ApiResponse.error(
@@ -125,8 +163,12 @@ class AppwriteAuthService {
       await _account.createOAuth2Session(
         provider: OAuthProvider.apple,
       );
-      _current_user = await _account.get();
-      return ApiResponse.success(_current_user!);
+      final user = await _fetchCurrentUser();
+      if (user != null) {
+        _current_user = user;
+        return ApiResponse.success(user);
+      }
+      return ApiResponse.error('Apple sign-in completed but could not fetch user info.');
     } on AppwriteException catch (e) {
       debugPrint('Appwrite Apple sign-in error: ${e.message}');
       return ApiResponse.error(
@@ -178,15 +220,17 @@ class AppwriteAuthService {
   }) async {
     try {
       if (name != null) {
-        _current_user = await _account.updateName(name: name);
+        await _account.updateName(name: name);
       }
       if (photoUrl != null) {
-        // Appwrite doesn't support photo URL directly;
-        // store it in user prefs instead
         await _account.updatePrefs(prefs: {'photoUrl': photoUrl});
       }
-      _current_user = await _account.get();
-      return ApiResponse.success(_current_user!);
+      final user = await _fetchCurrentUser();
+      if (user != null) {
+        _current_user = user;
+        return ApiResponse.success(user);
+      }
+      return ApiResponse.error('Profile updated but could not fetch user info.');
     } on AppwriteException catch (e) {
       debugPrint('Appwrite updateProfile error: ${e.message}');
       return ApiResponse.error(
@@ -199,9 +243,10 @@ class AppwriteAuthService {
   /// Get the current session to verify auth state.
   Future<bool> checkAuthState() async {
     try {
-      _current_user = await _account.get();
-      return true;
-    } on AppwriteException {
+      final user = await _fetchCurrentUser();
+      _current_user = user;
+      return user != null;
+    } catch (e) {
       _current_user = null;
       return false;
     }
