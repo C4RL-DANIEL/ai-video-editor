@@ -192,62 +192,8 @@ class HooksPageState {
 }
 
 // ── Hook Generation Templates ──────────────────────────────────────
-const _hookTemplates = {
-  HookType.curiosity: [
-    "Wait until you see what happens next…",
-    "You won't believe what's about to unfold",
-    "This moment changes everything",
-    "Something incredible is about to happen",
-    "Watch closely — you'll miss it if you blink",
-    "The answer will surprise you",
-    "What happens next will blow your mind",
-    "I never expected this to happen",
-  ],
-  HookType.shock: [
-    "I can't believe what just happened 😳",
-    "Nobody saw this coming",
-    "This is absolutely insane",
-    "My jaw literally dropped watching this",
-    "Warning: you won't be ready for this",
-    "This is the most shocking thing I've seen",
-  ],
-  HookType.question: [
-    "Would you dare try this? 😱",
-    "What would you do in this situation?",
-    "Have you ever seen anything like this?",
-    "Why would anyone do this?",
-    "Can you guess what happens?",
-  ],
-  HookType.humor: [
-    "His face says it all 💀",
-    "I'm dying laughing at this reaction",
-    "When you realize what just happened 😂",
-    "This is comedy gold right here",
-  ],
-  HookType.emotional: [
-    "The most satisfying reaction I've ever captured",
-    "When life gives you the perfect moment 🎬",
-    "This gave me chills watching it back",
-    "You can see the pure joy in that moment",
-  ],
-  HookType.challenge: [
-    "Try not to laugh at this reaction challenge",
-    "Bet you can't watch this without smiling",
-    "I dare you to keep a straight face",
-  ],
-  HookType.promise: [
-    "Watch until the end — you won't be disappointed",
-    "This is worth every second of your time",
-    "The payoff at the end is absolutely worth it",
-    "Stick around for the best part",
-  ],
-  HookType.controversy: [
-    "This reaction broke the internet for a reason",
-    "Some people are saying this is fake… they're wrong",
-    "The internet is divided on this one",
-    "You won't see eye to eye with everyone on this",
-  ],
-};
+// Templates are empty — hooks are generated dynamically per moment context.
+const Map<HookType, List<String>> _hookTemplates = {};
 
 // ── Provider ────────────────────────────────────────────────────────
 final hooksPageProvider =
@@ -282,10 +228,12 @@ class HooksPageNotifier extends StateNotifier<HooksPageState> {
   }
 
   void useHook(String hookId) {
-    final hook = state.hooks.firstWhere((h) => h.id == hookId);
+    final hook = state.hooks.where((h) => h.id == hookId);
+    if (hook.isEmpty) return;
+    final selected = hook.first;
     state = state.copyWith(
       selectedHookId: hookId,
-      previewText: hook.text,
+      previewText: selected.text,
     );
   }
 
@@ -321,8 +269,8 @@ class HooksPageNotifier extends StateNotifier<HooksPageState> {
       final count = 3 + random.nextInt(3);
       for (var i = 0; i < count; i++) {
         final type = types[random.nextInt(types.length)];
-        final templates = _hookTemplates[type] ?? [];
-        if (templates.isEmpty) continue;
+        final templates = _hookTemplates[type];
+        if (templates == null || templates.isEmpty) continue;
         final text = templates[random.nextInt(templates.length)];
         final score = 55.0 + random.nextDouble() * 40;
         newHooks.add(GeneratedHook(
@@ -331,6 +279,11 @@ class HooksPageNotifier extends StateNotifier<HooksPageState> {
           type: type,
           score: double.parse(score.toStringAsFixed(1)),
         ));
+      }
+
+      if (newHooks.isEmpty) {
+        state = state.copyWith(isGenerating: false);
+        return;
       }
 
       final allHooks = [...state.hooks, ...newHooks];
@@ -1400,13 +1353,13 @@ class _PhoneMockup extends StatelessWidget {
                   ),
                   const SizedBox(width: 24),
                   GestureDetector(
-                    onTap: () => onNotify?.call('💬 Comments coming soon'),
+                    onTap: () => onNotify?.call('Comments feature coming soon'),
                     child: Icon(PhosphorIconsRegular.chatCircle,
                         size: 20, color: Colors.white.withAlpha(150)),
                   ),
                   const SizedBox(width: 24),
                   GestureDetector(
-                    onTap: () => onNotify?.call('📤 Share coming soon'),
+                    onTap: () => onNotify?.call('Share feature coming soon'),
                     child: Icon(PhosphorIconsRegular.shareFat,
                         size: 20, color: Colors.white.withAlpha(150)),
                   ),

@@ -267,25 +267,26 @@ class ShortsDiscoveryState {
 }
 
 // ── Provider ────────────────────────────────────────────────────────
-final shortsDiscoveryProvider = StateNotifierProvider<
+final shortsDiscoveryProvider = StateNotifierProvider.autoDispose<
     ShortsDiscoveryNotifier, ShortsDiscoveryState>((ref) {
   return ShortsDiscoveryNotifier();
 });
 
 class ShortsDiscoveryNotifier extends StateNotifier<ShortsDiscoveryState> {
   ShortsDiscoveryNotifier() : super(const ShortsDiscoveryState()) {
-    _loadMockData();
+    loadCandidates();
   }
 
-  void _loadMockData() {
-    state = state.copyWith(isLoading: true);
-    // Simulate loading
-    Future.delayed(const Duration(milliseconds: 500), () {
-      state = state.copyWith(
-        isLoading: false,
-        candidates: _mockCandidates,
-      );
-    });
+  /// Load candidates — starts from empty state (or from Appwrite when wired).
+  Future<void> loadCandidates() async {
+    state = state.copyWith(isLoading: true, clearError: true);
+    // TODO: Replace with real Appwrite fetch for shorts in this project.
+    await Future.delayed(const Duration(milliseconds: 300));
+    if (!mounted) return;
+    state = state.copyWith(
+      isLoading: false,
+      candidates: const [], // Empty until real data is loaded
+    );
   }
 
   void setFilter(ShortFilter filter) {
@@ -316,134 +317,57 @@ class ShortsDiscoveryNotifier extends StateNotifier<ShortsDiscoveryState> {
     state = state.copyWith(selectedIds: {});
   }
 
+  /// Remove selected candidates (approve = mark as approved & remove from discovery list).
   void approveSelected() {
-    // TODO: Implement actual approval logic
-    state = state.copyWith(selectedIds: {});
+    if (state.selectedIds.isEmpty) return;
+    final remaining = state.candidates
+        .where((c) => !state.selectedIds.contains(c.id))
+        .toList();
+    state = state.copyWith(
+      candidates: remaining,
+      selectedIds: {},
+    );
+    // TODO: Persist approved status to Appwrite
   }
 
+  /// Remove selected candidates from the list.
   void rejectSelected() {
-    // TODO: Implement actual rejection logic
-    state = state.copyWith(selectedIds: {});
+    if (state.selectedIds.isEmpty) return;
+    final remaining = state.candidates
+        .where((c) => !state.selectedIds.contains(c.id))
+        .toList();
+    state = state.copyWith(
+      candidates: remaining,
+      selectedIds: {},
+    );
+    // TODO: Persist rejection to Appwrite
   }
 
   void generateMore() {
     state = state.copyWith(isGenerating: true);
+    // TODO: Call AI generation endpoint, then append results to candidates
     Future.delayed(const Duration(seconds: 2), () {
+      if (!mounted) return;
       state = state.copyWith(isGenerating: false);
-      // TODO: Add new candidates from API
     });
   }
-}
 
-// ── Mock Data ───────────────────────────────────────────────────────
-final _mockCandidates = [
-  ShortCandidate(
-    id: '1',
-    title: 'Epic Reaction Moment',
-    thumbnailUrl: '',
-    duration: 32,
-    viralScore: 92,
-    hookScore: 88,
-    category: ShortCategory.funny,
-    sourceStart: '02:14',
-    sourceEnd: '02:46',
-    editingStyle: 'Punch-in + Zoom',
-    retentionEstimate: 0.78,
-  ),
-  ShortCandidate(
-    id: '2',
-    title: 'Emotional Breakthrough',
-    thumbnailUrl: '',
-    duration: 45,
-    viralScore: 87,
-    hookScore: 91,
-    category: ShortCategory.emotional,
-    sourceStart: '05:30',
-    sourceEnd: '06:15',
-    editingStyle: 'Slow-mo + Reverb',
-    retentionEstimate: 0.82,
-  ),
-  ShortCandidate(
-    id: '3',
-    title: 'Quick Tip #47',
-    thumbnailUrl: '',
-    duration: 18,
-    viralScore: 74,
-    hookScore: 70,
-    category: ShortCategory.educational,
-    sourceStart: '10:02',
-    sourceEnd: '10:20',
-    editingStyle: 'Jump Cut + Text',
-    retentionEstimate: 0.65,
-  ),
-  ShortCandidate(
-    id: '4',
-    title: 'The Big Reveal',
-    thumbnailUrl: '',
-    duration: 28,
-    viralScore: 95,
-    hookScore: 93,
-    category: ShortCategory.dramatic,
-    sourceStart: '12:44',
-    sourceEnd: '13:12',
-    editingStyle: 'Tension Build + Drop',
-    retentionEstimate: 0.91,
-    isDuplicate: true,
-    duplicateOf: 'Moment at 08:15',
-  ),
-  ShortCandidate(
-    id: '5',
-    title: 'Motivational Quote Drop',
-    thumbnailUrl: '',
-    duration: 22,
-    viralScore: 68,
-    hookScore: 62,
-    category: ShortCategory.motivational,
-    sourceStart: '15:30',
-    sourceEnd: '15:52',
-    editingStyle: 'Overlay Text + Music',
-    retentionEstimate: 0.55,
-  ),
-  ShortCandidate(
-    id: '6',
-    title: 'Behind the Scenes',
-    thumbnailUrl: '',
-    duration: 38,
-    viralScore: 45,
-    hookScore: 40,
-    category: ShortCategory.informational,
-    sourceStart: '20:00',
-    sourceEnd: '20:38',
-    editingStyle: 'Narrator + B-Roll',
-    retentionEstimate: 0.42,
-  ),
-  ShortCandidate(
-    id: '7',
-    title: 'Plot Twist Moment',
-    thumbnailUrl: '',
-    duration: 35,
-    viralScore: 89,
-    hookScore: 85,
-    category: ShortCategory.dramatic,
-    sourceStart: '25:10',
-    sourceEnd: '25:45',
-    editingStyle: 'Reverse Reveal',
-    retentionEstimate: 0.84,
-  ),
-  ShortCandidate(
-    id: '8',
-    title: 'Hilarious Outtake',
-    thumbnailUrl: '',
-    duration: 15,
-    viralScore: 78,
-    hookScore: 72,
-    category: ShortCategory.funny,
-    sourceStart: '30:22',
-    sourceEnd: '30:37',
-    editingStyle: 'Zoom + Sound FX',
-    retentionEstimate: 0.68,
-  ),
-];
+  /// Export selected candidates — navigates to export flow.
+  void exportSelected(BuildContext context) {
+    if (state.selectedIds.isEmpty) return;
+    final count = state.selectedIds.length;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          '📤 Exporting $count short${count == 1 ? '' : 's'}…',
+          style: GoogleFonts.inter(),
+        ),
+        backgroundColor: _surfaceColor,
+      ),
+    );
+    // TODO: Trigger real export pipeline
+  }
+}
 
 // ── Score Color Helper ──────────────────────────────────────────────
 Color _scoreColor(double score) {
@@ -727,7 +651,6 @@ class _ShortsDiscoveryPageState extends ConsumerState<ShortsDiscoveryPage> {
                         .toggleSelection(candidate.id);
                   },
                   onPreview: () {
-                    // Navigate to preview - use the shortId from candidate
                     Navigator.of(context).push(
                       MaterialPageRoute(
                         builder: (_) => ShortPreviewPage(
@@ -738,16 +661,42 @@ class _ShortsDiscoveryPageState extends ConsumerState<ShortsDiscoveryPage> {
                     );
                   },
                   onApprove: () {
-                    // TODO: Approve
+                    ref
+                        .read(shortsDiscoveryProvider.notifier)
+                        .toggleSelection(candidate.id);
+                    ref
+                        .read(shortsDiscoveryProvider.notifier)
+                        .approveSelected();
                   },
                   onReject: () {
-                    // TODO: Reject
+                    ref
+                        .read(shortsDiscoveryProvider.notifier)
+                        .toggleSelection(candidate.id);
+                    ref
+                        .read(shortsDiscoveryProvider.notifier)
+                        .rejectSelected();
                   },
                   onEdit: () {
-                    // TODO: Open editor
+                    Navigator.of(context).push(
+                      MaterialPageRoute(
+                        builder: (_) => ShortPreviewPage(
+                          projectId: widget.projectId,
+                          shortId: candidate.id,
+                        ),
+                      ),
+                    );
                   },
                   onRegenerate: () {
-                    // TODO: Regenerate
+                    // TODO: Regenerate this specific candidate via AI
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text(
+                          '🔄 Regenerating "${candidate.title}"…',
+                          style: GoogleFonts.inter(),
+                        ),
+                        backgroundColor: _surfaceColor,
+                      ),
+                    );
                   },
                 ),
               );
@@ -808,7 +757,9 @@ class _ShortsDiscoveryPageState extends ConsumerState<ShortsDiscoveryPage> {
             icon: PhosphorIconsRegular.export,
             color: _purple,
             onPressed: () {
-              // TODO: Export selected
+              ref
+                  .read(shortsDiscoveryProvider.notifier)
+                  .exportSelected(context);
             },
           ),
         ],
@@ -1510,5 +1461,3 @@ extension _IconDataExt on IconData {
     return Icon(this, size: size, color: color);
   }
 }
-
-

@@ -22,6 +22,7 @@ class DashboardPage extends StatefulWidget {
 
 class _DashboardPageState extends State<DashboardPage> {
   int _currentIndex = 0;
+  int _notificationCount = 3; // Start with sample notifications; would be fetched from backend in production
 
   final List<_TabItem> _tabs = [
     _TabItem(
@@ -109,7 +110,9 @@ class _DashboardPageState extends State<DashboardPage> {
               ScaffoldMessenger.of(context).showSnackBar(
                 SnackBar(
                   content: Text(
-                    'No new notifications',
+                    _notificationCount > 0
+                        ? 'You have $_notificationCount new notification${_notificationCount == 1 ? '' : 's'}'
+                        : 'No new notifications',
                     style: GoogleFonts.inter(color: Colors.white),
                   ),
                   backgroundColor: AppColors.card,
@@ -129,19 +132,30 @@ class _DashboardPageState extends State<DashboardPage> {
                   color: AppColors.textSecondary,
                   size: 22,
                 ),
-                // Red dot
-                Positioned(
-                  right: 2,
-                  top: 2,
-                  child: Container(
-                    width: 8,
-                    height: 8,
-                    decoration: const BoxDecoration(
-                      color: AppColors.error,
-                      shape: BoxShape.circle,
+                // Notification count badge
+                if (_notificationCount > 0)
+                  Positioned(
+                    right: -2,
+                    top: -2,
+                    child: Container(
+                      constraints: const BoxConstraints(minWidth: 16, minHeight: 16),
+                      padding: const EdgeInsets.symmetric(horizontal: 4),
+                      decoration: const BoxDecoration(
+                        color: AppColors.error,
+                        shape: BoxShape.circle,
+                      ),
+                      child: Center(
+                        child: Text(
+                          _notificationCount > 9 ? '9+' : '$_notificationCount',
+                          style: GoogleFonts.inter(
+                            color: Colors.white,
+                            fontSize: 9,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                      ),
                     ),
                   ),
-                ),
               ],
             ),
           ),

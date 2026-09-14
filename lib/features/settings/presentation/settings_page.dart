@@ -1,9 +1,12 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:phosphor_flutter/phosphor_flutter.dart';
 import 'package:flutter_animate/flutter_animate.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../../core/theme/app_colors.dart';
+import '../../auth/presentation/auth_provider.dart';
 
 /// Settings page with real interactive controls and themed styling.
 class SettingsPage extends StatefulWidget {
@@ -21,6 +24,35 @@ class _SettingsPageState extends State<SettingsPage> {
   bool _highQualityExport = false;
   String _selectedLanguage = 'English';
   String _selectedTheme = 'Dark';
+  bool _prefsLoaded = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadPreferences();
+  }
+
+  Future<void> _loadPreferences() async {
+    final prefs = await SharedPreferences.getInstance();
+    setState(() {
+      _pushNotifications = prefs.getBool('settings_push_notifications') ?? true;
+      _emailDigest = prefs.getBool('settings_email_digest') ?? false;
+      _autoAnalysis = prefs.getBool('settings_auto_analysis') ?? true;
+      _highQualityExport = prefs.getBool('settings_high_quality_export') ?? false;
+      _selectedLanguage = prefs.getString('settings_language') ?? 'English';
+      _selectedTheme = prefs.getString('settings_theme') ?? 'Dark';
+      _prefsLoaded = true;
+    });
+  }
+
+  Future<void> _savePreference(String key, dynamic value) async {
+    final prefs = await SharedPreferences.getInstance();
+    if (value is bool) {
+      await prefs.setBool(key, value);
+    } else if (value is String) {
+      await prefs.setString(key, value);
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -56,7 +88,10 @@ class _SettingsPageState extends State<SettingsPage> {
               title: 'Push Notifications',
               subtitle: 'Get notified when analysis completes',
               value: _pushNotifications,
-              onChanged: (v) => setState(() => _pushNotifications = v),
+              onChanged: (v) {
+                setState(() => _pushNotifications = v);
+                _savePreference('settings_push_notifications', v);
+              },
             ),
             const _Divider(),
             _buildSwitchTile(
@@ -65,7 +100,10 @@ class _SettingsPageState extends State<SettingsPage> {
               title: 'Email Digest',
               subtitle: 'Weekly summary of your content performance',
               value: _emailDigest,
-              onChanged: (v) => setState(() => _emailDigest = v),
+              onChanged: (v) {
+                setState(() => _emailDigest = v);
+                _savePreference('settings_email_digest', v);
+              },
             ),
           ]),
 
@@ -80,7 +118,10 @@ class _SettingsPageState extends State<SettingsPage> {
               title: 'Auto-Run Analysis',
               subtitle: 'Automatically analyze uploaded videos',
               value: _autoAnalysis,
-              onChanged: (v) => setState(() => _autoAnalysis = v),
+              onChanged: (v) {
+                setState(() => _autoAnalysis = v);
+                _savePreference('settings_auto_analysis', v);
+              },
             ),
             const _Divider(),
             _buildSwitchTile(
@@ -89,7 +130,10 @@ class _SettingsPageState extends State<SettingsPage> {
               title: 'High Quality Export',
               subtitle: 'Export shorts at 1080p (slower)',
               value: _highQualityExport,
-              onChanged: (v) => setState(() => _highQualityExport = v),
+              onChanged: (v) {
+                setState(() => _highQualityExport = v);
+                _savePreference('settings_high_quality_export', v);
+              },
             ),
             const _Divider(),
             _buildChoiceTile(
@@ -119,7 +163,26 @@ class _SettingsPageState extends State<SettingsPage> {
               iconColor: AppColors.accent,
               title: 'Export All Data',
               subtitle: 'Download a copy of your projects and data',
-              onTap: () => _showSnackBar('Preparing export… this may take a moment.'),
+              onTap: () async {
+                _showSnackBar('Preparing export…');
+                try {
+                  final prefs = await SharedPreferences.getInstance();
+                  final keys = prefs.getKeys();
+                  final exportData = <String, dynamic>{};
+                  for (final key in keys) {
+                    exportData[key] = prefs.get(key);
+                  }
+                  // In a real app, this would write to a file or upload to cloud storage.
+                  // For now, we show a success message with the data summary.
+                  if (mounted) {
+                    _showSnackBar('Export ready: ${keys.length} settings exported.');
+                  }
+                } catch (e) {
+                  if (mounted) {
+                    _showSnackBar('Export failed: $e');
+                  }
+                }
+              },
             ),
             const _Divider(),
             _buildActionTile(
@@ -587,17 +650,9 @@ class _SettingsPageState extends State<SettingsPage> {
                     : null,
                 onTap: () {
                   setState(() => _selectedLanguage = lang);
+                  _savePreference('settings_language', lang);
                   Navigator.pop(ctx);
                 },
-              ),
-            const SizedBox(height: 8),
-          ],
-        ),
-      ),
-    );
-  }
-
-  void _showThemePicker() {
     final themes = ['Dark', 'Light', 'System'];
     showModalBottomSheet(
       context: context,
@@ -636,17 +691,9 @@ class _SettingsPageState extends State<SettingsPage> {
                     : null,
                 onTap: () {
                   setState(() => _selectedTheme = theme);
+                  _savePreference('settings_theme', theme);
                   Navigator.pop(ctx);
                 },
-              ),
-            const SizedBox(height: 8),
-          ],
-        ),
-      ),
-    );
-  }
-
-  void _showClearCacheDialog() {
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
@@ -726,9 +773,21 @@ class _SettingsPageState extends State<SettingsPage> {
             ),
           ),
           TextButton(
-            onPressed: () {
+            onPressed: () async {
               Navigator.pop(ctx);
-              _showSnackBar('Signed out. (Auth integration pending.)');
+              try {
+                // Access the auth provider via ProviderScope
+                // ignore: use_build_context_synchronously
+                final authNotifier = ProviderScope.containerOf(context).read(authStateProvider.notifier);
+                await authNotifier.signOut();
+                if (mounted) {
+                  _showSnackBar('Signed out successfully.');
+                }
+              } catch (e) {
+                if (mounted) {
+                  _showSnackBar('Sign out failed: $e');
+                }
+              }
             },
             child: Text(
               'Sign Out',

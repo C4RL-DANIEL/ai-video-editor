@@ -49,7 +49,16 @@ class EditorState {
   final String? videoFilePath;
   final String? selectedClipId;
 
-  // ─── Effects state ──────────────────────────────────────────────────────
+  // ─── Properties state ────────────────────────────────────────────────
+  final double scale;
+  final double rotation;
+  final double opacity;
+  final double playbackSpeed;
+  // ─── Color grading state ────────────────────────────────────────────
+  final double saturation;
+  final double contrast;
+  final double brightness;
+  // ─── Effects state ──────────────────────────────────────────────────
   final List<vep.CaptionSegment> captions;
   final String? appliedColorGrade;
   final List<String> appliedEffects;
@@ -75,6 +84,13 @@ class EditorState {
     this.hasVideoFile = false,
     this.videoFilePath,
     this.selectedClipId,
+    this.scale = 1.0,
+    this.rotation = 0.0,
+    this.opacity = 1.0,
+    this.playbackSpeed = 1.0,
+    this.saturation = 1.0,
+    this.contrast = 1.0,
+    this.brightness = 0.0,
     List<TimelineTrack>? tracks,
     List<_UndoEntry>? undoStack,
     List<_UndoEntry>? redoStack,
@@ -120,6 +136,13 @@ class EditorState {
     bool? hasVideoFile,
     String? videoFilePath,
     String? selectedClipId,
+    double? scale,
+    double? rotation,
+    double? opacity,
+    double? playbackSpeed,
+    double? saturation,
+    double? contrast,
+    double? brightness,
     List<_UndoEntry>? undoStack,
     List<_UndoEntry>? redoStack,
     List<vep.CaptionSegment>? captions,
@@ -147,6 +170,13 @@ class EditorState {
       hasVideoFile: hasVideoFile ?? this.hasVideoFile,
       videoFilePath: videoFilePath ?? this.videoFilePath,
       selectedClipId: selectedClipId ?? this.selectedClipId,
+      scale: scale ?? this.scale,
+      rotation: rotation ?? this.rotation,
+      opacity: opacity ?? this.opacity,
+      playbackSpeed: playbackSpeed ?? this.playbackSpeed,
+      saturation: saturation ?? this.saturation,
+      contrast: contrast ?? this.contrast,
+      brightness: brightness ?? this.brightness,
       undoStack: undoStack ?? this._undoStack,
       redoStack: redoStack ?? this._redoStack,
       captions: captions ?? this.captions,
@@ -248,6 +278,15 @@ class EditorNotifier extends StateNotifier<EditorState> {
   void setTotalDuration(Duration d) => state = state.copyWith(totalDuration: d);
 
   void selectClip(String? clipId) => state = state.copyWith(selectedClipId: clipId);
+
+  // ─── Properties setters ──────────────────────────────────────────────
+  void setScale(double v) => state = state.copyWith(scale: v.clamp(0.1, 3.0));
+  void setRotation(double v) => state = state.copyWith(rotation: v.clamp(-180, 180));
+  void setOpacity(double v) => state = state.copyWith(opacity: v.clamp(0.0, 1.0));
+  void setPlaybackSpeed(double v) => state = state.copyWith(playbackSpeed: v.clamp(0.25, 4.0));
+  void setSaturation(double v) => state = state.copyWith(saturation: v.clamp(0.0, 2.0));
+  void setContrast(double v) => state = state.copyWith(contrast: v.clamp(0.0, 2.0));
+  void setBrightness(double v) => state = state.copyWith(brightness: v.clamp(-1.0, 1.0));
 
   void undo() {
     if (!state.canUndo) return;
@@ -397,18 +436,21 @@ class EditorNotifier extends StateNotifier<EditorState> {
   }
 
   void toggleTrackVisibility(int index) {
+    if (index < 0 || index >= state.tracks.length) return;
     final tracks = List<TimelineTrack>.from(state.tracks);
     tracks[index] = tracks[index].copyWith(visible: !tracks[index].visible);
     state = state.copyWith(tracks: tracks);
   }
 
   void toggleTrackLock(int index) {
+    if (index < 0 || index >= state.tracks.length) return;
     final tracks = List<TimelineTrack>.from(state.tracks);
     tracks[index] = tracks[index].copyWith(locked: !tracks[index].locked);
     state = state.copyWith(tracks: tracks);
   }
 
   void toggleTrackMute(int index) {
+    if (index < 0 || index >= state.tracks.length) return;
     final tracks = List<TimelineTrack>.from(state.tracks);
     tracks[index] = tracks[index].copyWith(muted: !tracks[index].muted);
     state = state.copyWith(tracks: tracks);
@@ -617,8 +659,24 @@ class _EditorPageState extends ConsumerState<EditorPage> {
   @override
   void initState() {
     super.initState();
-    // If we have a projectId, we could load project data here
-    // For now, start with empty state
+    // Wire projectId: load project data if provided
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _loadProjectData();
+    });
+  }
+
+  void _loadProjectData() {
+    final projectId = widget.projectId;
+    if (projectId == null || projectId.isEmpty) return;
+    // Attempt to load project name from provider
+    // The project detail will be loaded by the project providers upstream;
+    // here we just set the project name in the editor state if we can.
+    // In a real implementation, this would fetch project data from Appwrite.
+    // For now, set a reasonable name based on the ID.
+    ref.read(localEditorProvider.notifier).state =
+        ref.read(localEditorProvider.notifier).state.copyWith(
+              projectName: 'Project ${projectId.length > 8 ? projectId.substring(0, 8) : projectId}',
+            );
   }
 
   @override
@@ -743,7 +801,7 @@ class _EditorPageState extends ConsumerState<EditorPage> {
               children: [
                 // Left Panel
                 if (state.leftPanelOpen && !isCompact)
-                  _LeftPanel(state: state, ref: ref),
+                  _LeftPanel(state: state),
 
                 // Center Area
                 Expanded(
@@ -763,7 +821,7 @@ class _EditorPageState extends ConsumerState<EditorPage> {
 
                       // AI Chat Sidebar (overlay)
                       if (state.aiChatOpen)
-                        _AiChatPanel(ref: ref),
+                        const _AiChatPanel(),
 
                       // Timeline
                       _TimelineArea(state: state, ref: ref),
@@ -773,7 +831,7 @@ class _EditorPageState extends ConsumerState<EditorPage> {
 
                 // Right Panel
                 if (state.rightPanelOpen && !isCompact)
-                  _RightPanel(state: state, ref: ref),
+                  _RightPanel(state: state),
               ],
             ),
           ),
@@ -1133,9 +1191,8 @@ class _ToolBarDivider extends StatelessWidget {
 // ─── Left Panel ──────────────────────────────────────────────────────────────
 class _LeftPanel extends StatelessWidget {
   final EditorState state;
-  final WidgetRef ref;
 
-  const _LeftPanel({required this.state, required this.ref});
+  const _LeftPanel({required this.state});
 
   @override
   Widget build(BuildContext context) {
@@ -1189,69 +1246,153 @@ class _LeftPanel extends StatelessWidget {
   }
 }
 
-class _AiAnalysisPanel extends StatelessWidget {
+class _AiAnalysisPanel extends ConsumerWidget {
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final state = ref.watch(localEditorProvider);
+    final trackCount = state.tracks.length;
+    final clipCount = state.tracks.fold<int>(0, (sum, t) => sum + t.clips.length);
+    final effectCount = state.totalEffectCount;
+
+    // Compute scores from actual editor state
+    final hasContent = trackCount > 0 || state.hasVideoFile;
+    final score = hasContent ? (30 + trackCount * 10 + clipCount * 5 + effectCount * 3).clamp(0, 100) : 0;
+    final scoreLabel = score > 0 ? '$score/100' : '—';
+    final engagementLabel = clipCount > 5 ? 'High' : clipCount > 2 ? 'Medium' : clipCount > 0 ? 'Low' : '—';
+    final pacingLabel = state.totalDuration.inSeconds > 0 && clipCount > 0
+        ? (clipCount / (state.totalDuration.inSeconds / 30)).toStringAsFixed(1)
+        : '—';
+    final hookLabel = state.hasVideoFile ? 'Active' : 'None';
+
     return ListView(
       padding: const EdgeInsets.all(12),
       children: [
         _SectionHeader(title: 'AI Analysis', icon: PhosphorIconsRegular.brain),
         const SizedBox(height: 12),
-        _AnalysisCard(
-          title: 'Overall Score',
-          value: '87/100',
-          color: _successColor,
-          icon: PhosphorIconsRegular.star,
-        ),
-        const SizedBox(height: 8),
-        _AnalysisCard(
-          title: 'Engagement',
-          value: 'High',
-          color: _accentColor,
-          icon: PhosphorIconsRegular.chartLineUp,
-        ),
-        const SizedBox(height: 8),
-        _AnalysisCard(
-          title: 'Pacing',
-          value: 'Good',
-          color: _warningColor,
-          icon: PhosphorIconsRegular.gauge,
-        ),
-        const SizedBox(height: 8),
-        _AnalysisCard(
-          title: 'Hook Strength',
-          value: 'Strong',
-          color: _purpleColor,
-          icon: PhosphorIconsRegular.link,
-        ),
-        const SizedBox(height: 16),
-        _SectionHeader(title: 'Suggestions', icon: PhosphorIconsRegular.lightbulb),
-        const SizedBox(height: 8),
-        _SuggestionItem(text: 'Add hook text in first 2 seconds'),
-        _SuggestionItem(text: 'Tighten pacing at 01:23 - 01:45'),
-        _SuggestionItem(text: 'Add dramatic music at climax'),
-        _SuggestionItem(text: 'Caption font could be larger'),
+        if (!hasContent) ...[
+          _buildEmptyState('Import a video to see AI analysis'),
+        ] else ...[
+          _AnalysisCard(
+            title: 'Overall Score',
+            value: scoreLabel,
+            color: score >= 70 ? _successColor : score >= 40 ? _warningColor : _errorColor,
+            icon: PhosphorIconsRegular.star,
+          ),
+          const SizedBox(height: 8),
+          _AnalysisCard(
+            title: 'Engagement',
+            value: engagementLabel,
+            color: _accentColor,
+            icon: PhosphorIconsRegular.chartLineUp,
+          ),
+          const SizedBox(height: 8),
+          _AnalysisCard(
+            title: 'Pacing',
+            value: pacingLabel == '—' ? pacingLabel : '${pacingLabel}x',
+            color: _warningColor,
+            icon: PhosphorIconsRegular.gauge,
+          ),
+          const SizedBox(height: 8),
+          _AnalysisCard(
+            title: 'Hook Strength',
+            value: hookLabel,
+            color: _purpleColor,
+            icon: PhosphorIconsRegular.link,
+          ),
+          const SizedBox(height: 16),
+          _SectionHeader(title: 'Suggestions', icon: PhosphorIconsRegular.lightbulb),
+          const SizedBox(height: 8),
+          if (clipCount == 0)
+            _SuggestionItem(text: 'Import a video to get started'),
+          if (!state.hasVideoFile)
+            _SuggestionItem(text: 'Add a video file to enable analysis'),
+          if (effectCount == 0 && clipCount > 0)
+            _SuggestionItem(text: 'Apply effects to enhance your video'),
+        ],
       ],
+    );
+  }
+
+  Widget _buildEmptyState(String message) {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 40),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(PhosphorIconsRegular.brain, size: 32, color: _textMuted),
+            const SizedBox(height: 8),
+            Text(message, style: GoogleFonts.inter(color: _textMuted, fontSize: 11), textAlign: TextAlign.center),
+          ],
+        ),
+      ),
     );
   }
 }
 
-class _ContentMapTree extends StatelessWidget {
+class _ContentMapTree extends ConsumerWidget {
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final state = ref.watch(localEditorProvider);
+    final totalClips = state.tracks.fold<int>(0, (sum, t) => sum + t.clips.length);
+
+    if (totalClips == 0 && !state.hasVideoFile) {
+      return ListView(
+        padding: const EdgeInsets.all(12),
+        children: [
+          _SectionHeader(title: 'Content Map', icon: PhosphorIconsRegular.mapTrifold),
+          const SizedBox(height: 24),
+          Center(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(PhosphorIconsRegular.mapTrifold, size: 32, color: _textMuted),
+                const SizedBox(height: 8),
+                Text(
+                  'No content yet',
+                  style: GoogleFonts.inter(color: _textMuted, fontSize: 12),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  'Import a video to generate a content map',
+                  style: GoogleFonts.inter(color: _textMuted, fontSize: 10),
+                ),
+              ],
+            ),
+          ),
+        ],
+      );
+    }
+
+    // Build content map from actual tracks
     return ListView(
       padding: const EdgeInsets.all(12),
       children: [
         _SectionHeader(title: 'Content Map', icon: PhosphorIconsRegular.mapTrifold),
         const SizedBox(height: 12),
-        _TreeNode(label: 'Scene 1: Opening', depth: 0, clipCount: 3, duration: '00:45'),
-        _TreeNode(label: 'Interview Clip', depth: 1, clipCount: 1, duration: '00:30'),
-        _TreeNode(label: 'B-Roll: City', depth: 1, clipCount: 2, duration: '00:15'),
-        _TreeNode(label: 'Scene 2: Main Story', depth: 0, clipCount: 5, duration: '02:15'),
-        _TreeNode(label: 'Key Moment', depth: 1, clipCount: 1, duration: '00:45'),
-        _TreeNode(label: 'Reaction Shots', depth: 1, clipCount: 3, duration: '00:30'),
-        _TreeNode(label: 'Scene 3: Conclusion', depth: 0, clipCount: 2, duration: '01:00'),
-        _TreeNode(label: 'Outro', depth: 0, clipCount: 1, duration: '00:30'),
+        ...state.tracks.asMap().entries.map((entry) {
+          final track = entry.value;
+          final clipCount = track.clips.length;
+          final duration = track.clips.fold<double>(0, (sum, c) => sum + c.duration);
+          final mins = (duration / 60).floor();
+          final secs = (duration % 60).floor();
+          return _TreeNode(
+            label: '${track.name} Track',
+            depth: 0,
+            clipCount: clipCount,
+            duration: '${mins.toString().padLeft(2, '0')}:${secs.toString().padLeft(2, '0')}',
+          );
+        }),
+        if (totalClips == 0)
+          Padding(
+            padding: const EdgeInsets.symmetric(vertical: 20),
+            child: Center(
+              child: Text(
+                'Add clips to see content structure',
+                style: GoogleFonts.inter(color: _textMuted, fontSize: 10),
+              ),
+            ),
+          ),
       ],
     );
   }
@@ -1264,12 +1405,26 @@ class _ViralMomentsList extends StatelessWidget {
       padding: const EdgeInsets.all(12),
       children: [
         _SectionHeader(title: 'Viral Moments', icon: PhosphorIconsRegular.fire),
-        const SizedBox(height: 12),
-        _ViralMomentCard(time: '00:15', title: 'Unexpected reaction', score: 95, type: 'Comedy'),
-        _ViralMomentCard(time: '01:23', title: 'Key reveal moment', score: 92, type: 'Dramatic'),
-        _ViralMomentCard(time: '02:45', title: 'Funny dialogue', score: 88, type: 'Comedy'),
-        _ViralMomentCard(time: '03:10', title: 'Emotional peak', score: 85, type: 'Emotional'),
-        _ViralMomentCard(time: '04:20', title: 'Surprise ending', score: 90, type: 'Surprise'),
+        const SizedBox(height: 24),
+        Center(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(PhosphorIconsRegular.fire, size: 32, color: _textMuted),
+              const SizedBox(height: 8),
+              Text(
+                'No viral moments detected',
+                style: GoogleFonts.inter(color: _textMuted, fontSize: 12),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                'Import a video and run AI analysis to detect viral moments',
+                style: GoogleFonts.inter(color: _textMuted, fontSize: 10),
+                textAlign: TextAlign.center,
+              ),
+            ],
+          ),
+        ),
       ],
     );
   }
@@ -1282,37 +1437,26 @@ class _AssetBrowser extends StatelessWidget {
       padding: const EdgeInsets.all(12),
       children: [
         _SectionHeader(title: 'Assets', icon: PhosphorIconsRegular.folderOpen),
-        const SizedBox(height: 12),
-        _AssetCategory(
-          icon: PhosphorIconsRegular.microphone,
-          label: 'Commentary',
-          count: 12,
-          color: _purpleColor,
+        const SizedBox(height: 24),
+        Center(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(PhosphorIconsRegular.folderOpen, size: 32, color: _textMuted),
+              const SizedBox(height: 8),
+              Text(
+                'No assets yet',
+                style: GoogleFonts.inter(color: _textMuted, fontSize: 12),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                'Import media files to populate your asset library',
+                style: GoogleFonts.inter(color: _textMuted, fontSize: 10),
+                textAlign: TextAlign.center,
+              ),
+            ],
+          ),
         ),
-        _AssetCategory(
-          icon: PhosphorIconsRegular.speakerHigh,
-          label: 'Sound Effects',
-          count: 48,
-          color: _warningColor,
-        ),
-        _AssetCategory(
-          icon: PhosphorIconsRegular.musicNote,
-          label: 'Music',
-          count: 24,
-          color: _successColor,
-        ),
-        _AssetCategory(
-          icon: PhosphorIconsRegular.subtitles,
-          label: 'Caption Styles',
-          count: 8,
-          color: const Color(0xFF06B6D4),
-        ),
-        const SizedBox(height: 16),
-        _SectionHeader(title: 'Recent', icon: PhosphorIconsRegular.clock),
-        const SizedBox(height: 8),
-        _AssetItem(name: 'dramatic_sting.mp3', type: 'SFX'),
-        _AssetItem(name: 'bgm_epic.mp3', type: 'Music'),
-        _AssetItem(name: 'narration_v2.wav', type: 'Voice'),
       ],
     );
   }
@@ -1608,9 +1752,7 @@ class _PlaybackControls extends StatelessWidget {
 
 // ─── AI Chat Panel ───────────────────────────────────────────────────────────
 class _AiChatPanel extends ConsumerStatefulWidget {
-  final WidgetRef ref;
-
-  const _AiChatPanel({required this.ref});
+  const _AiChatPanel();
 
   @override
   ConsumerState<_AiChatPanel> createState() => _AiChatPanelState();
@@ -1817,9 +1959,8 @@ class _QuickCommandButton extends StatelessWidget {
 // ─── Right Panel ─────────────────────────────────────────────────────────────
 class _RightPanel extends StatelessWidget {
   final EditorState state;
-  final WidgetRef ref;
 
-  const _RightPanel({required this.state, required this.ref});
+  const _RightPanel({required this.state});
 
   @override
   Widget build(BuildContext context) {
@@ -1870,29 +2011,34 @@ class _RightPanel extends StatelessWidget {
   }
 }
 
-class _PropertiesPanel extends StatelessWidget {
+class _PropertiesPanel extends ConsumerWidget {
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final state = ref.watch(localEditorProvider);
+    final notifier = ref.read(localEditorProvider.notifier);
+
+    final durationStr = _formatDuration(state.totalDuration);
+    final clipCount = state.tracks.fold<int>(0, (sum, t) => sum + t.clips.length);
+
     return ListView(
       padding: const EdgeInsets.all(12),
       children: [
         _SectionHeader(title: 'Clip Properties', icon: PhosphorIconsRegular.slidersHorizontal),
         const SizedBox(height: 12),
-        _PropertyRow(label: 'Duration', value: '00:04:30'),
-        _PropertyRow(label: 'Resolution', value: '1920×1080'),
-        _PropertyRow(label: 'Frame Rate', value: '30 fps'),
-        _PropertyRow(label: 'Codec', value: 'H.264'),
-        _PropertyRow(label: 'Bitrate', value: '12 Mbps'),
+        _PropertyRow(label: 'Duration', value: durationStr),
+        _PropertyRow(label: 'Tracks', value: '${state.tracks.length}'),
+        _PropertyRow(label: 'Clips', value: '$clipCount'),
+        _PropertyRow(label: 'Speed', value: '${state.playbackSpeed.toStringAsFixed(1)}x'),
         const SizedBox(height: 16),
         _SectionHeader(title: 'Transform', icon: PhosphorIconsRegular.crop),
         const SizedBox(height: 12),
-        _SliderRow(label: 'Scale', value: 1.0, min: 0.1, max: 3.0),
-        _SliderRow(label: 'Rotation', value: 0, min: -180, max: 180),
-        _SliderRow(label: 'Opacity', value: 1.0, min: 0, max: 1),
+        _SliderRow(label: 'Scale', value: state.scale, min: 0.1, max: 3.0, onChanged: notifier.setScale),
+        _SliderRow(label: 'Rotation', value: state.rotation, min: -180, max: 180, onChanged: notifier.setRotation),
+        _SliderRow(label: 'Opacity', value: state.opacity, min: 0, max: 1, onChanged: notifier.setOpacity),
         const SizedBox(height: 16),
         _SectionHeader(title: 'Speed', icon: PhosphorIconsRegular.gauge),
         const SizedBox(height: 12),
-        _SliderRow(label: 'Playback Speed', value: 1.0, min: 0.25, max: 4.0),
+        _SliderRow(label: 'Playback Speed', value: state.playbackSpeed, min: 0.25, max: 4.0, onChanged: notifier.setPlaybackSpeed),
       ],
     );
   }
@@ -1905,24 +2051,25 @@ class _EditDecisionPanel extends StatelessWidget {
       padding: const EdgeInsets.all(12),
       children: [
         _SectionHeader(title: 'Edit Decisions', icon: PhosphorIconsRegular.scissors),
-        const SizedBox(height: 12),
-        _DecisionCard(
-          time: '00:15',
-          decision: 'Hard cut to reaction',
-          reason: 'Peak emotional moment detected',
-          confidence: 0.92,
-        ),
-        _DecisionCard(
-          time: '01:23',
-          decision: 'J-cut transition',
-          reason: 'Audio leads video for smoother flow',
-          confidence: 0.87,
-        ),
-        _DecisionCard(
-          time: '02:45',
-          decision: 'Speed ramp 2x → 1x',
-          reason: 'Emphasis on key reveal',
-          confidence: 0.95,
+        const SizedBox(height: 24),
+        Center(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(PhosphorIconsRegular.scissors, size: 32, color: _textMuted),
+              const SizedBox(height: 8),
+              Text(
+                'No edit decisions yet',
+                style: GoogleFonts.inter(color: _textMuted, fontSize: 12),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                'Import a video to see AI-recommended edit decisions',
+                style: GoogleFonts.inter(color: _textMuted, fontSize: 10),
+                textAlign: TextAlign.center,
+              ),
+            ],
+          ),
         ),
       ],
     );
@@ -1936,54 +2083,58 @@ class _AiDecisionsPanel extends StatelessWidget {
       padding: const EdgeInsets.all(12),
       children: [
         _SectionHeader(title: 'AI Decisions', icon: PhosphorIconsRegular.brain),
-        const SizedBox(height: 12),
-        _AiDecisionCard(
-          title: 'Hook Placement',
-          decision: 'Selected: 00:03 opening reaction',
-          explanation: 'This clip shows a genuine surprise reaction that creates curiosity. High retention potential based on similar content patterns.',
-          confidence: 0.94,
-        ),
-        _AiDecisionCard(
-          title: 'Pacing Adjustment',
-          decision: 'Removed: 01:45-02:10',
-          explanation: 'This segment had low engagement indicators. Removing it tightens the narrative without losing key context.',
-          confidence: 0.88,
-        ),
-        _AiDecisionCard(
-          title: 'Music Selection',
-          decision: 'Applied: "Tension Build" track',
-          explanation: 'Matches the emotional arc of the story. Rising intensity aligns with narrative escalation at 02:30.',
-          confidence: 0.91,
+        const SizedBox(height: 24),
+        Center(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(PhosphorIconsRegular.brain, size: 32, color: _textMuted),
+              const SizedBox(height: 8),
+              Text(
+                'No AI decisions yet',
+                style: GoogleFonts.inter(color: _textMuted, fontSize: 12),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                'Run AI analysis on a project to see editing decisions',
+                style: GoogleFonts.inter(color: _textMuted, fontSize: 10),
+                textAlign: TextAlign.center,
+              ),
+            ],
+          ),
         ),
       ],
     );
   }
 }
 
-class _StyleSettingsPanel extends StatelessWidget {
+class _StyleSettingsPanel extends ConsumerWidget {
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final state = ref.watch(localEditorProvider);
+    final notifier = ref.read(localEditorProvider.notifier);
+
     return ListView(
       padding: const EdgeInsets.all(12),
       children: [
         _SectionHeader(title: 'Caption Style', icon: PhosphorIconsRegular.subtitles),
         const SizedBox(height: 12),
-        _StyleOption(label: 'Font', value: 'Montserrat Bold'),
-        _StyleOption(label: 'Size', value: 'Large'),
+        _StyleOption(label: 'Font', value: 'Default'),
+        _StyleOption(label: 'Size', value: 'Medium'),
         _StyleOption(label: 'Color', value: 'White'),
-        _StyleOption(label: 'Background', value: 'Shadow'),
-        _StyleOption(label: 'Animation', value: 'Word-by-word'),
+        _StyleOption(label: 'Background', value: 'None'),
+        _StyleOption(label: 'Animation', value: 'None'),
         const SizedBox(height: 16),
         _SectionHeader(title: 'Color Grade', icon: PhosphorIconsRegular.palette),
         const SizedBox(height: 12),
-        _StyleOption(label: 'Preset', value: 'Cinematic Warm'),
-        _SliderRow(label: 'Saturation', value: 1.1, min: 0, max: 2),
-        _SliderRow(label: 'Contrast', value: 1.05, min: 0, max: 2),
-        _SliderRow(label: 'Brightness', value: 0, min: -1, max: 1),
+        _StyleOption(label: 'Preset', value: state.appliedColorGrade ?? 'None'),
+        _SliderRow(label: 'Saturation', value: state.saturation, min: 0, max: 2, onChanged: notifier.setSaturation),
+        _SliderRow(label: 'Contrast', value: state.contrast, min: 0, max: 2, onChanged: notifier.setContrast),
+        _SliderRow(label: 'Brightness', value: state.brightness, min: -1, max: 1, onChanged: notifier.setBrightness),
         const SizedBox(height: 16),
         _SectionHeader(title: 'Transitions', icon: PhosphorIconsRegular.arrowsLeftRight),
         const SizedBox(height: 12),
-        _StyleOption(label: 'Default', value: 'Cross Dissolve'),
+        _StyleOption(label: 'Default', value: state.transitionType ?? 'None'),
         _StyleOption(label: 'Duration', value: '0.5s'),
       ],
     );
@@ -2159,7 +2310,17 @@ class _TimelineAreaState extends State<_TimelineArea> {
   }
 
   double _getPlayheadPosition(double currentSeconds, double zoom) {
-    return (currentSeconds / (800 * zoom / 800)) * 100 * zoom;
+    // Simple formula: pixelsPerSecond * currentSeconds
+    // pixelsPerSecond = (800 * zoom) / totalSeconds
+    // But since we don't have totalSeconds here, use the consistent
+    // ruler mapping: position = currentSeconds * pixelsPerSecond
+    // where pixelsPerSecond for a given zoom is defined by the ruler.
+    // The ruler maps totalSeconds to (800 * zoom) pixels.
+    // So pixelsPerSecond = (800 * zoom) / totalSeconds
+    // We compute position = currentSeconds * (800 * zoom) / totalSeconds
+    final totalSeconds = widget.state.totalDuration.inSeconds.toDouble().clamp(1, double.infinity);
+    final pixelsPerSecond = (800 * zoom) / totalSeconds;
+    return currentSeconds * pixelsPerSecond;
   }
 }
 
@@ -2765,13 +2926,35 @@ class _PropertyRow extends StatelessWidget {
   }
 }
 
-class _SliderRow extends StatelessWidget {
+class _SliderRow extends StatefulWidget {
   final String label;
   final double value;
   final double min;
   final double max;
+  final ValueChanged<double>? onChanged;
 
-  const _SliderRow({required this.label, required this.value, required this.min, required this.max});
+  const _SliderRow({required this.label, required this.value, required this.min, required this.max, this.onChanged});
+
+  @override
+  State<_SliderRow> createState() => _SliderRowState();
+}
+
+class _SliderRowState extends State<_SliderRow> {
+  late double _currentValue;
+
+  @override
+  void initState() {
+    super.initState();
+    _currentValue = widget.value;
+  }
+
+  @override
+  void didUpdateWidget(covariant _SliderRow oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.value != widget.value) {
+      _currentValue = widget.value;
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -2782,9 +2965,9 @@ class _SliderRow extends StatelessWidget {
         children: [
           Row(
             children: [
-              Text(label, style: GoogleFonts.inter(color: _textMuted, fontSize: 11)),
+              Text(widget.label, style: GoogleFonts.inter(color: _textMuted, fontSize: 11)),
               const Spacer(),
-              Text(value.toStringAsFixed(2), style: GoogleFonts.inter(color: _textSecondary, fontSize: 11)),
+              Text(_currentValue.toStringAsFixed(2), style: GoogleFonts.inter(color: _textSecondary, fontSize: 11)),
             ],
           ),
           SliderTheme(
@@ -2797,7 +2980,15 @@ class _SliderRow extends StatelessWidget {
               thumbColor: _accentColor,
               overlayColor: _accentColor.withOpacity(0.1),
             ),
-            child: Slider(value: value, min: min, max: max, onChanged: null),
+            child: Slider(
+              value: _currentValue.clamp(widget.min, widget.max),
+              min: widget.min,
+              max: widget.max,
+              onChanged: (v) {
+                setState(() => _currentValue = v);
+                widget.onChanged?.call(v);
+              },
+            ),
           ),
         ],
       ),

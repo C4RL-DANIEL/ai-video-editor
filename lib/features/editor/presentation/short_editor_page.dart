@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:phosphor_flutter/phosphor_flutter.dart';
+import 'package:video_player/video_player.dart';
 
 // ─── Colors ──────────────────────────────────────────────────────────────────
 const Color _bgColor = Color(0xFF0D0D0F);
@@ -21,12 +22,16 @@ const Color _textMuted = Color(0xFF6B7280);
 
 // ─── Short Editor State ──────────────────────────────────────────────────────
 class ShortEditorState {
+  final String projectId;
+  final String shortId;
   final String projectName;
   final bool showBeforeAfter;
   final bool isGenerating;
   final Duration currentTime;
   final Duration totalDuration;
   final bool isPlaying;
+  final bool isLoading;
+  final String? loadError;
 
   // Hook
   final String hookText;
@@ -61,14 +66,21 @@ class ShortEditorState {
   final bool overridePacing;
   final bool overrideMusic;
 
+  // Timeline
+  final List<TimelineClip> clips;
+
   ShortEditorState({
+    this.projectId = '',
+    this.shortId = '',
     this.projectName = 'Short #1',
     this.showBeforeAfter = false,
     this.isGenerating = false,
     this.currentTime = Duration.zero,
     this.totalDuration = const Duration(seconds: 45),
     this.isPlaying = false,
-    this.hookText = 'WAIT FOR IT... 😱',
+    this.isLoading = true,
+    this.loadError,
+    this.hookText = '',
     this.hookFontSize = 28,
     this.captionStyle = 'Bold Pop',
     this.captionSize = 22,
@@ -89,15 +101,20 @@ class ShortEditorState {
     this.overrideCaptions = false,
     this.overridePacing = false,
     this.overrideMusic = false,
+    this.clips = const [],
   });
 
   ShortEditorState copyWith({
+    String? projectId,
+    String? shortId,
     String? projectName,
     bool? showBeforeAfter,
     bool? isGenerating,
     Duration? currentTime,
     Duration? totalDuration,
     bool? isPlaying,
+    bool? isLoading,
+    String? loadError,
     String? hookText,
     double? hookFontSize,
     String? captionStyle,
@@ -119,14 +136,21 @@ class ShortEditorState {
     bool? overrideCaptions,
     bool? overridePacing,
     bool? overrideMusic,
+    List<TimelineClip>? clips,
+    bool clearLoadError = false,
+    bool clearError = false,
   }) {
     return ShortEditorState(
+      projectId: projectId ?? this.projectId,
+      shortId: shortId ?? this.shortId,
       projectName: projectName ?? this.projectName,
       showBeforeAfter: showBeforeAfter ?? this.showBeforeAfter,
       isGenerating: isGenerating ?? this.isGenerating,
       currentTime: currentTime ?? this.currentTime,
       totalDuration: totalDuration ?? this.totalDuration,
       isPlaying: isPlaying ?? this.isPlaying,
+      isLoading: isLoading ?? this.isLoading,
+      loadError: clearLoadError ? null : (loadError ?? this.loadError),
       hookText: hookText ?? this.hookText,
       hookFontSize: hookFontSize ?? this.hookFontSize,
       captionStyle: captionStyle ?? this.captionStyle,
@@ -148,16 +172,65 @@ class ShortEditorState {
       overrideCaptions: overrideCaptions ?? this.overrideCaptions,
       overridePacing: overridePacing ?? this.overridePacing,
       overrideMusic: overrideMusic ?? this.overrideMusic,
+      clips: clips ?? this.clips,
     );
   }
 }
 
-final shortEditorProvider = StateNotifierProvider<ShortEditorNotifier, ShortEditorState>(
+/// Represents a clip on the mini-timeline.
+class TimelineClip {
+  final String id;
+  final Color color;
+  final double startFraction; // 0.0 - 1.0
+  final double endFraction;   // 0.0 - 1.0
+
+  const TimelineClip({
+    required this.id,
+    required this.color,
+    required this.startFraction,
+    required this.endFraction,
+  });
+}
+
+final shortEditorProvider = StateNotifierProvider.autoDispose<ShortEditorNotifier, ShortEditorState>(
   (ref) => ShortEditorNotifier(),
 );
 
 class ShortEditorNotifier extends StateNotifier<ShortEditorState> {
   ShortEditorNotifier() : super(ShortEditorState());
+
+  /// Load short data by projectId and shortId.
+  Future<void> loadShort(String projectId, String shortId) async {
+    if (state.projectId == projectId && state.shortId == shortId && !state.isLoading) return;
+    state = state.copyWith(
+      projectId: projectId,
+      shortId: shortId,
+      isLoading: true,
+      clearLoadError: true,
+    );
+
+    try {
+      // TODO: Replace with real Appwrite fetch for the short document.
+      // For now, derive title from the IDs and use empty state.
+      await Future.delayed(const Duration(milliseconds: 300));
+      if (!mounted) return;
+      state = state.copyWith(
+        projectName: 'Short $shortId',
+        isLoading: false,
+        clips: [
+          const TimelineClip(id: '1', color: _accentColor, startFraction: 0.0, endFraction: 0.35),
+          const TimelineClip(id: '2', color: _accentColor, startFraction: 0.37, endFraction: 0.7),
+          const TimelineClip(id: '3', color: _accentColor, startFraction: 0.72, endFraction: 1.0),
+        ],
+      );
+    } catch (e) {
+      if (!mounted) return;
+      state = state.copyWith(
+        isLoading: false,
+        loadError: 'Failed to load short: $e',
+      );
+    }
+  }
 
   void setHookText(String text) => state = state.copyWith(hookText: text);
   void setHookFontSize(double size) => state = state.copyWith(hookFontSize: size);
@@ -199,10 +272,10 @@ class ShortEditorNotifier extends StateNotifier<ShortEditorState> {
 
   void _startPlayback() {
     state = state.copyWith(isPlaying: true);
-    // Simulate playback tick
+    // Simulate playback tick — check mounted before each setState via notifier
     Future.doWhile(() async {
       await Future.delayed(const Duration(seconds: 1));
-      if (!state.isPlaying) return false;
+      if (!mounted || !state.isPlaying) return false;
       final next = state.currentTime + const Duration(seconds: 1);
       if (next >= state.totalDuration) {
         state = state.copyWith(
@@ -238,30 +311,13 @@ class ShortEditorNotifier extends StateNotifier<ShortEditorState> {
     state = state.copyWith(isGenerating: true);
     Future.delayed(const Duration(seconds: 2), () {
       if (!mounted) return;
-      // Shuffle/regenerate: randomize visual and audio settings
-      final hooks = [
-        'WAIT FOR IT... 😱',
-        '🔥 THIS CHANGES EVERYTHING',
-        'POV: You discovered...',
-        'Nobody expected this',
-        'Watch till the end',
-        'You won\'t believe this 😳',
-        'His reaction is priceless 💀',
-        'The most satisfying moment ever',
-      ];
-      final styles = ['Bold Pop', 'Minimal', 'Gradient Glow', 'Outlined', 'Shadow Drop'];
-      final fonts = ['Montserrat', 'Inter', 'Poppins', 'Bebas Neue', 'Impact'];
-      final animations = ['Word-by-Word', 'Line-by-Line', 'Typewriter', 'Pop-in', 'Fade-in'];
-      final positions = ['Top', 'Center', 'Bottom', 'Dynamic'];
-
       final rand = _rng;
       state = state.copyWith(
         isGenerating: false,
-        hookText: hooks[rand.nextInt(hooks.length)],
-        captionStyle: styles[rand.nextInt(styles.length)],
-        captionFont: fonts[rand.nextInt(fonts.length)],
-        captionAnimation: animations[rand.nextInt(animations.length)],
-        captionPosition: positions[rand.nextInt(positions.length)],
+        captionStyle: _styles[rand.nextInt(_styles.length)],
+        captionFont: _fonts[rand.nextInt(_fonts.length)],
+        captionAnimation: _animations[rand.nextInt(_animations.length)],
+        captionPosition: _positions[rand.nextInt(_positions.length)],
         zoomIntensity: 1.0 + rand.nextDouble(),
         speedRamp: 0.5 + rand.nextDouble() * 2.5,
       );
@@ -269,6 +325,10 @@ class ShortEditorNotifier extends StateNotifier<ShortEditorState> {
   }
 
   static final _rng = math.Random();
+  static const _styles = ['Bold Pop', 'Minimal', 'Gradient Glow', 'Outlined', 'Shadow Drop'];
+  static const _fonts = ['Montserrat', 'Inter', 'Poppins', 'Bebas Neue', 'Impact'];
+  static const _animations = ['Word-by-Word', 'Line-by-Line', 'Typewriter', 'Pop-in', 'Fade-in'];
+  static const _positions = ['Top', 'Center', 'Bottom', 'Dynamic'];
 }
 
 // ─── Export Dialog ──────────────────────────────────────────────────────────
@@ -385,13 +445,31 @@ class _ExportOption extends StatelessWidget {
 }
 
 // ─── Short Editor Page ───────────────────────────────────────────────────────
-class ShortEditorPage extends ConsumerWidget {
+class ShortEditorPage extends ConsumerStatefulWidget {
   const ShortEditorPage({super.key, this.projectId, this.shortId});
   final String? projectId;
   final String? shortId;
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<ShortEditorPage> createState() => _ShortEditorPageState();
+}
+
+class _ShortEditorPageState extends ConsumerState<ShortEditorPage> {
+  @override
+  void initState() {
+    super.initState();
+    final pid = widget.projectId ?? '';
+    final sid = widget.shortId ?? '';
+    if (pid.isNotEmpty && sid.isNotEmpty) {
+      // Defer to post-frame so provider is available
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        ref.read(shortEditorProvider.notifier).loadShort(pid, sid);
+      });
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final state = ref.watch(shortEditorProvider);
     final size = MediaQuery.of(context).size;
     final isCompact = size.width < 900;
@@ -417,7 +495,14 @@ class ShortEditorPage extends ConsumerWidget {
               child: Text('SHORT', style: GoogleFonts.inter(color: Colors.white, fontSize: 10, fontWeight: FontWeight.w800)),
             ),
             const SizedBox(width: 10),
-            Text(state.projectName, style: GoogleFonts.inter(color: _textPrimary, fontSize: 14, fontWeight: FontWeight.w600)),
+            if (state.isLoading)
+              SizedBox(
+                width: 12,
+                height: 12,
+                child: CircularProgressIndicator(strokeWidth: 1.5, color: _accentColor),
+              )
+            else
+              Text(state.projectName, style: GoogleFonts.inter(color: _textPrimary, fontSize: 14, fontWeight: FontWeight.w600)),
           ],
         ),
         actions: [
@@ -464,7 +549,40 @@ class ShortEditorPage extends ConsumerWidget {
           const SizedBox(width: 12),
         ],
       ),
-      body: isCompact ? _buildMobileLayout(context, ref, state) : _buildDesktopLayout(context, ref, state),
+      body: state.isLoading
+          ? const Center(child: CircularProgressIndicator(color: _accentColor))
+          : state.loadError != null
+              ? _buildErrorState(context, ref, state)
+              : isCompact
+                  ? _buildMobileLayout(context, ref, state)
+                  : _buildDesktopLayout(context, ref, state),
+    );
+  }
+
+  Widget _buildErrorState(BuildContext context, WidgetRef ref, ShortEditorState state) {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(32),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Icon(PhosphorIconsRegular.warningCircle, size: 48, color: _errorColor),
+            const SizedBox(height: 12),
+            Text(
+              state.loadError ?? 'Something went wrong',
+              style: GoogleFonts.inter(color: _textSecondary, fontSize: 14),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 16),
+            ElevatedButton.icon(
+              onPressed: () => ref.read(shortEditorProvider.notifier).loadShort(state.projectId, state.shortId),
+              icon: const Icon(PhosphorIconsRegular.arrowsClockwise, size: 16),
+              label: Text('Retry', style: GoogleFonts.inter()),
+              style: ElevatedButton.styleFrom(backgroundColor: _accentColor, foregroundColor: Colors.white),
+            ),
+          ],
+        ),
+      ),
     );
   }
 
@@ -578,7 +696,7 @@ class _PreviewArea extends StatelessWidget {
                   ],
                 )
               else ...[
-                // Single preview
+                // Single preview — empty state when no video
                 Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
@@ -593,30 +711,31 @@ class _PreviewArea extends StatelessWidget {
                   ],
                 ),
 
-                // Hook text overlay
-                Positioned(
-                  top: 60,
-                  left: 20,
-                  right: 20,
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                    decoration: BoxDecoration(
-                      color: Colors.black.withOpacity(0.75),
-                      borderRadius: BorderRadius.circular(4),
-                    ),
-                    child: Text(
-                      state.hookText,
-                      textAlign: TextAlign.center,
-                      style: GoogleFonts.montserrat(
-                        color: Colors.white,
-                        fontSize: state.hookFontSize,
-                        fontWeight: FontWeight.w900,
+                // Hook text overlay (only if hook text is set)
+                if (state.hookText.isNotEmpty)
+                  Positioned(
+                    top: 60,
+                    left: 20,
+                    right: 20,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                      decoration: BoxDecoration(
+                        color: Colors.black.withOpacity(0.75),
+                        borderRadius: BorderRadius.circular(4),
+                      ),
+                      child: Text(
+                        state.hookText,
+                        textAlign: TextAlign.center,
+                        style: GoogleFonts.montserrat(
+                          color: Colors.white,
+                          fontSize: state.hookFontSize,
+                          fontWeight: FontWeight.w900,
+                        ),
                       ),
                     ),
                   ),
-                ),
 
-                // Caption overlay
+                // Caption overlay (empty state)
                 Positioned(
                   bottom: 100,
                   left: 16,
@@ -631,7 +750,7 @@ class _PreviewArea extends StatelessWidget {
                       'Auto-generated captions appear here...',
                       textAlign: TextAlign.center,
                       style: GoogleFonts.inter(
-                        color: Colors.white,
+                        color: Colors.white.withOpacity(0.5),
                         fontSize: state.captionSize,
                         fontWeight: FontWeight.bold,
                       ),
@@ -841,23 +960,13 @@ class _CaptionsTab extends StatelessWidget {
             _ColorDot(color: _errorColor, isSelected: state.captionColor == _errorColor, onTap: () => ref.read(shortEditorProvider.notifier).setCaptionColor(_errorColor)),
             _ColorDot(color: _purpleColor, isSelected: state.captionColor == _purpleColor, onTap: () => ref.read(shortEditorProvider.notifier).setCaptionColor(_purpleColor)),
             const SizedBox(width: 8),
-            GestureDetector(
-              onTap: () {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: Text('🎨 Custom color picker coming soon', style: GoogleFonts.inter()),
-                    backgroundColor: _surfaceColor,
-                  ),
-                );
-              },
-              child: Container(
-                width: 24,
-                height: 24,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  border: Border.all(color: _borderColor),
-                  gradient: const LinearGradient(colors: [_accentColor, _purpleColor, _warningColor]),
-                ),
+            Container(
+              width: 24,
+              height: 24,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                border: Border.all(color: _borderColor),
+                gradient: const LinearGradient(colors: [_accentColor, _purpleColor, _warningColor]),
               ),
             ),
           ],
@@ -993,68 +1102,43 @@ class _SfxTab extends StatelessWidget {
         _SectionHeader(title: 'Sound Effects', icon: PhosphorIconsRegular.speakerHigh),
         const SizedBox(height: 12),
 
-        // SFX items
-        _SfxItem(
-          name: 'Whoosh',
-          time: '00:02',
-          icon: PhosphorIconsRegular.wind,
-          isSelected: state.selectedSfx == 'Whoosh',
-          onTap: () => ref.read(shortEditorProvider.notifier).selectSfx('Whoosh'),
-        ),
-        _SfxItem(
-          name: 'Impact Boom',
-          time: '00:08',
-          icon: PhosphorIconsRegular.warning,
-          isSelected: state.selectedSfx == 'Impact Boom',
-          onTap: () => ref.read(shortEditorProvider.notifier).selectSfx('Impact Boom'),
-        ),
-        _SfxItem(
-          name: 'Ding',
-          time: '00:15',
-          icon: PhosphorIconsRegular.bell,
-          isSelected: state.selectedSfx == 'Ding',
-          onTap: () => ref.read(shortEditorProvider.notifier).selectSfx('Ding'),
-        ),
-        _SfxItem(
-          name: 'Crowd Ooh',
-          time: '00:22',
-          icon: PhosphorIconsRegular.users,
-          isSelected: state.selectedSfx == 'Crowd Ooh',
-          onTap: () => ref.read(shortEditorProvider.notifier).selectSfx('Crowd Ooh'),
-        ),
-        _SfxItem(
-          name: 'Record Scratch',
-          time: '00:30',
-          icon: PhosphorIconsRegular.record,
-          isSelected: state.selectedSfx == 'Record Scratch',
-          onTap: () => ref.read(shortEditorProvider.notifier).selectSfx('Record Scratch'),
+        // SFX items — empty state
+        Center(
+          child: Padding(
+            padding: const EdgeInsets.symmetric(vertical: 32),
+            child: Column(
+              children: [
+                Icon(PhosphorIconsRegular.speakerNone, size: 32, color: _textMuted),
+                const SizedBox(height: 8),
+                Text(
+                  'No SFX added yet',
+                  style: GoogleFonts.inter(color: _textMuted, fontSize: 13),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  'Add sound effects to enhance your short',
+                  style: GoogleFonts.inter(color: _textMuted, fontSize: 11),
+                ),
+              ],
+            ),
+          ),
         ),
 
         const SizedBox(height: 16),
-        GestureDetector(
-          onTap: () {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Text('🎵 SFX library coming soon', style: GoogleFonts.inter()),
-                backgroundColor: _surfaceColor,
-              ),
-            );
-          },
-          child: Container(
-            padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(
-              color: _cardColor,
-              borderRadius: BorderRadius.circular(8),
-              border: Border.all(color: _borderColor, style: BorderStyle.solid),
-            ),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Icon(PhosphorIconsRegular.plus, size: 16, color: _accentColor),
-                const SizedBox(width: 8),
-                Text('Add SFX', style: GoogleFonts.inter(color: _accentColor, fontSize: 12, fontWeight: FontWeight.w600)),
-              ],
-            ),
+        Container(
+          padding: const EdgeInsets.all(12),
+          decoration: BoxDecoration(
+            color: _cardColor,
+            borderRadius: BorderRadius.circular(8),
+            border: Border.all(color: _borderColor, style: BorderStyle.solid),
+          ),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(PhosphorIconsRegular.plus, size: 16, color: _accentColor),
+              const SizedBox(width: 8),
+              Text('Add SFX', style: GoogleFonts.inter(color: _accentColor, fontSize: 12, fontWeight: FontWeight.w600)),
+            ],
           ),
         ),
       ],
@@ -1083,25 +1167,25 @@ class _OverridesTab extends StatelessWidget {
 
         _OverrideRow(
           label: 'Hook Selection',
-          description: 'AI chose: "00:03 surprise reaction"',
+          description: 'Override the AI-selected hook point',
           enabled: state.overrideHook,
           onTap: () => ref.read(shortEditorProvider.notifier).toggleOverrideHook(),
         ),
         _OverrideRow(
           label: 'Caption Timing',
-          description: 'AI synced to speech at natural pauses',
+          description: 'Override AI-synced caption timing',
           enabled: state.overrideCaptions,
           onTap: () => ref.read(shortEditorProvider.notifier).toggleOverrideCaptions(),
         ),
         _OverrideRow(
           label: 'Pacing',
-          description: 'AI used fast pace for engagement',
+          description: 'Override AI-selected pacing',
           enabled: state.overridePacing,
           onTap: () => ref.read(shortEditorProvider.notifier).toggleOverridePacing(),
         ),
         _OverrideRow(
           label: 'Music Selection',
-          description: 'AI chose: "Energetic Pop" track',
+          description: 'Override AI-selected music track',
           enabled: state.overrideMusic,
           onTap: () => ref.read(shortEditorProvider.notifier).toggleOverrideMusic(),
         ),
@@ -1172,26 +1256,36 @@ class _MiniTimeline extends StatelessWidget {
           ),
           const SizedBox(height: 4),
 
-          // Mini track
+          // Mini track — empty state or real clips
           Expanded(
-            child: Row(
-              children: [
-                // Video blocks
-                _MiniClip(color: _accentColor.withOpacity(0.4), flex: 3),
-                _MiniClip(color: _accentColor.withOpacity(0.6), flex: 5),
-                _MiniClip(color: _accentColor.withOpacity(0.3), flex: 2),
-                const SizedBox(width: 4),
-                // SFX markers
-                ...List.generate(3, (i) => Container(
-                  width: 4,
-                  margin: const EdgeInsets.only(right: 2),
-                  decoration: BoxDecoration(
-                    color: _warningColor,
-                    borderRadius: BorderRadius.circular(1),
+            child: state.clips.isEmpty
+                ? Container(
+                    decoration: BoxDecoration(
+                      color: _surfaceColor,
+                      borderRadius: BorderRadius.circular(2),
+                    ),
+                    child: Center(
+                      child: Text(
+                        'No clips',
+                        style: GoogleFonts.inter(color: _textMuted, fontSize: 8),
+                      ),
+                    ),
+                  )
+                : Row(
+                    children: [
+                      for (final clip in state.clips)
+                        Expanded(
+                          flex: ((clip.endFraction - clip.startFraction) * 100).toInt().clamp(1, 100),
+                          child: Container(
+                            margin: const EdgeInsets.only(right: 2),
+                            decoration: BoxDecoration(
+                              color: clip.color.withOpacity(0.5),
+                              borderRadius: BorderRadius.circular(2),
+                            ),
+                          ),
+                        ),
+                    ],
                   ),
-                )),
-              ],
-            ),
           ),
         ],
       ),
@@ -1538,7 +1632,7 @@ class _OverrideRow extends StatelessWidget {
                       width: 16,
                       height: 16,
                       margin: const EdgeInsets.symmetric(horizontal: 2),
-                      decoration: BoxDecoration(
+                      decoration: const BoxDecoration(
                         color: Colors.white,
                         shape: BoxShape.circle,
                       ),

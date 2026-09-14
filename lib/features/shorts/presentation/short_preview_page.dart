@@ -24,16 +24,23 @@ class _ShortPreviewPageState extends State<ShortPreviewPage> {
   String? _errorMessage;
   bool _isPlaying = false;
 
-  // Simulated short data (in a real app this would come from an API/provider)
-  String get _shortTitle => 'Short ${widget.shortId}';
-  String get _shortDescription => 'Project: ${widget.projectId}';
+  // Real data fields — populated from Appwrite (TODO)
+  String _shortTitle = '';
+  String _shortDescription = '';
+  String? _videoUrl;
   Duration _currentPosition = Duration.zero;
-  Duration _totalDuration = const Duration(seconds: 45);
+  Duration _totalDuration = Duration.zero;
 
   @override
   void initState() {
     super.initState();
     _loadShortData();
+  }
+
+  @override
+  void dispose() {
+    _videoController?.dispose();
+    super.dispose();
   }
 
   Future<void> _loadShortData() async {
@@ -43,16 +50,24 @@ class _ShortPreviewPageState extends State<ShortPreviewPage> {
     });
 
     try {
-      // Simulate loading delay (in production, fetch actual video URL from shortId)
-      await Future.delayed(const Duration(milliseconds: 500));
+      // TODO: Fetch short document from Appwrite using widget.shortId
+      // For now, derive minimal data from IDs.
+      _shortTitle = 'Short ${widget.shortId}';
+      _shortDescription = 'Project: ${widget.projectId}';
 
-      // Since we don't have a real video URL, we set up a placeholder state
-      // In production: _videoController = VideoPlayerController.networkUrl(Uri.parse(videoUrl));
+      // TODO: When a real video URL is available:
+      // _videoUrl = 'https://...';
+      // _videoController = VideoPlayerController.networkUrl(Uri.parse(_videoUrl!));
       // await _videoController!.initialize();
+      // _totalDuration = _videoController!.value.duration;
+      // _videoController!.addListener(_videoListener);
+
+      if (!mounted) return;
       setState(() {
         _isLoading = false;
       });
     } catch (e) {
+      if (!mounted) return;
       setState(() {
         _isLoading = false;
         _errorMessage = 'Failed to load short video';
@@ -60,10 +75,23 @@ class _ShortPreviewPageState extends State<ShortPreviewPage> {
     }
   }
 
-  @override
-  void dispose() {
-    _videoController?.dispose();
-    super.dispose();
+  void _videoListener() {
+    if (!mounted || _videoController == null) return;
+    final controller = _videoController!;
+    final newPos = controller.value.position;
+    final newDuration = controller.value.duration;
+    if (newPos != _currentPosition || newDuration != _totalDuration) {
+      setState(() {
+        _currentPosition = newPos;
+        _totalDuration = newDuration;
+      });
+    }
+    // Auto-pause at end
+    if (newPos >= newDuration && _isPlaying) {
+      setState(() {
+        _isPlaying = false;
+      });
+    }
   }
 
   void _togglePlayPause() {
@@ -77,21 +105,18 @@ class _ShortPreviewPageState extends State<ShortPreviewPage> {
           _isPlaying = true;
         }
       });
-    } else {
-      // No video loaded — show feedback
+    } else if (_videoUrl == null) {
+      // No video available yet — show feedback
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
-            _isPlaying ? '⏸ Paused' : '▶ Playing preview',
+            'No video available to play',
             style: GoogleFonts.inter(),
           ),
           duration: const Duration(seconds: 1),
           backgroundColor: const Color(0xFF141418),
         ),
       );
-      setState(() {
-        _isPlaying = !_isPlaying;
-      });
     }
   }
 
@@ -126,6 +151,7 @@ class _ShortPreviewPageState extends State<ShortPreviewPage> {
                   backgroundColor: const Color(0xFF141418),
                 ),
               );
+              // TODO: Trigger real export pipeline
             },
             style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF3B82F6)),
             child: Text('Export', style: GoogleFonts.inter(color: Colors.white)),
@@ -172,13 +198,20 @@ class _ShortPreviewPageState extends State<ShortPreviewPage> {
           ),
           ElevatedButton(
             onPressed: () {
+              final newTitle = controller.text.trim();
               Navigator.of(ctx).pop();
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
-                  content: Text('✏️ Title updated', style: GoogleFonts.inter()),
-                  backgroundColor: const Color(0xFF141418),
-                ),
-              );
+              if (newTitle.isNotEmpty) {
+                setState(() {
+                  _shortTitle = newTitle;
+                });
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text('✏️ Title updated to "$newTitle"', style: GoogleFonts.inter()),
+                    backgroundColor: const Color(0xFF141418),
+                  ),
+                );
+                // TODO: Persist title change to Appwrite
+              }
             },
             style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF3B82F6)),
             child: Text('Save', style: GoogleFonts.inter(color: Colors.white)),
@@ -219,6 +252,7 @@ class _ShortPreviewPageState extends State<ShortPreviewPage> {
                   backgroundColor: const Color(0xFF141418),
                 ),
               );
+              // TODO: Delete short from Appwrite
               Navigator.of(context).pop();
             },
             style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFFEF4444)),
@@ -378,15 +412,20 @@ class _ShortPreviewPageState extends State<ShortPreviewPage> {
                     child: VideoPlayer(_videoController!),
                   )
                 else ...[
-                  // Placeholder
-                  const Column(
+                  // Empty state placeholder
+                  Column(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      Icon(PhosphorIconsRegular.filmSlate,
+                      const Icon(PhosphorIconsRegular.filmSlate,
                           size: 40, color: Color(0xFF6B7280)),
-                      SizedBox(height: 8),
+                      const SizedBox(height: 8),
                       Text('9:16 Preview',
-                          style: TextStyle(color: Color(0xFF6B7280), fontSize: 12)),
+                          style: GoogleFonts.inter(color: const Color(0xFF6B7280), fontSize: 12)),
+                      const SizedBox(height: 4),
+                      Text(
+                        _videoUrl == null ? 'No video loaded' : 'Initializing…',
+                        style: GoogleFonts.inter(color: const Color(0xFF6B7280), fontSize: 10),
+                      ),
                     ],
                   ),
 
@@ -412,29 +451,6 @@ class _ShortPreviewPageState extends State<ShortPreviewPage> {
                     ),
                   ),
                 ],
-
-                // Hook overlay text
-                Positioned(
-                  top: 40,
-                  left: 16,
-                  right: 16,
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                    decoration: BoxDecoration(
-                      color: Colors.black.withAlpha(180),
-                      borderRadius: BorderRadius.circular(6),
-                    ),
-                    child: Text(
-                      'WAIT FOR IT... 😱',
-                      textAlign: TextAlign.center,
-                      style: GoogleFonts.inter(
-                        color: Colors.white,
-                        fontSize: 14,
-                        fontWeight: FontWeight.w700,
-                      ),
-                    ),
-                  ),
-                ),
               ],
             ),
           ),
@@ -509,9 +525,13 @@ class _ShortPreviewPageState extends State<ShortPreviewPage> {
                 icon: const Icon(PhosphorIconsRegular.skipBack, size: 20),
                 color: Colors.white54,
                 onPressed: () {
-                  setState(() {
-                    _currentPosition = Duration.zero;
-                  });
+                  if (_videoController != null && _videoController!.value.isInitialized) {
+                    _videoController!.seekTo(Duration.zero);
+                  } else {
+                    setState(() {
+                      _currentPosition = Duration.zero;
+                    });
+                  }
                 },
               ),
               const SizedBox(width: 8),
@@ -536,9 +556,13 @@ class _ShortPreviewPageState extends State<ShortPreviewPage> {
                 icon: const Icon(PhosphorIconsRegular.skipForward, size: 20),
                 color: Colors.white54,
                 onPressed: () {
-                  setState(() {
-                    _currentPosition = _totalDuration;
-                  });
+                  if (_videoController != null && _videoController!.value.isInitialized) {
+                    _videoController!.seekTo(_videoController!.value.duration);
+                  } else {
+                    setState(() {
+                      _currentPosition = _totalDuration;
+                    });
+                  }
                 },
               ),
             ],

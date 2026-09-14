@@ -1,28 +1,34 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:phosphor_flutter/phosphor_flutter.dart';
 import 'package:percent_indicator/circular_percent_indicator.dart';
+import 'package:go_router/go_router.dart';
 
 import 'package:ai_video_editor/core/theme/app_colors.dart';
 import 'package:ai_video_editor/features/projects/presentation/project_providers.dart';
+import 'package:ai_video_editor/core/navigation/app_router.dart';
 
 // ────────────────────────────────────────────────────────────────
 // Project detail page
 // ────────────────────────────────────────────────────────────────
-class ProjectDetailPage extends StatefulWidget {
+class ProjectDetailPage extends ConsumerStatefulWidget {
   final Project? project;
   final String? projectId;
 
   const ProjectDetailPage({super.key, this.project, this.projectId});
 
   @override
-  State<ProjectDetailPage> createState() => _ProjectDetailPageState();
+  ConsumerState<ProjectDetailPage> createState() => _ProjectDetailPageState();
 }
 
-class _ProjectDetailPageState extends State<ProjectDetailPage>
+class _ProjectDetailPageState extends ConsumerState<ProjectDetailPage>
     with SingleTickerProviderStateMixin {
   late final TabController _tabController;
+  Project? _loadedProject;
+  bool _isLoading = false;
+  String? _error;
 
   static const _tabLabels = ['Overview', 'Shorts', 'Long-Form', 'Analysis', 'Editor'];
 
@@ -30,6 +36,43 @@ class _ProjectDetailPageState extends State<ProjectDetailPage>
   void initState() {
     super.initState();
     _tabController = TabController(length: _tabLabels.length, vsync: this);
+    _initProject();
+  }
+
+  void _initProject() {
+    if (widget.project != null) {
+      _loadedProject = widget.project;
+      // Also set it in the current project provider
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        ref.read(currentProjectProvider.notifier).set(widget.project!);
+      });
+    } else if (widget.projectId != null) {
+      _loadProject(widget.projectId!);
+    }
+  }
+
+  Future<void> _loadProject(String id) async {
+    setState(() {
+      _isLoading = true;
+      _error = null;
+    });
+    try {
+      await ref.read(currentProjectProvider.notifier).load(id);
+      final project = ref.read(currentProjectProvider);
+      if (mounted) {
+        setState(() {
+          _loadedProject = project;
+          _isLoading = false;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _error = 'Failed to load project: $e';
+          _isLoading = false;
+        });
+      }
+    }
   }
 
   @override
@@ -41,13 +84,43 @@ class _ProjectDetailPageState extends State<ProjectDetailPage>
   @override
   Widget build(BuildContext context) {
     // If navigated with just a projectId, create a demo project
-    final project = widget.project ?? Project(
+    final project = _loadedProject ?? Project(
       id: widget.projectId ?? 'unknown',
       name: 'Project ${widget.projectId ?? ""}',
       status: ProjectStatus.ready,
       createdAt: DateTime.now(),
       updatedAt: DateTime.now(),
     );
+
+    if (_isLoading) {
+      return Scaffold(
+        backgroundColor: AppColors.background,
+        body: const Center(child: CircularProgressIndicator(color: AppColors.accent)),
+      );
+    }
+
+    if (_error != null) {
+      return Scaffold(
+        backgroundColor: AppColors.background,
+        body: Center(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Icon(PhosphorIconsRegular.warningCircle, size: 48, color: AppColors.error),
+              const SizedBox(height: 16),
+              Text(_error!, style: GoogleFonts.inter(color: AppColors.textSecondary)),
+              const SizedBox(height: 16),
+              FilledButton(
+                onPressed: () {
+                  if (widget.projectId != null) _loadProject(widget.projectId!);
+                },
+                child: const Text('Retry'),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
 
     return Scaffold(
       backgroundColor: AppColors.background,
@@ -71,11 +144,7 @@ class _ProjectDetailPageState extends State<ProjectDetailPage>
             ),
             actions: [
               IconButton(
-                onPressed: () {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    _snackBar('Project options coming soon'),
-                  );
-                },
+                onPressed: () => _showOverflowMenu(context, project),
                 icon: const Icon(PhosphorIconsRegular.dotsThreeVertical, color: Colors.white),
               ),
             ],
@@ -108,8 +177,162 @@ class _ProjectDetailPageState extends State<ProjectDetailPage>
     );
   }
 
+  void _showOverflowMenu(BuildContext context, Project project) {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: AppColors.card,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+      ),
+      builder: (context) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              width: 40,
+              height: 4,
+              margin: const EdgeInsets.only(top: 12, bottom: 8),
+              decoration: BoxDecoration(
+                color: AppColors.border,
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+            ListTile(
+              leading: const Icon(PhosphorIconsBold.pencilSimple, color: AppColors.textSecondary),
+              title: Text('Rename Project', style: GoogleFonts.inter(color: AppColors.textPrimary)),
+              onTap: () {
+                Navigator.pop(context);
+                _showRenameDialog(context, project);
+              },
+            ),
+            ListTile(
+              leading: const Icon(PhosphorIconsBold.trash, color: AppColors.error),
+              title: Text('Delete Project', style: GoogleFonts.inter(color: AppColors.error)),
+              onTap: () {
+                Navigator.pop(context);
+                _showDeleteConfirmation(context, project);
+              },
+            ),
+            ListTile(
+              leading: const Icon(PhosphorIconsBold.archive, color: AppColors.textSecondary),
+              title: Text('Archive Project', style: GoogleFonts.inter(color: AppColors.textPrimary)),
+              onTap: () {
+                Navigator.pop(context);
+                _archiveProject(project);
+              },
+            ),
+            ListTile(
+              leading: const Icon(PhosphorIconsBold.share, color: AppColors.textSecondary),
+              title: Text('Share Project', style: GoogleFonts.inter(color: AppColors.textPrimary)),
+              onTap: () {
+                Navigator.pop(context);
+                ScaffoldMessenger.of(context).showSnackBar(
+                  _snackBar('Share functionality coming soon'),
+                );
+              },
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _showRenameDialog(BuildContext context, Project project) {
+    final controller = TextEditingController(text: project.name);
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: AppColors.card,
+        title: Text('Rename Project', style: GoogleFonts.inter(color: AppColors.textPrimary)),
+        content: TextField(
+          controller: controller,
+          style: GoogleFonts.inter(color: AppColors.textPrimary),
+          decoration: InputDecoration(
+            hintText: 'Project name',
+            hintStyle: GoogleFonts.inter(color: AppColors.textMuted),
+            filled: true,
+            fillColor: AppColors.surface,
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(8),
+              borderSide: const BorderSide(color: AppColors.border),
+            ),
+            enabledBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(8),
+              borderSide: const BorderSide(color: AppColors.border),
+            ),
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: Text('Cancel', style: GoogleFonts.inter(color: AppColors.textMuted)),
+          ),
+          FilledButton(
+            onPressed: () async {
+              final newName = controller.text.trim();
+              if (newName.isNotEmpty) {
+                await ref.read(projectListProvider.notifier).updateProject(
+                  project.id,
+                  name: newName,
+                );
+                if (context.mounted) Navigator.pop(context);
+              }
+            },
+            child: Text('Save', style: GoogleFonts.inter(color: Colors.white)),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showDeleteConfirmation(BuildContext context, Project project) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: AppColors.card,
+        title: Text('Delete Project', style: GoogleFonts.inter(color: AppColors.error)),
+        content: Text(
+          'Are you sure you want to delete "${project.name}"? This action cannot be undone.',
+          style: GoogleFonts.inter(color: AppColors.textSecondary),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: Text('Cancel', style: GoogleFonts.inter(color: AppColors.textMuted)),
+          ),
+          FilledButton(
+            style: FilledButton.styleFrom(backgroundColor: AppColors.error),
+            onPressed: () async {
+              await ref.read(projectListProvider.notifier).delete(project.id);
+              if (context.mounted) {
+                Navigator.pop(context);
+                context.go(RoutePaths.projects);
+              }
+            },
+            child: Text('Delete', style: GoogleFonts.inter(color: Colors.white)),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _archiveProject(Project project) async {
+    await ref.read(projectListProvider.notifier).updateProject(
+      project.id,
+      status: ProjectStatus.archived,
+    );
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        _snackBar('Project archived'),
+      );
+    }
+  }
+
   // ── Header with gradient + status ──
   Widget _buildHeader(Project project) {
+    // Compute analysis progress from project metadata
+    final analysisProgress = _computeAnalysisProgress(project);
+    
     return Container(
       padding: const EdgeInsets.fromLTRB(20, 0, 20, 16),
       decoration: const BoxDecoration(
@@ -124,25 +347,26 @@ class _ProjectDetailPageState extends State<ProjectDetailPage>
             children: [
               _DetailStatusChip(status: project.status),
               const SizedBox(width: 10),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                decoration: BoxDecoration(
-                  color: AppColors.card,
-                  borderRadius: BorderRadius.circular(6),
-                  border: Border.all(color: AppColors.border),
+              if (project.metadata.containsKey('sourcePlatform'))
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: AppColors.card,
+                    borderRadius: BorderRadius.circular(6),
+                    border: Border.all(color: AppColors.border),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Icon(PhosphorIconsRegular.globe, size: 12, color: AppColors.textMuted),
+                      const SizedBox(width: 4),
+                      Text(
+                        '${project.metadata['sourcePlatform']} Source',
+                        style: GoogleFonts.inter(fontSize: 11, color: AppColors.textMuted),
+                      ),
+                    ],
+                  ),
                 ),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    const Icon(PhosphorIconsRegular.globe, size: 12, color: AppColors.textMuted),
-                    const SizedBox(width: 4),
-                    Text(
-                      'YouTube Source',
-                      style: GoogleFonts.inter(fontSize: 11, color: AppColors.textMuted),
-                    ),
-                  ],
-                ),
-              ),
               const Spacer(),
               Text(
                 _formatDate(project.createdAt),
@@ -159,8 +383,8 @@ class _ProjectDetailPageState extends State<ProjectDetailPage>
                 label: 'Generate Shorts',
                 icon: PhosphorIconsBold.videoCamera,
                 color: AppColors.purple,
-                onTap: () => ScaffoldMessenger.of(context).showSnackBar(
-                  _snackBar('Generating shorts…'),
+                onTap: () => context.go(
+                  RoutePaths.shortsForProject(project.id),
                 ),
               ),
               const SizedBox(width: 10),
@@ -168,8 +392,8 @@ class _ProjectDetailPageState extends State<ProjectDetailPage>
                 label: 'Build Long-Form',
                 icon: PhosphorIconsBold.filmStrip,
                 color: AppColors.accent,
-                onTap: () => ScaffoldMessenger.of(context).showSnackBar(
-                  _snackBar('Building long-form video…'),
+                onTap: () => context.go(
+                  RoutePaths.longFormForProject(project.id),
                 ),
               ),
               const SizedBox(width: 10),
@@ -177,8 +401,8 @@ class _ProjectDetailPageState extends State<ProjectDetailPage>
                 label: 'Open Editor',
                 icon: PhosphorIconsBold.pencilSimple,
                 color: AppColors.success,
-                onTap: () => ScaffoldMessenger.of(context).showSnackBar(
-                  _snackBar('Opening editor…'),
+                onTap: () => context.go(
+                  RoutePaths.editorForProject(project.id),
                 ),
               ),
             ],
@@ -186,6 +410,26 @@ class _ProjectDetailPageState extends State<ProjectDetailPage>
         ],
       ),
     ).animate().fadeIn(duration: 300.ms);
+  }
+
+  double _computeAnalysisProgress(Project project) {
+    if (project.status == ProjectStatus.completed) return 1.0;
+    if (project.status == ProjectStatus.ready) return 1.0;
+    if (project.status == ProjectStatus.error || project.status == ProjectStatus.failed) return 0.0;
+    if (project.status == ProjectStatus.draft) return 0.0;
+    if (project.status == ProjectStatus.uploaded) return 0.1;
+    if (project.status == ProjectStatus.analyzing) {
+      // Check metadata for progress percentage
+      final progress = project.metadata['analysisProgress'];
+      if (progress is num) return progress.toDouble().clamp(0.0, 1.0);
+      return 0.5;
+    }
+    if (project.status == ProjectStatus.processing) {
+      final progress = project.metadata['processingProgress'];
+      if (progress is num) return progress.toDouble().clamp(0.0, 1.0);
+      return 0.7;
+    }
+    return 0.0;
   }
 
   SnackBar _snackBar(String text) {
@@ -308,6 +552,8 @@ class _DetailStatusChip extends StatelessWidget {
       case ProjectStatus.uploaded:
       case ProjectStatus.analyzing:
         return AppColors.textSecondary;
+      default:
+        return AppColors.textMuted;
     }
   }
 
@@ -331,6 +577,8 @@ class _DetailStatusChip extends StatelessWidget {
         return 'Uploaded';
       case ProjectStatus.analyzing:
         return 'Analyzing';
+      default:
+        return 'Unknown';
     }
   }
 }
@@ -414,7 +662,7 @@ class _OverviewTab extends StatelessWidget {
         const SizedBox(height: 20),
 
         // ── Recent Shorts preview ──
-        _buildRecentShorts(),
+        _buildRecentShorts(context),
         const SizedBox(height: 20),
 
         // ── Source video info ──
@@ -425,6 +673,27 @@ class _OverviewTab extends StatelessWidget {
   }
 
   Widget _buildStatsRow() {
+    // Compute duration from metadata
+    final durationSeconds = project.metadata['durationSeconds'];
+    final String durationText;
+    if (durationSeconds is num) {
+      final totalSeconds = durationSeconds.toInt();
+      final minutes = totalSeconds ~/ 60;
+      final seconds = totalSeconds % 60;
+      durationText = '${minutes}:${seconds.toString().padLeft(2, '0')}';
+    } else {
+      durationText = '--:--';
+    }
+
+    // Compute virality score from metadata
+    final viralityScore = project.metadata['viralityScore'];
+    final String scoreText;
+    if (viralityScore is num) {
+      scoreText = '${(viralityScore * 100).toInt()}%';
+    } else {
+      scoreText = '--';
+    }
+
     final stats = [
       _StatItem(
         icon: PhosphorIconsFill.videoCamera,
@@ -440,13 +709,13 @@ class _OverviewTab extends StatelessWidget {
       ),
       _StatItem(
         icon: PhosphorIconsFill.clock,
-        value: '12:45',
+        value: durationText,
         label: 'Duration',
         color: AppColors.success,
       ),
       _StatItem(
         icon: PhosphorIconsFill.chartBar,
-        value: '85%',
+        value: scoreText,
         label: 'Score',
         color: AppColors.warning,
       ),
@@ -458,11 +727,28 @@ class _OverviewTab extends StatelessWidget {
   }
 
   Widget _buildProcessingTimeline() {
+    // Determine completed stages based on project status
     final stages = [
-      _TimelineStep(label: 'Upload', icon: PhosphorIconsBold.uploadSimple, isCompleted: true),
-      _TimelineStep(label: 'Analysis', icon: PhosphorIconsBold.magnifyingGlass, isCompleted: true),
-      _TimelineStep(label: 'AI Processing', icon: PhosphorIconsBold.brain, isCompleted: project.status == ProjectStatus.ready),
-      _TimelineStep(label: 'Generation', icon: PhosphorIconsBold.magicWand, isCompleted: false),
+      _TimelineStep(
+        label: 'Upload',
+        icon: PhosphorIconsBold.uploadSimple,
+        isCompleted: _isStageCompleted(0),
+      ),
+      _TimelineStep(
+        label: 'Analysis',
+        icon: PhosphorIconsBold.magnifyingGlass,
+        isCompleted: _isStageCompleted(1),
+      ),
+      _TimelineStep(
+        label: 'AI Processing',
+        icon: PhosphorIconsBold.brain,
+        isCompleted: _isStageCompleted(2),
+      ),
+      _TimelineStep(
+        label: 'Generation',
+        icon: PhosphorIconsBold.magicWand,
+        isCompleted: _isStageCompleted(3),
+      ),
     ];
 
     return Container(
@@ -538,7 +824,62 @@ class _OverviewTab extends StatelessWidget {
     ).animate().fadeIn(duration: 400.ms, delay: 100.ms);
   }
 
+  bool _isStageCompleted(int stageIndex) {
+    switch (project.status) {
+      case ProjectStatus.draft:
+        return false;
+      case ProjectStatus.uploaded:
+        return stageIndex == 0;
+      case ProjectStatus.analyzing:
+        return stageIndex == 0;
+      case ProjectStatus.processing:
+        return stageIndex <= 1;
+      case ProjectStatus.ready:
+        return stageIndex <= 2;
+      case ProjectStatus.completed:
+        return true;
+      case ProjectStatus.error:
+      case ProjectStatus.failed:
+        return stageIndex <= 1;
+      case ProjectStatus.archived:
+        return true;
+      default:
+        return false;
+    }
+  }
+
   Widget _buildAnalysisProgress() {
+    // Compute analysis progress from project status and metadata
+    final double progress;
+    final String statusText;
+    
+    switch (project.status) {
+      case ProjectStatus.completed:
+      case ProjectStatus.ready:
+        progress = 1.0;
+        statusText = 'Analysis complete';
+      case ProjectStatus.analyzing:
+        final p = project.metadata['analysisProgress'];
+        progress = (p is num) ? p.toDouble().clamp(0.0, 1.0) : 0.5;
+        statusText = 'Processing highlights & scenes…';
+      case ProjectStatus.processing:
+        final p = project.metadata['processingProgress'];
+        progress = (p is num) ? p.toDouble().clamp(0.0, 1.0) : 0.7;
+        statusText = 'AI processing in progress…';
+      case ProjectStatus.error:
+      case ProjectStatus.failed:
+        progress = 0.0;
+        statusText = 'Analysis failed';
+      case ProjectStatus.uploaded:
+        progress = 0.1;
+        statusText = 'Awaiting analysis…';
+      default:
+        progress = 0.0;
+        statusText = 'No analysis data yet';
+    }
+
+    final percentText = progress >= 1.0 ? '100%' : '${(progress * 100).toInt()}%';
+
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: _cardDeco(),
@@ -547,9 +888,9 @@ class _OverviewTab extends StatelessWidget {
           CircularPercentIndicator(
             radius: 30,
             lineWidth: 5,
-            percent: 0.72,
+            percent: progress,
             center: Text(
-              '72%',
+              percentText,
               style: GoogleFonts.inter(
                 fontSize: 13,
                 fontWeight: FontWeight.w700,
@@ -575,7 +916,7 @@ class _OverviewTab extends StatelessWidget {
                 ),
                 const SizedBox(height: 4),
                 Text(
-                  'Processing highlights & scenes…',
+                  statusText,
                   style: GoogleFonts.inter(
                     fontSize: 12,
                     color: AppColors.textSecondary,
@@ -583,7 +924,7 @@ class _OverviewTab extends StatelessWidget {
                 ),
                 const SizedBox(height: 8),
                 LinearProgressIndicator(
-                  value: 0.72,
+                  value: progress,
                   backgroundColor: AppColors.border,
                   valueColor: const AlwaysStoppedAnimation(AppColors.accent),
                   borderRadius: BorderRadius.circular(4),
@@ -597,7 +938,9 @@ class _OverviewTab extends StatelessWidget {
     ).animate().fadeIn(duration: 400.ms, delay: 200.ms);
   }
 
-  Widget _buildRecentShorts() {
+  Widget _buildRecentShorts(BuildContext context) {
+    final shortsCount = project.shortsCount;
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -612,56 +955,173 @@ class _OverviewTab extends StatelessWidget {
               ),
             ),
             const Spacer(),
-            TextButton(
-              onPressed: () {},
-              child: Text(
-                'View All',
-                style: GoogleFonts.inter(fontSize: 12, color: AppColors.accent),
+            if (shortsCount > 0)
+              TextButton(
+                onPressed: () => context.go(
+                  RoutePaths.shortsForProject(project.id),
+                ),
+                child: Text(
+                  'View All',
+                  style: GoogleFonts.inter(fontSize: 12, color: AppColors.accent),
+                ),
               ),
-            ),
           ],
         ),
-        SizedBox(
-          height: 100,
-          child: ListView.separated(
-            scrollDirection: Axis.horizontal,
-            itemCount: 5,
-            separatorBuilder: (_, __) => const SizedBox(width: 10),
-            itemBuilder: (context, index) {
-              return Container(
-                width: 80,
-                decoration: BoxDecoration(
-                  color: AppColors.card,
-                  borderRadius: BorderRadius.circular(10),
-                  border: Border.all(color: AppColors.border),
+        if (shortsCount == 0)
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(24),
+            decoration: BoxDecoration(
+              color: AppColors.card,
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: AppColors.border),
+            ),
+            child: Column(
+              children: [
+                Icon(
+                  PhosphorIconsBold.videoCamera,
+                  color: AppColors.textMuted.withOpacity(0.5),
+                  size: 32,
                 ),
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Icon(
-                      PhosphorIconsFill.videoCamera,
-                      color: AppColors.purple.withOpacity(0.6),
-                      size: 24,
-                    ),
-                    const SizedBox(height: 6),
-                    Text(
-                      'Short ${index + 1}',
-                      style: GoogleFonts.inter(
-                        fontSize: 10,
-                        color: AppColors.textSecondary,
-                      ),
-                    ),
-                  ],
+                const SizedBox(height: 8),
+                Text(
+                  'No shorts generated yet',
+                  style: GoogleFonts.inter(
+                    fontSize: 13,
+                    color: AppColors.textMuted,
+                  ),
                 ),
-              ).animate().fadeIn(duration: 250.ms, delay: Duration(milliseconds: 50 * index));
-            },
+              ],
+            ),
+          )
+        else
+          SizedBox(
+            height: 100,
+            child: ListView.separated(
+              scrollDirection: Axis.horizontal,
+              itemCount: shortsCount,
+              separatorBuilder: (_, __) => const SizedBox(width: 10),
+              itemBuilder: (context, index) {
+                final shortId = 'short_$index';
+                return GestureDetector(
+                  onTap: () => context.go(
+                    RoutePaths.shortDetailPath(project.id, shortId),
+                  ),
+                  child: Container(
+                    width: 80,
+                    decoration: BoxDecoration(
+                      color: AppColors.card,
+                      borderRadius: BorderRadius.circular(10),
+                      border: Border.all(color: AppColors.border),
+                    ),
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(
+                          PhosphorIconsFill.videoCamera,
+                          color: AppColors.purple.withOpacity(0.6),
+                          size: 24,
+                        ),
+                        const SizedBox(height: 6),
+                        Text(
+                          'Short ${index + 1}',
+                          style: GoogleFonts.inter(
+                            fontSize: 10,
+                            color: AppColors.textSecondary,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ).animate().fadeIn(duration: 250.ms, delay: Duration(milliseconds: 50 * index)),
+                );
+              },
+            ),
           ),
-        ),
       ],
     );
   }
 
   Widget _buildSourceInfo() {
+    // Pull real data from metadata, with empty state fallback
+    final platform = project.metadata['sourcePlatform'] as String?;
+    final resolution = project.metadata['resolution'] as String?;
+    final fps = project.metadata['fps'] as num?;
+    final durationSeconds = project.metadata['durationSeconds'] as num?;
+    final fileSize = project.metadata['fileSizeMB'] as num?;
+    final format = project.metadata['format'] as String?;
+
+    final hasSourceData = platform != null || resolution != null || fps != null;
+
+    if (!hasSourceData) {
+      return Container(
+        padding: const EdgeInsets.all(16),
+        decoration: _cardDeco(),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                const Icon(PhosphorIconsBold.globe, size: 16, color: AppColors.textSecondary),
+                const SizedBox(width: 8),
+                Text(
+                  'Source Video',
+                  style: GoogleFonts.inter(
+                    fontSize: 15,
+                    fontWeight: FontWeight.w700,
+                    color: AppColors.textPrimary,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+            Center(
+              child: Column(
+                children: [
+                  Icon(
+                    PhosphorIconsRegular.info,
+                    color: AppColors.textMuted.withOpacity(0.5),
+                    size: 28,
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    'No source video data available',
+                    style: GoogleFonts.inter(
+                      fontSize: 13,
+                      color: AppColors.textMuted,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    'Upload a video to see source details',
+                    style: GoogleFonts.inter(
+                      fontSize: 11,
+                      color: AppColors.textMuted.withOpacity(0.7),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 8),
+          ],
+        ),
+      ).animate().fadeIn(duration: 400.ms, delay: 300.ms);
+    }
+
+    // Build duration string from seconds
+    String durationText = '--';
+    if (durationSeconds != null) {
+      final totalSeconds = durationSeconds.toInt();
+      final minutes = totalSeconds ~/ 60;
+      final seconds = totalSeconds % 60;
+      durationText = '$minutes min $seconds sec';
+    }
+
+    // Build file size string
+    String fileSizeText = '--';
+    if (fileSize != null) {
+      fileSizeText = '${fileSize.toStringAsFixed(0)} MB';
+    }
+
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: _cardDeco(),
@@ -683,12 +1143,12 @@ class _OverviewTab extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 12),
-          _InfoRow(label: 'Platform', value: 'YouTube'),
-          _InfoRow(label: 'Resolution', value: '1920 × 1080'),
-          _InfoRow(label: 'FPS', value: '60'),
-          _InfoRow(label: 'Duration', value: '12 min 45 sec'),
-          _InfoRow(label: 'Size', value: '245 MB'),
-          _InfoRow(label: 'Format', value: 'MP4 (H.264)'),
+          if (platform != null) _InfoRow(label: 'Platform', value: platform),
+          if (resolution != null) _InfoRow(label: 'Resolution', value: resolution),
+          if (fps != null) _InfoRow(label: 'FPS', value: '${fps.toInt()}'),
+          if (durationSeconds != null) _InfoRow(label: 'Duration', value: durationText),
+          if (fileSize != null) _InfoRow(label: 'Size', value: fileSizeText),
+          if (format != null) _InfoRow(label: 'Format', value: format),
         ],
       ),
     ).animate().fadeIn(duration: 400.ms, delay: 300.ms);
@@ -825,14 +1285,9 @@ class _ShortsTab extends StatelessWidget {
         title: 'No shorts yet',
         subtitle: 'Generate shorts from your source video',
         actionLabel: 'Generate Shorts',
-        onAction: () {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Generating shorts…'),
-              backgroundColor: AppColors.card,
-            ),
-          );
-        },
+        onAction: () => context.go(
+          RoutePaths.shortsForProject(project.id),
+        ),
       );
     }
 
@@ -840,6 +1295,7 @@ class _ShortsTab extends StatelessWidget {
       padding: const EdgeInsets.all(20),
       itemCount: project.shortsCount,
       itemBuilder: (context, index) {
+        final shortId = 'short_$index';
         return Container(
           margin: const EdgeInsets.only(bottom: 12),
           padding: const EdgeInsets.all(14),
@@ -878,7 +1334,7 @@ class _ShortsTab extends StatelessWidget {
                     ),
                     const SizedBox(height: 4),
                     Text(
-                      '${30 + (index * 5)}s · Generated',
+                      'Generated',
                       style: GoogleFonts.inter(
                         fontSize: 12,
                         color: AppColors.textSecondary,
@@ -904,7 +1360,9 @@ class _ShortsTab extends StatelessWidget {
                 ),
               ),
               IconButton(
-                onPressed: () {},
+                onPressed: () => context.go(
+                  RoutePaths.shortDetailPath(project.id, shortId),
+                ),
                 icon: const Icon(PhosphorIconsBold.play, size: 18, color: AppColors.textSecondary),
               ),
             ],
@@ -930,14 +1388,9 @@ class _LongFormTab extends StatelessWidget {
         title: 'No long-form videos yet',
         subtitle: 'Build a long-form video from your source',
         actionLabel: 'Build Long-Form',
-        onAction: () {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Building long-form video…'),
-              backgroundColor: AppColors.card,
-            ),
-          );
-        },
+        onAction: () => context.go(
+          RoutePaths.longFormForProject(project.id),
+        ),
       );
     }
 
@@ -945,6 +1398,7 @@ class _LongFormTab extends StatelessWidget {
       padding: const EdgeInsets.all(20),
       itemCount: project.longFormCount,
       itemBuilder: (context, index) {
+        final longFormId = 'longform_$index';
         return Container(
           margin: const EdgeInsets.only(bottom: 12),
           padding: const EdgeInsets.all(14),
@@ -982,7 +1436,7 @@ class _LongFormTab extends StatelessWidget {
                     ),
                     const SizedBox(height: 4),
                     Text(
-                      '${10 + index} min · Edited',
+                      'Edited',
                       style: GoogleFonts.inter(
                         fontSize: 12,
                         color: AppColors.textSecondary,
@@ -992,7 +1446,9 @@ class _LongFormTab extends StatelessWidget {
                 ),
               ),
               IconButton(
-                onPressed: () {},
+                onPressed: () => context.go(
+                  RoutePaths.longFormDetailPath(project.id, longFormId),
+                ),
                 icon: const Icon(PhosphorIconsBold.play, size: 18, color: AppColors.textSecondary),
               ),
             ],
@@ -1012,6 +1468,15 @@ class _AnalysisTab extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // Pull analysis data from project metadata
+    final scenesCount = project.metadata['scenesCount'] as num?;
+    final wordsCount = project.metadata['wordsCount'] as num?;
+    final momentsCount = project.metadata['momentsCount'] as num?;
+    final highlightsCount = project.metadata['highlightsCount'] as num?;
+
+    // Check if there's any analysis data
+    final hasAnalysisData = scenesCount != null || wordsCount != null || momentsCount != null;
+
     return ListView(
       padding: const EdgeInsets.all(20),
       children: [
@@ -1021,34 +1486,73 @@ class _AnalysisTab extends StatelessWidget {
         // Scene detection
         _buildMetricCard(
           title: 'Scene Detection',
-          value: '42 scenes identified',
-          progress: 0.9,
+          value: scenesCount != null
+              ? '${scenesCount.toInt()} scenes identified'
+              : 'No data yet',
+          progress: scenesCount != null ? 0.9 : 0.0,
           color: AppColors.purple,
         ),
         const SizedBox(height: 12),
         // Transcription
         _buildMetricCard(
           title: 'Transcription',
-          value: '12,450 words transcribed',
-          progress: 1.0,
+          value: wordsCount != null
+              ? '${wordsCount.toInt()} words transcribed'
+              : 'No data yet',
+          progress: wordsCount != null ? 1.0 : 0.0,
           color: AppColors.success,
         ),
         const SizedBox(height: 12),
         // Sentiment
         _buildMetricCard(
           title: 'Sentiment Analysis',
-          value: 'High-energy moments detected',
-          progress: 0.6,
+          value: momentsCount != null
+              ? 'High-energy moments detected'
+              : 'No data yet',
+          progress: momentsCount != null ? 0.6 : 0.0,
           color: AppColors.warning,
         ),
         const SizedBox(height: 12),
         // Highlights
         _buildMetricCard(
           title: 'Highlight Extraction',
-          value: '8 key moments found',
-          progress: 0.8,
+          value: highlightsCount != null
+              ? '${highlightsCount.toInt()} key moments found'
+              : 'No data yet',
+          progress: highlightsCount != null ? 0.8 : 0.0,
           color: AppColors.accent,
         ),
+        if (!hasAnalysisData) ...[
+          const SizedBox(height: 24),
+          Center(
+            child: Column(
+              children: [
+                Icon(
+                  PhosphorIconsRegular.magnifyingGlass,
+                  color: AppColors.textMuted.withOpacity(0.5),
+                  size: 36,
+                ),
+                const SizedBox(height: 12),
+                Text(
+                  'No analysis data available',
+                  style: GoogleFonts.inter(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w600,
+                    color: AppColors.textSecondary,
+                  ),
+                ),
+                const SizedBox(height: 6),
+                Text(
+                  'Run analysis on your project to see insights here',
+                  style: GoogleFonts.inter(
+                    fontSize: 12,
+                    color: AppColors.textMuted,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
       ],
     );
   }
@@ -1074,7 +1578,7 @@ class _AnalysisTab extends StatelessWidget {
           ),
           const SizedBox(height: 12),
           Text(
-            'The AI is analyzing your video for optimal content repurposing.',
+            'The AI analyzes your video for optimal content repurposing.',
             style: GoogleFonts.inter(
               fontSize: 12,
               color: AppColors.textSecondary,
@@ -1120,7 +1624,7 @@ class _AnalysisTab extends StatelessWidget {
               ),
               const Spacer(),
               Text(
-                '${(progress * 100).toInt()}%',
+                progress > 0 ? '${(progress * 100).toInt()}%' : '--',
                 style: GoogleFonts.inter(
                   fontSize: 12,
                   fontWeight: FontWeight.w600,
@@ -1141,7 +1645,7 @@ class _AnalysisTab extends StatelessWidget {
           LinearProgressIndicator(
             value: progress,
             backgroundColor: AppColors.border,
-            valueColor: AlwaysStoppedAnimation(color),
+            valueColor: AlwaysStoppedAnimation(progress > 0 ? color : AppColors.border),
             borderRadius: BorderRadius.circular(4),
             minHeight: 4,
           ),
@@ -1202,14 +1706,9 @@ class _EditorTab extends StatelessWidget {
               color: AppColors.success,
               borderRadius: BorderRadius.circular(12),
               child: InkWell(
-                onTap: () {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text('Opening editor…'),
-                      backgroundColor: AppColors.card,
-                    ),
-                  );
-                },
+                onTap: () => context.go(
+                  RoutePaths.editorForProject(project.id),
+                ),
                 borderRadius: BorderRadius.circular(12),
                 child: Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 14),

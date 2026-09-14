@@ -1,5 +1,7 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:phosphor_flutter/phosphor_flutter.dart';
@@ -30,14 +32,14 @@ enum StylePreset {
 // ────────────────────────────────────────────────────────────────
 // Create project page
 // ────────────────────────────────────────────────────────────────
-class CreateProjectPage extends StatefulWidget {
+class CreateProjectPage extends ConsumerStatefulWidget {
   const CreateProjectPage({super.key});
 
   @override
-  State<CreateProjectPage> createState() => _CreateProjectPageState();
+  ConsumerState<CreateProjectPage> createState() => _CreateProjectPageState();
 }
 
-class _CreateProjectPageState extends State<CreateProjectPage> {
+class _CreateProjectPageState extends ConsumerState<CreateProjectPage> {
   final _nameController = TextEditingController();
   final _urlController = TextEditingController();
   final _urlFocusNode = FocusNode();
@@ -128,17 +130,27 @@ class _CreateProjectPageState extends State<CreateProjectPage> {
     });
   }
 
-  void _startProcessing() {
+  Future<void> _startProcessing() async {
     if (!_canSubmit) return;
 
+    // Save project to Appwrite first
+    try {
+      final service = ref.read(projectServiceProvider);
+      await service.createProject(
+        _nameController.text.trim(),
+        description: _selectedStyle.label,
+      );
+    } catch (e) {
+      // Even if save fails, still navigate so the user isn't stuck
+      debugPrint('Failed to save project: $e');
+    }
+
     if (_selectedSource == SourceType.link && _urlController.text.isNotEmpty) {
-      // For link-based: navigate to upload page with the URL pre-filled
       Navigator.of(context).pop(); // Close create project
-      context.go('/upload'); // Go to upload tab where the link can be processed
+      context.go('/upload');
     } else {
-      // For file-based: redirect to upload tab
       Navigator.of(context).pop(); // Close create project
-      context.go('/upload'); // Upload tab has the file picker + analysis flow
+      context.go('/upload');
     }
   }
 

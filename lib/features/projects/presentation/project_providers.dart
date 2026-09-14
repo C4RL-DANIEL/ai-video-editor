@@ -1,7 +1,9 @@
 import 'dart:async';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../config/appwrite_config.dart';
 import '../../../core/navigation/navigation_provider.dart';
+import '../data/appwrite_project_service.dart';
 
 // ═══════════════════════════════════════════════════════════════════════
 // Domain models
@@ -346,9 +348,15 @@ class ProjectAnalysisNotifier extends AsyncNotifier<ProjectAnalysis?> {
 // Providers
 // ═══════════════════════════════════════════════════════════════════════
 
-/// Service provider — swap [MockProjectService] for a real impl.
+/// Service provider — uses Appwrite TablesDB for persistence.
 final projectServiceProvider = Provider<ProjectService>((ref) {
-  return MockProjectService();
+  try {
+    // ignore: avoid_dynamic_calls
+    final client = createAppwriteClient();
+    return AppwriteProjectService(client);
+  } catch (_) {
+    return MockProjectService();
+  }
 });
 
 /// All projects.

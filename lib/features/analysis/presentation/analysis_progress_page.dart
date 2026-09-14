@@ -9,7 +9,6 @@ import 'package:flutter_animate/flutter_animate.dart';
 
 import '../../../core/theme/app_colors.dart';
 import '../../../core/services/video_editor_service.dart';
-import '../services/appwrite_function_service.dart';
 import '../services/real_video_analyzer.dart';
 import 'analysis_results_page.dart';
 
@@ -139,19 +138,7 @@ class _AnalysisProgressPageState extends State<AnalysisProgressPage>
   void _startAnalysis() async {
     _stageProgress = 0;
 
-    // Priority 1: If we have an uploaded Appwrite file ID, call the
-    // server-side function first for real FFmpeg-based processing.
-    if (widget.uploadedFileId != null && widget.uploadedFileId!.isNotEmpty) {
-      try {
-        await _runFunctionAnalysis(widget.uploadedFileId!);
-        return; // success — nothing more to do
-      } catch (e) {
-        debugPrint('Appwrite function analysis failed, falling back: $e');
-        // Fall through to local analysis
-      }
-    }
-
-    // Priority 2: Local FFmpeg analysis if we have the video file path.
+    // Priority 1: Local FFmpeg analysis if we have the video file path.
     final videoPath = _extractVideoPath();
     if (videoPath != null && await File(videoPath).exists()) {
       await _runRealAnalysis(videoPath);
@@ -169,44 +156,6 @@ class _AnalysisProgressPageState extends State<AnalysisProgressPage>
       return name; // It's a file path
     }
     return null;
-  }
-
-  /// Calls the Appwrite Function "process-video" with action "analyze".
-  /// On success, stages are animated quickly since the backend already did
-  /// the heavy lifting; on failure the caller falls back to local analysis.
-  Future<void> _runFunctionAnalysis(String fileId) async {
-    _updateStage(1, 'Transcribing Audio…', 0.1);
-    await Future.delayed(const Duration(milliseconds: 300));
-
-    _updateStage(2, 'Analyzing Video…', 0.3);
-    _analysisResult = await AppwriteFunctionService.analyzeVideo(fileId);
-    _updateStage(2, 'Analyzing Video…', 0.6);
-    await Future.delayed(const Duration(milliseconds: 200));
-
-    _updateStage(3, 'Understanding Content…', 0.7);
-    await Future.delayed(const Duration(milliseconds: 200));
-
-    _updateStage(4, 'Finding Viral Moments…', 0.8);
-    await Future.delayed(const Duration(milliseconds: 200));
-
-    _updateStage(5, 'Generating Shorts…', 0.85);
-    await Future.delayed(const Duration(milliseconds: 200));
-
-    _updateStage(6, 'Building Long-Form…', 0.9);
-    await Future.delayed(const Duration(milliseconds: 200));
-
-    _updateStage(7, 'Quality Check…', 0.95);
-    await Future.delayed(const Duration(milliseconds: 150));
-
-    // Mark all stages completed
-    setState(() {
-      _isComplete = true;
-      _overallProgress = 1.0;
-      _estimatedTimeRemaining = Duration.zero;
-      for (final stage in _stages) {
-        stage.status = StageStatus.completed;
-      }
-    });
   }
 
   Future<void> _runRealAnalysis(String videoPath) async {
@@ -346,7 +295,8 @@ class _AnalysisProgressPageState extends State<AnalysisProgressPage>
   }
 
   Future<void> _runSimulatedAnalysis() async {
-    // Simulate analysis with timer
+    // Simulate analysis with timer — single periodic timer that advances
+    // stages by calling _advanceStage(), NO recursive _startAnalysis().
     _stageProgress = 0;
     _progressTimer?.cancel();
 
@@ -382,20 +332,24 @@ class _AnalysisProgressPageState extends State<AnalysisProgressPage>
   void _advanceStage() {
     if (!mounted || _isCancelled) return;
 
-    // Mark current stage completed
-    setState(() {
-      _stages[_currentStageIndex].status = StageStatus.completed;
-    });
+    // Mark current stage completed — with bounds check BEFORE access
+    if (_currentStageIndex >= 0 && _currentStageIndex < _stages.length) {
+      setState(() {
+        _stages[_currentStageIndex].status = StageStatus.completed;
+      });
+    }
 
     // Move to next
     _currentStageIndex++;
     if (_currentStageIndex >= _stages.length) {
-      // All done
+      // All done — create a default result if none was generated
       setState(() {
         _isComplete = true;
         _overallProgress = 1.0;
         _estimatedTimeRemaining = Duration.zero;
       });
+      // Ensure we have a result to show
+      _analysisResult ??= _createDefaultResult();
       return;
     }
 
@@ -405,7 +359,60 @@ class _AnalysisProgressPageState extends State<AnalysisProgressPage>
       _computeEstimate();
     });
     _stageProgress = 0;
-    _startAnalysis();
+    // Restart timer for the next stage (NOT recursive _startAnalysis)
+    _startStageTimer();
+  }
+
+  /// Starts the periodic timer for the current simulated stage.
+  /// Called by _advanceStage() for subsequent stages.
+  void _startStageTimer() {
+    final durationMs = widget.stageDurationMs;
+    const tickMs = 50;
+    final totalTicks = durationMs ~/ tickMs;
+    int tick = 0;
+
+    _progressTimer?.cancel();
+    _progressTimer = Timer.periodic(const Duration(milliseconds: tickMs), (timer) {
+      if (!mounted || _isCancelled) {
+        timer.cancel();
+        return;
+      }
+
+      tick++;
+      _stageProgress = (tick / totalTicks).clamp(0.0, 1.0);
+
+      final completedWeight = _currentStageIndex;
+      final totalStages = _stages.length - 1;
+      final newProgress = (completedWeight + _stageProgress) / totalStages;
+
+      setState(() {
+        _overallProgress = newProgress.clamp(0.0, 1.0);
+      });
+
+      if (_stageProgress >= 1.0) {
+        timer.cancel();
+        _advanceStage();
+      }
+    });
+  }
+
+  /// Creates a default VideoAnalysisResult for the simulated path where
+  /// no real analysis was performed.
+  VideoAnalysisResult _createDefaultResult() {
+    return VideoAnalysisResult(
+      metadata: VideoMetadata(
+        duration: 0,
+        width: 0,
+        height: 0,
+        fps: 30,
+        fileSize: 0,
+      ),
+      scenes: [],
+      viralMoments: [],
+      clips: [],
+      hasAudio: false,
+      overallScore: 50,
+    );
   }
 
   void _computeEstimate() {
@@ -433,40 +440,45 @@ class _AnalysisProgressPageState extends State<AnalysisProgressPage>
 
   void _viewInBackground() {
     Navigator.pop(context);
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Row(
-          children: [
-            const PhosphorIcon(
-              PhosphorIconsLight.clock,
-              color: AppColors.white,
-              size: 18,
-            ),
-            const SizedBox(width: 10),
-            Expanded(
-              child: Text(
-                'Analysis running in background. We\'ll notify you when ready.',
-                style: GoogleFonts.inter(color: AppColors.white),
+    // Schedule the SnackBar after the navigation completes so the
+    // ScaffoldMessenger context is still valid.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Row(
+            children: [
+              const PhosphorIcon(
+                PhosphorIconsLight.clock,
+                color: AppColors.white,
+                size: 18,
               ),
-            ),
-          ],
+              const SizedBox(width: 10),
+              Expanded(
+                child: Text(
+                  'Analysis running in background. We\'ll notify you when ready.',
+                  style: GoogleFonts.inter(color: AppColors.white),
+                ),
+              ),
+            ],
+          ),
+          backgroundColor: AppColors.accent,
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          duration: const Duration(seconds: 4),
+          action: SnackBarAction(
+            label: 'VIEW',
+            textColor: AppColors.white,
+            onPressed: () {
+              final pid = widget.projectId;
+              if (pid != null) {
+                context.push('/dashboard/projects/$pid/editor');
+              }
+            },
+          ),
         ),
-        backgroundColor: AppColors.accent,
-        behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-        duration: const Duration(seconds: 4),
-        action: SnackBarAction(
-          label: 'VIEW',
-          textColor: AppColors.white,
-          onPressed: () {
-            final pid = widget.projectId;
-            if (pid != null) {
-              context.push('/dashboard/projects/$pid/editor');
-            }
-          },
-        ),
-      ),
-    );
+      );
+    });
   }
 
   void _cancelAnalysis() {
@@ -475,19 +487,23 @@ class _AnalysisProgressPageState extends State<AnalysisProgressPage>
 
     if (mounted) {
       Navigator.pop(context);
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            'Analysis cancelled.',
-            style: GoogleFonts.inter(color: AppColors.white),
+      // Schedule SnackBar after navigation completes
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              'Analysis cancelled.',
+              style: GoogleFonts.inter(color: AppColors.white),
+            ),
+            backgroundColor: AppColors.error,
+            behavior: SnackBarBehavior.floating,
+            shape:
+                RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            duration: const Duration(seconds: 2),
           ),
-          backgroundColor: AppColors.error,
-          behavior: SnackBarBehavior.floating,
-          shape:
-              RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-          duration: const Duration(seconds: 2),
-        ),
-      );
+        );
+      });
     }
   }
 
@@ -843,44 +859,43 @@ class _AnalysisProgressPageState extends State<AnalysisProgressPage>
       ),
       child: Row(
         children: [
-          // Cancel / View in Background
-          Expanded(
-            child: _isComplete
-                ? const SizedBox.shrink()
-                : OutlinedButton(
-                    onPressed: _isCancelled ? null : _cancelAnalysis,
-                    style: OutlinedButton.styleFrom(
-                      foregroundColor: AppColors.error,
-                      side: const BorderSide(color: AppColors.error),
-                      padding: const EdgeInsets.symmetric(vertical: 14),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                    ),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        const PhosphorIcon(
-                          PhosphorIconsLight.x,
-                          size: 18,
-                          color: AppColors.error,
-                        ),
-                        const SizedBox(width: 8),
-                        Text(
-                          'Cancel',
-                          style: GoogleFonts.inter(fontWeight: FontWeight.w500),
-                        ),
-                      ],
-                    ),
-                  ),
-          ),
-
-          if (_isComplete) ...[
-            // View in Background (only before completion, but we keep
-            // the layout space filled for consistency)
+          // ── Cancel button (visible while not complete) ──────────
+          if (!_isComplete)
             Expanded(
               child: OutlinedButton(
-                onPressed: null, // disabled when complete
+                onPressed: _isCancelled ? null : _cancelAnalysis,
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: AppColors.error,
+                  side: const BorderSide(color: AppColors.error),
+                  padding: const EdgeInsets.symmetric(vertical: 14),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                ),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    const PhosphorIcon(
+                      PhosphorIconsLight.x,
+                      size: 18,
+                      color: AppColors.error,
+                    ),
+                    const SizedBox(width: 8),
+                    Text(
+                      'Cancel',
+                      style: GoogleFonts.inter(fontWeight: FontWeight.w500),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+
+          // ── View in Background button (visible while not complete) ──
+          if (!_isComplete) ...[
+            const SizedBox(width: 12),
+            Expanded(
+              child: OutlinedButton(
+                onPressed: _viewInBackground,
                 style: OutlinedButton.styleFrom(
                   foregroundColor: AppColors.textSecondary,
                   side: const BorderSide(color: AppColors.border),
@@ -904,11 +919,9 @@ class _AnalysisProgressPageState extends State<AnalysisProgressPage>
             ),
           ],
 
-          // View Results (visible when complete)
-          if (_isComplete) ...[
-            const SizedBox(width: 16),
+          // ── View Results (visible when complete) ──────────────
+          if (_isComplete)
             Expanded(
-              flex: 2,
               child: ElevatedButton(
                 onPressed: _viewResults,
                 style: ElevatedButton.styleFrom(
@@ -935,13 +948,12 @@ class _AnalysisProgressPageState extends State<AnalysisProgressPage>
                     ),
                   ],
                 ),
-              ),
-            ).animate().fadeIn(duration: 400.ms).scale(
-                  begin: const Offset(0.95, 0.95),
-                  duration: 400.ms,
-                  curve: Curves.easeOut,
-                ),
-          ],
+              ).animate().fadeIn(duration: 400.ms).scale(
+                    begin: const Offset(0.95, 0.95),
+                    duration: 400.ms,
+                    curve: Curves.easeOut,
+                  ),
+            ),
         ],
       ),
     );

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:phosphor_flutter/phosphor_flutter.dart';
 
@@ -15,14 +16,14 @@ export 'package:ai_video_editor/features/projects/presentation/project_providers
 // ────────────────────────────────────────────────────────────────
 // Projects list page
 // ────────────────────────────────────────────────────────────────
-class ProjectsListPage extends StatefulWidget {
+class ProjectsListPage extends ConsumerStatefulWidget {
   const ProjectsListPage({super.key});
 
   @override
-  State<ProjectsListPage> createState() => _ProjectsListPageState();
+  ConsumerState<ProjectsListPage> createState() => _ProjectsListPageState();
 }
 
-class _ProjectsListPageState extends State<ProjectsListPage> {
+class _ProjectsListPageState extends ConsumerState<ProjectsListPage> {
   // --- Demo data -------------------------------------------------
   List<Project> _projects = [];
   bool _isLoading = false;
@@ -39,12 +40,23 @@ class _ProjectsListPageState extends State<ProjectsListPage> {
 
   Future<void> _loadProjects() async {
     setState(() => _isLoading = true);
-    // Load real projects from storage/service
-    await Future.delayed(const Duration(milliseconds: 300));
-    setState(() {
-      _isLoading = false;
-      _projects = []; // No fake projects — show empty state
-    });
+    try {
+      final service = ref.read(projectServiceProvider);
+      final projects = await service.fetchProjects();
+      if (mounted) {
+        setState(() {
+          _projects = projects;
+          _isLoading = false;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _projects = [];
+          _isLoading = false;
+        });
+      }
+    }
   }
 
   List<Project> get _filteredProjects {
@@ -74,13 +86,15 @@ class _ProjectsListPageState extends State<ProjectsListPage> {
   }
 
   // ── Navigation ──
-  void _openCreateProject() {
-    Navigator.of(context).push(
+  Future<void> _openCreateProject() async {
+    await Navigator.of(context).push(
       MaterialPageRoute(
         fullscreenDialog: true,
         builder: (_) => const CreateProjectPage(),
       ),
     );
+    // Reload after returning from create page
+    if (mounted) _loadProjects();
   }
 
   void _openProjectDetail(Project project) {

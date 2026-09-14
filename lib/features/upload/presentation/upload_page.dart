@@ -676,8 +676,8 @@ class _UploadPageState extends State<UploadPage>
       child: StatefulBuilder(
         builder: (context, setInnerState) {
           return MouseRegion(
-            onEnter: (_) => setInnerState(() => _isDragging = true),
-            onExit: (_) => setInnerState(() => _isDragging = false),
+            onEnter: (_) => setState(() => _isDragging = true),
+            onExit: (_) => setState(() => _isDragging = false),
             child: AnimatedContainer(
               duration: const Duration(milliseconds: 200),
               height: 280,
@@ -1147,6 +1147,7 @@ class _UploadPageState extends State<UploadPage>
 
   Widget _buildLinkDetailsCard() {
     final details = _linkDetails!;
+    final hasThumbnail = details.thumbnailUrl.isNotEmpty;
 
     return Container(
       padding: const EdgeInsets.all(16),
@@ -1160,20 +1161,55 @@ class _UploadPageState extends State<UploadPage>
         children: [
           Row(
             children: [
-              // Thumbnail placeholder
-              Container(
-                width: 120,
-                height: 68,
-                decoration: BoxDecoration(
-                  color: AppColors.backgroundQuaternary,
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: const Center(
-                  child: PhosphorIcon(
-                    PhosphorIconsLight.play,
-                    color: AppColors.textTertiary,
-                    size: 32,
-                  ),
+              // Thumbnail — show actual image if available, otherwise placeholder
+              ClipRRect(
+                borderRadius: BorderRadius.circular(8),
+                child: SizedBox(
+                  width: 120,
+                  height: 68,
+                  child: hasThumbnail
+                      ? Image.network(
+                          details.thumbnailUrl,
+                          fit: BoxFit.cover,
+                          errorBuilder: (context, error, stackTrace) {
+                            return Container(
+                              color: AppColors.backgroundQuaternary,
+                              child: const Center(
+                                child: PhosphorIcon(
+                                  PhosphorIconsLight.play,
+                                  color: AppColors.textTertiary,
+                                  size: 32,
+                                ),
+                              ),
+                            );
+                          },
+                          loadingBuilder: (context, child, loadingProgress) {
+                            if (loadingProgress == null) return child;
+                            return Container(
+                              color: AppColors.backgroundQuaternary,
+                              child: const Center(
+                                child: SizedBox(
+                                  width: 20,
+                                  height: 20,
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2,
+                                    color: AppColors.accent,
+                                  ),
+                                ),
+                              ),
+                            );
+                          },
+                        )
+                      : Container(
+                          color: AppColors.backgroundQuaternary,
+                          child: const Center(
+                            child: PhosphorIcon(
+                              PhosphorIconsLight.play,
+                              color: AppColors.textTertiary,
+                              size: 32,
+                            ),
+                          ),
+                        ),
                 ),
               ),
               const SizedBox(width: 16),
