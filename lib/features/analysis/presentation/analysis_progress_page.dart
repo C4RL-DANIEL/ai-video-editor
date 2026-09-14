@@ -247,7 +247,7 @@ class _AnalysisProgressPageState extends State<AnalysisProgressPage>
           fps: videoInfo.fps,
           fileSize: videoInfo.fileSize,
         ),
-        scenes: scenes.map((t) => SceneChange(time: t, score: 0.5 + (t / max(videoInfo.duration, 1)) * 0.4)).toList(),
+        scenes: scenes.map((t) => SceneChange(time: t, score: 0.5 + (t / (videoInfo.duration > 1 ? videoInfo.duration : 1)) * 0.4)).toList(),
         viralMoments: viralMoments,
         clips: clips,
         hasAudio: videoInfo.hasAudio,
