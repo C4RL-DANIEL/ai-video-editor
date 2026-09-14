@@ -8,12 +8,17 @@ import 'package:phosphor_flutter/phosphor_flutter.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 
 import '../../../core/theme/app_colors.dart';
+import '../services/appwrite_function_service.dart';
 import '../services/real_video_analyzer.dart';
 
 class AnalysisProgressPage extends StatefulWidget {
   final String sourceType;
   final String sourceName;
   final String? projectId;
+
+  /// Appwrite Storage file ID — when provided, the Appwrite Function is
+  /// called for real server-side analysis before falling back to local.
+  final String? uploadedFileId;
 
   /// Optional external pipeline stages. When null, a sensible default is used.
   final List<PipelineStage>? stages;
@@ -26,6 +31,7 @@ class AnalysisProgressPage extends StatefulWidget {
     required this.sourceType,
     required this.sourceName,
     this.projectId,
+    this.uploadedFileId,
     this.stages,
     this.stageDurationMs = 2000,
   });
@@ -131,14 +137,24 @@ class _AnalysisProgressPageState extends State<AnalysisProgressPage>
   void _startAnalysis() async {
     _stageProgress = 0;
 
-    // Check if we have a video file path to analyze
-    final videoPath = _extractVideoPath();
+    // Priority 1: If we have an uploaded Appwrite file ID, call the
+    // server-side function first for real FFmpeg-based processing.
+    if (widget.uploadedFileId != null && widget.uploadedFileId!.isNotEmpty) {
+      try {
+        await _runFunctionAnalysis(widget.uploadedFileId!);
+        return; // success — nothing more to do
+      } catch (e) {
+        debugPrint('Appwrite function analysis failed, falling back: $e');
+        // Fall through to local analysis
+      }
+    }
 
+    // Priority 2: Local FFmpeg analysis if we have the video file path.
+    final videoPath = _extractVideoPath();
     if (videoPath != null && await File(videoPath).exists()) {
-      // REAL analysis using FFmpeg
       await _runRealAnalysis(videoPath);
     } else {
-      // Fallback: simulate analysis if no video file available
+      // Last resort: simulated analysis
       await _runSimulatedAnalysis();
     }
   }
@@ -151,6 +167,44 @@ class _AnalysisProgressPageState extends State<AnalysisProgressPage>
       return name; // It's a file path
     }
     return null;
+  }
+
+  /// Calls the Appwrite Function "process-video" with action "analyze".
+  /// On success, stages are animated quickly since the backend already did
+  /// the heavy lifting; on failure the caller falls back to local analysis.
+  Future<void> _runFunctionAnalysis(String fileId) async {
+    _updateStage(1, 'Transcribing Audio…', 0.1);
+    await Future.delayed(const Duration(milliseconds: 300));
+
+    _updateStage(2, 'Analyzing Video…', 0.3);
+    _analysisResult = await AppwriteFunctionService.analyzeVideo(fileId);
+    _updateStage(2, 'Analyzing Video…', 0.6);
+    await Future.delayed(const Duration(milliseconds: 200));
+
+    _updateStage(3, 'Understanding Content…', 0.7);
+    await Future.delayed(const Duration(milliseconds: 200));
+
+    _updateStage(4, 'Finding Viral Moments…', 0.8);
+    await Future.delayed(const Duration(milliseconds: 200));
+
+    _updateStage(5, 'Generating Shorts…', 0.85);
+    await Future.delayed(const Duration(milliseconds: 200));
+
+    _updateStage(6, 'Building Long-Form…', 0.9);
+    await Future.delayed(const Duration(milliseconds: 200));
+
+    _updateStage(7, 'Quality Check…', 0.95);
+    await Future.delayed(const Duration(milliseconds: 150));
+
+    // Mark all stages completed
+    setState(() {
+      _isComplete = true;
+      _overallProgress = 1.0;
+      _estimatedTimeRemaining = Duration.zero;
+      for (final stage in _stages) {
+        stage.status = StageStatus.completed;
+      }
+    });
   }
 
   Future<void> _runRealAnalysis(String videoPath) async {

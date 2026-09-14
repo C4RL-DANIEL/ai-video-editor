@@ -1,0 +1,17 @@
+{
+  "name": "process-video",
+  "version": "1.0.0",
+  "description": "Video processing function for AI Video Editor",
+  "main": "src/index.js",
+  "type": "module",
+  "scripts": {
+    "start": "node src/index.js",
+    "dev": "node src/index.js"
+  },
+  "dependencies": {
+    "node-appwrite": "^9.0.0"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}

@@ -555,6 +555,7 @@ class _UploadPageState extends State<UploadPage>
         builder: (context) => AnalysisProgressPage(
           sourceType: sourceType,
           sourceName: sourcePath ?? sourceName,
+          uploadedFileId: _uploadedFileId,
         ),
       ),
     );
