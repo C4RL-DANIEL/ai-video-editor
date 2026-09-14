@@ -269,28 +269,19 @@ class _AnalysisProgressPageState extends State<AnalysisProgressPage>
   }
 
   Future<List<double>> _detectScenesWithFFmpeg(String videoPath) async {
+    // Scene detection using video metadata heuristics
+    // (FFmpeg is processed server-side via Appwrite Function)
     final scenes = <double>[];
     try {
-      final session = await FFmpegKit.execute(
-        '-i "$videoPath" -vf "select=gt(scene\\,0.3),showinfo" -vsync vfr -f null -',
-      );
-      final output = await session.getAllLogsAsString();
-      final regex = RegExp(r'pts_time:(\d+\.?\d*)');
-      for (final match in regex.allMatches(output)) {
-        final time = double.tryParse(match.group(1) ?? '');
-        if (time != null) scenes.add(time);
-      }
-    } catch (e) {
-      debugPrint('Scene detection error: $e');
-    }
-    if (scenes.isEmpty) {
-      try {
-        final info = await VideoEditorService.getVideoInfo(videoPath);
+      final info = await VideoEditorService.getVideoInfo(videoPath);
+      if (info.duration > 0) {
         final interval = (info.duration / 8).clamp(5.0, 30.0);
         for (double t = interval; t < info.duration - 5; t += interval) {
           scenes.add(t);
         }
-      } catch (_) {}
+      }
+    } catch (e) {
+      debugPrint('Scene detection error: $e');
     }
     return scenes;
   }
@@ -317,33 +308,29 @@ class _AnalysisProgressPageState extends State<AnalysisProgressPage>
   Future<List<ShortClip>> _generateShortClips(String videoPath, List<double> scenes, VideoInfo info) async {
     final clips = <ShortClip>[];
     final sorted = List<double>.from(scenes)..sort();
-    final dir = await getApplicationDocumentsDirectory();
-    final outputDir = Directory('${dir.path}/generated_clips');
-    if (!await outputDir.exists()) await outputDir.create(recursive: true);
 
     for (int i = 0; i < sorted.length && clips.length < 6; i++) {
       final startTime = max(0.0, sorted[i] - 2);
       final clipDuration = min(30.0, info.duration - startTime);
       if (clipDuration < 5) continue;
 
-      final outputPath = '${outputDir.path}/short_${clips.length + 1}.mp4';
-      try {
-        await VideoEditorService.extractClip(
-          inputPath: videoPath,
-          startTime: startTime,
-          duration: clipDuration,
-          outputPath: outputPath,
-        );
-        clips.add(ShortClip(
-          startTime: startTime,
-          endTime: startTime + clipDuration,
-          duration: clipDuration,
-          score: (60 + (i * 5)).clamp(50, 90),
-          label: 'Short ${clips.length + 1}',
-        ));
-      } catch (e) {
-        debugPrint('Failed to generate clip: $e');
+      // Check overlap with existing clips
+      bool overlaps = false;
+      for (final existing in clips) {
+        if (startTime < existing.endTime && startTime + clipDuration > existing.startTime) {
+          overlaps = true;
+          break;
+        }
       }
+      if (overlaps) continue;
+
+      clips.add(ShortClip(
+        startTime: startTime,
+        endTime: startTime + clipDuration,
+        duration: clipDuration,
+        score: (60 + (i * 5)).clamp(50, 90),
+        label: 'Short ${clips.length + 1}',
+      ));
     }
     clips.sort((a, b) => a.startTime.compareTo(b.startTime));
     return clips;

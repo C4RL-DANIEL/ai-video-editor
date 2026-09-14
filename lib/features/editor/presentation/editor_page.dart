@@ -830,35 +830,33 @@ class _EditorPageState extends ConsumerState<EditorPage> {
     );
   }
 
-  void _showEffectsPanel(BuildContext context) {
+  void _showEffectsPanel(BuildContext context) async {
     final editorState = ref.read(localEditorProvider);
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (_) => VideoEffectsPanel(
-        captions: editorState.captions,
-        appliedColorGrade: editorState.appliedColorGrade,
-        appliedEffects: editorState.appliedEffects,
-        sfxTimings: editorState.sfxTimings,
-        transitionType: editorState.transitionType,
-        onEffectsChanged: ({
-          List<CaptionSegment>? captions,
-          String? appliedColorGrade,
-          List<String>? appliedEffects,
-          List<SFXTiming>? sfxTimings,
-          String? transitionType,
-        }) {
-          ref.read(localEditorProvider.notifier).updateEffects(
-            captions: captions,
-            appliedColorGrade: appliedColorGrade,
-            appliedEffects: appliedEffects,
-            sfxTimings: sfxTimings,
-            transitionType: transitionType,
-          );
-        },
+    // Build initial state from editor state
+    final initialState = vep.VideoEffectsState(
+      captions: editorState.captions,
+      appliedEffects: editorState.appliedEffects.map((name) =>
+        vep.VideoEffect.values.firstWhere(
+          (e) => e.label == name,
+          orElse: () => vep.VideoEffect.cinematic,
+        ),
+      ).toSet(),
+      placedSfx: editorState.sfxTimings,
+      transitionType: vep.TransitionType.values.firstWhere(
+        (t) => t.label == editorState.transitionType,
+        orElse: () => vep.TransitionType.crossDissolve,
       ),
     );
+    final result = await vep.VideoEffectsPanel.show(context, initialState: initialState);
+    if (result != null && mounted) {
+      ref.read(localEditorProvider.notifier).updateEffects(
+        captions: result.captions,
+        appliedColorGrade: null,
+        appliedEffects: result.appliedEffects.map((e) => e.label).toList(),
+        sfxTimings: result.placedSfx,
+        transitionType: result.transitionType.label,
+      );
+    }
   }
 
   void _showMenuSheet(BuildContext context) {
@@ -3030,8 +3028,11 @@ class _ExportProgressDialogState extends State<_ExportProgressDialog>
   late Animation<double> _progressAnim;
   double _progress = 0.0;
   String _currentStep = 'Preparing export...';
-  bool _exporting = true;
+  bool _exporting = false;
   String? _error;
+  vep.ExportQuality _selectedQuality = vep.ExportQuality.high;
+  vep.ExportResolution _selectedResolution = vep.ExportResolution.r1080;
+  vep.ExportFormat _selectedFormat = vep.ExportFormat.mp4;
 
   static const List<String> _steps = [
     'Preparing export...',
@@ -3111,31 +3112,85 @@ class _ExportProgressDialogState extends State<_ExportProgressDialog>
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          if (_exporting && _progress == 0.0 && _error == null) ...[
-            // Show quality options before export starts
+          if (!_exporting && _progress == 0.0 && _error == null) ...[
+            // Show quality/resolution/format options before export starts
             Text(
-              'Select quality:',
-              style: GoogleFonts.inter(color: _textSecondary, fontSize: 12),
+              'Export Settings',
+              style: GoogleFonts.inter(color: _textSecondary, fontSize: 12, fontWeight: FontWeight.w600),
             ),
             const SizedBox(height: 10),
-            _ExportOption(
-              icon: PhosphorIconsRegular.monitorPlay,
-              label: '1080p MP4',
-              subtitle: 'High quality, larger file',
-              onTap: () {
-                _startExport();
-              },
+
+            // Quality selector
+            _buildDropdown<vep.ExportQuality>(
+              label: 'Quality',
+              value: _selectedQuality,
+              items: vep.ExportQuality.values,
+              labelBuilder: (q) => q.label,
+              onChanged: (v) => setState(() => _selectedQuality = v),
             ),
             const SizedBox(height: 8),
-            _ExportOption(
-              icon: PhosphorIconsRegular.deviceMobile,
-              label: '720p MP4',
-              subtitle: 'Good quality, smaller file',
-              onTap: () {
-                _startExport();
-              },
+
+            // Resolution selector
+            _buildDropdown<vep.ExportResolution>(
+              label: 'Resolution',
+              value: _selectedResolution,
+              items: vep.ExportResolution.values,
+              labelBuilder: (r) => '${r.label} (${r.dimensions})',
+              onChanged: (v) => setState(() => _selectedResolution = v),
             ),
-          ] else ...[
+            const SizedBox(height: 8),
+
+            // Format selector
+            _buildDropdown<vep.ExportFormat>(
+              label: 'Format',
+              value: _selectedFormat,
+              items: vep.ExportFormat.values,
+              labelBuilder: (f) => '${f.label} — ${f.description}',
+              onChanged: (v) => setState(() => _selectedFormat = v),
+            ),
+            const SizedBox(height: 12),
+
+            // Effects summary
+            if (widget.editorState.totalEffectCount > 0)
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: _purpleColor.withOpacity(0.08),
+                  borderRadius: BorderRadius.circular(6),
+                  border: Border.all(color: _purpleColor.withOpacity(0.2)),
+                ),
+                child: Row(
+                  children: [
+                    Icon(PhosphorIconsRegular.sparkle, size: 12, color: _purpleColor),
+                    const SizedBox(width: 6),
+                    Text(
+                      '${widget.editorState.totalEffectCount} effect${widget.editorState.totalEffectCount == 1 ? '' : 's'} will be applied',
+                      style: GoogleFonts.inter(color: _purpleColor, fontSize: 11),
+                    ),
+                  ],
+                ),
+              ),
+            const SizedBox(height: 12),
+
+            // Export button
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton.icon(
+                onPressed: _startExport,
+                icon: const Icon(PhosphorIconsRegular.export, size: 14),
+                label: Text(
+                  'Export ${_selectedResolution.label} ${_selectedFormat.label}',
+                  style: GoogleFonts.inter(fontSize: 13, fontWeight: FontWeight.w600),
+                ),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: _accentColor,
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(vertical: 12),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                ),
+              ),
+            ),
+          ] else if (_exporting || _progress > 0.0) ...[
             // Show progress
             ClipRRect(
               borderRadius: BorderRadius.circular(4),
@@ -3204,7 +3259,7 @@ class _ExportProgressDialogState extends State<_ExportProgressDialog>
         ],
       ),
       actions: [
-        if (_exporting && _progress == 0.0 && _error == null)
+        if (!_exporting && _progress == 0.0 && _error == null)
           TextButton(
             onPressed: () => Navigator.pop(context),
             child: Text('Cancel', style: GoogleFonts.inter(color: _textSecondary)),
@@ -3235,6 +3290,46 @@ class _ExportProgressDialogState extends State<_ExportProgressDialog>
             ),
         ],
       ],
+    );
+  }
+
+  Widget _buildDropdown<T>({
+    required String label,
+    required T value,
+    required List<T> items,
+    required String Function(T) labelBuilder,
+    required ValueChanged<T> onChanged,
+  }) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10),
+      decoration: BoxDecoration(
+        color: _cardColor,
+        borderRadius: BorderRadius.circular(6),
+        border: Border.all(color: _borderColor),
+      ),
+      child: Row(
+        children: [
+          Text(label, style: GoogleFonts.inter(color: _textMuted, fontSize: 11)),
+          const Spacer(),
+          DropdownButtonHideUnderline(
+            child: DropdownButton<T>(
+              value: value,
+              isDense: true,
+              dropdownColor: _cardColor,
+              style: GoogleFonts.inter(color: _textPrimary, fontSize: 12),
+              items: items.map((item) {
+                return DropdownMenuItem<T>(
+                  value: item,
+                  child: Text(labelBuilder(item), style: GoogleFonts.inter(fontSize: 11)),
+                );
+              }).toList(),
+              onChanged: (v) {
+                if (v != null) onChanged(v);
+              },
+            ),
+          ),
+        ],
+      ),
     );
   }
 }
