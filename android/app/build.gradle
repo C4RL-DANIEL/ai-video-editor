@@ -23,7 +23,7 @@ android {
     // targetSdkVersion 34 = Android 14 (latest platform optimizations)
     defaultConfig {
         applicationId = "com.aivideoeditor.app"
-        minSdk = 21
+        minSdk = 24
         targetSdk = 34
         versionCode = flutter.versionCode
         versionName = flutter.versionName
