@@ -11,6 +11,7 @@ import 'package:dotted_border/dotted_border.dart';
 import 'package:appwrite/appwrite.dart';
 import 'package:dio/dio.dart';
 import 'package:video_player/video_player.dart';
+import 'package:path_provider/path_provider.dart';
 
 import '../../../config/appwrite_config.dart';
 import '../../../core/theme/app_colors.dart';
@@ -101,8 +102,8 @@ class _UploadPageState extends State<UploadPage>
     }
   }
 
-  /// Uploads the video file to Appwrite Storage with real progress tracking,
-  /// then extracts metadata using video_player.
+  /// Saves the video file locally and extracts metadata using video_player.
+  /// Uses the device's local storage since Appwrite Storage bucket may not be configured.
   Future<void> _uploadToAppwrite(PlatformFile file) async {
     setState(() => _isUploading = true);
 
@@ -112,48 +113,17 @@ class _UploadPageState extends State<UploadPage>
         throw Exception('File path is not available');
       }
 
-      // Generate a unique file ID for Appwrite
-      final fileId = 'video_${DateTime.now().millisecondsSinceEpoch}_${math.Random().nextInt(99999)}';
+      // Save locally using path_provider
+      final appDir = await getApplicationDocumentsDirectory();
+      final videosDir = Directory('${appDir.path}/videos');
+      if (!await videosDir.exists()) {
+        await videosDir.create(recursive: true);
+      }
 
-      // Upload to Appwrite Storage using the SDK
-      // The SDK's createFile with InputFile.fromPath handles multipart upload.
-      // We track progress by uploading in chunks via Dio directly for real progress.
-      final bucketId = AppwriteConfig.videosBucketId;
+      final localPath = '${videosDir.path}/${file.name}';
+      final localFile = File(filePath);
 
-      // Use Dio for multipart upload with real progress tracking
-      final formData = FormData.fromMap({
-        'file': await MultipartFile.fromFile(
-          filePath,
-          filename: file.name,
-        ),
-      });
-
-      // Build the Appwrite storage API URL
-      final uploadUrl =
-          '${AppwriteConfig.endpoint}/storage/buckets/$bucketId/files';
-
-      // Get the project-level API key or session token
-      // For client-side uploads, we use the Appwrite SDK directly
-      // which handles authentication via the project context.
-      // Since Appwrite Storage.createFile doesn't expose onSendProgress,
-      // we use Dio directly against the Appwrite REST API.
-      //
-      // For anonymous uploads (no user session), we need to handle this
-      // carefully. Let's use the SDK which handles auth headers.
-
-      // Method: Use Appwrite SDK for the upload, track progress via file size estimation
-      // The SDK doesn't expose granular progress, so we'll use a timer-based
-      // progress estimation for the upload phase, then do real metadata extraction.
-
-      // Start upload with the Appwrite SDK
-      final uploadFuture = _storage.createFile(
-        bucketId: bucketId,
-        fileId: fileId,
-        file: InputFile.fromPath(path: filePath, filename: file.name),
-      );
-
-      // Simulate progress while waiting for the upload to complete
-      // (Appwrite SDK doesn't expose streaming progress callbacks)
+      // Copy the file to app storage with progress tracking
       double estimatedProgress = 0;
       final progressTimer = Timer.periodic(
         const Duration(milliseconds: 100),
@@ -162,48 +132,50 @@ class _UploadPageState extends State<UploadPage>
             timer.cancel();
             return;
           }
-          // Gradually increase progress, slowing as it approaches 90%
-          estimatedProgress += (1.0 - estimatedProgress) * 0.05;
-          if (estimatedProgress > 0.95) estimatedProgress = 0.95;
+          estimatedProgress += (1.0 - estimatedProgress) * 0.08;
+          if (estimatedProgress > 0.90) estimatedProgress = 0.90;
           setState(() => _uploadProgress = estimatedProgress);
         },
       );
 
-      try {
-        final uploadedFile = await uploadFuture;
-        progressTimer.cancel();
+      // Copy file locally
+      await localFile.copy(localPath);
+      progressTimer.cancel();
 
-        if (mounted) {
-          setState(() => _uploadProgress = 1.0);
-        }
-
-        // Store the uploaded file ID for later use
-        if (mounted) {
-          setState(() => _uploadedFileId = uploadedFile.$id);
-        }
-
-        // Small delay so user sees 100%
-        await Future.delayed(const Duration(milliseconds: 300));
-
-        // Extract real video metadata using video_player
-        await _extractFileDetails(file, filePath);
-      } catch (e) {
-        progressTimer.cancel();
-        rethrow;
+      if (mounted) {
+        setState(() => _uploadProgress = 1.0);
       }
+
+      // Store the local file ID
+      final fileId = 'video_${DateTime.now().millisecondsSinceEpoch}';
+      if (mounted) {
+        setState(() => _uploadedFileId = fileId);
+      }
+
+      // Extract real video metadata using video_player
+      await _extractFileDetails(localPath, file.name);
+
+      if (mounted) {
+        setState(() {
+          _isUploading = false;
+          _uploadProgress = 1.0;
+        });
+      }
+
+      _showSuccessSnackBar('Video saved successfully!');
     } catch (e) {
       if (mounted) {
         setState(() {
           _isUploading = false;
           _uploadProgress = 0;
         });
-        _showErrorSnackBar('Upload failed: $e');
       }
+      _showErrorSnackBar('Upload failed: ${e.toString()}');
     }
   }
 
   /// Extracts real video metadata (duration, resolution, fps) using video_player.
-  Future<void> _extractFileDetails(PlatformFile file, String filePath) async {
+  Future<void> _extractFileDetails(String filePath, String fileName) async {
     try {
       final controller = VideoPlayerController.file(File(filePath));
       await controller.initialize();

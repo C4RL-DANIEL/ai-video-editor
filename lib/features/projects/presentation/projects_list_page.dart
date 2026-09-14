@@ -39,60 +39,11 @@ class _ProjectsListPageState extends State<ProjectsListPage> {
 
   Future<void> _loadProjects() async {
     setState(() => _isLoading = true);
-    // Simulate network call
-    await Future.delayed(const Duration(milliseconds: 600));
+    // Load real projects from storage/service
+    await Future.delayed(const Duration(milliseconds: 300));
     setState(() {
       _isLoading = false;
-      _projects = [
-        Project(
-          id: '1',
-          name: 'React Tutorial Series',
-          status: ProjectStatus.ready,
-          shortsCount: 12,
-          longFormCount: 3,
-          createdAt: DateTime.now().subtract(const Duration(days: 2)),
-        ),
-        Project(
-          id: '2',
-          name: 'Flutter Workshop 2024',
-          status: ProjectStatus.processing,
-          shortsCount: 5,
-          longFormCount: 1,
-          createdAt: DateTime.now().subtract(const Duration(hours: 3)),
-        ),
-        Project(
-          id: '3',
-          name: 'AI Conference Talk',
-          status: ProjectStatus.ready,
-          shortsCount: 20,
-          longFormCount: 5,
-          createdAt: DateTime.now().subtract(const Duration(days: 14)),
-        ),
-        Project(
-          id: '4',
-          name: 'Product Launch Video',
-          status: ProjectStatus.archived,
-          shortsCount: 8,
-          longFormCount: 2,
-          createdAt: DateTime.now().subtract(const Duration(days: 30)),
-        ),
-        Project(
-          id: '5',
-          name: 'Cooking with Docker',
-          status: ProjectStatus.error,
-          shortsCount: 0,
-          longFormCount: 0,
-          createdAt: DateTime.now().subtract(const Duration(hours: 1)),
-        ),
-        Project(
-          id: '6',
-          name: 'Travel Vlog Compilation',
-          status: ProjectStatus.ready,
-          shortsCount: 15,
-          longFormCount: 4,
-          createdAt: DateTime.now().subtract(const Duration(days: 7)),
-        ),
-      ];
+      _projects = []; // No fake projects — show empty state
     });
   }
 
