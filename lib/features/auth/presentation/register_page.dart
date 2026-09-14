@@ -58,7 +58,7 @@ class _RegisterPageState extends ConsumerState<RegisterPage> {
 
     try {
       final notifier = ref.read(authStateProvider.notifier);
-      final success = await notifier.signUp(
+      final error = await notifier.signUp(
         email: _emailController.text.trim(),
         password: _passwordController.text,
         name: _nameController.text.trim(),
@@ -66,12 +66,12 @@ class _RegisterPageState extends ConsumerState<RegisterPage> {
 
       if (!mounted) return;
 
-      if (success) {
+      if (error == null) {
         context.go('/dashboard');
       } else {
         setState(() {
           _isLoading = false;
-          _errorMessage = 'Registration failed. Email may already be in use or password does not meet requirements (8+ chars, 1 uppercase, 1 number).';
+          _errorMessage = error;
         });
       }
     } catch (e) {

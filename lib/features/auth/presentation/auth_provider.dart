@@ -39,16 +39,16 @@ class AuthNotifier extends StateNotifier<AuthState> {
     _setAuthState(isAuth ? AuthState.authenticated : AuthState.unauthenticated);
   }
 
-  Future<bool> signIn({required String email, required String password}) async {
+  Future<String?> signIn({required String email, required String password}) async {
     final result = await _authService.signIn(email: email, password: password);
     if (result.isSuccess) {
       _setAuthState(AuthState.authenticated);
-      return true;
+      return null; // no error
     }
-    return false;
+    return result.message ?? 'Sign in failed. Please try again.';
   }
 
-  Future<bool> signUp({
+  Future<String?> signUp({
     required String email,
     required String password,
     required String name,
@@ -60,27 +60,27 @@ class AuthNotifier extends StateNotifier<AuthState> {
     );
     if (result.isSuccess) {
       _setAuthState(AuthState.authenticated);
-      return true;
+      return null; // no error
     }
-    return false;
+    return result.message ?? 'Registration failed. Please try again.';
   }
 
-  Future<bool> signInWithGoogle() async {
+  Future<String?> signInWithGoogle() async {
     final result = await _authService.signInWithGoogle();
     if (result.isSuccess) {
       _setAuthState(AuthState.authenticated);
-      return true;
+      return null;
     }
-    return false;
+    return result.message ?? 'Google sign-in failed.';
   }
 
-  Future<bool> signInWithApple() async {
+  Future<String?> signInWithApple() async {
     final result = await _authService.signInWithApple();
     if (result.isSuccess) {
       _setAuthState(AuthState.authenticated);
-      return true;
+      return null;
     }
-    return false;
+    return result.message ?? 'Apple sign-in failed.';
   }
 
   Future<void> signOut() async {

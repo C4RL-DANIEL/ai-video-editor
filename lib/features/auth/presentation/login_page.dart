@@ -53,23 +53,20 @@ class _LoginPageState extends ConsumerState<LoginPage> {
 
     try {
       final notifier = ref.read(authStateProvider.notifier);
-      final success = await notifier.signIn(
+      final error = await notifier.signIn(
         email: _emailController.text.trim(),
         password: _passwordController.text,
       );
 
       if (!mounted) return;
 
-      if (success) {
+      if (error == null) {
         // Auth state changed → GoRouter redirect will handle navigation
         context.go('/dashboard');
       } else {
-        final authService = ref.read(authServiceProvider);
         setState(() {
           _isLoading = false;
-          _errorMessage = authService.currentUser != null
-              ? 'Sign in failed. Please try again.'
-              : 'Invalid email or password.';
+          _errorMessage = error;
         });
       }
     } catch (e) {
@@ -90,14 +87,14 @@ class _LoginPageState extends ConsumerState<LoginPage> {
 
     try {
       final notifier = ref.read(authStateProvider.notifier);
-      final success = await notifier.signInWithGoogle();
+      final error = await notifier.signInWithGoogle();
       if (!mounted) return;
-      if (success) {
+      if (error == null) {
         context.go('/dashboard');
       } else {
         setState(() {
           _isLoading = false;
-          _errorMessage = 'Google sign-in was cancelled or failed.';
+          _errorMessage = error;
         });
       }
     } catch (e) {
@@ -118,14 +115,14 @@ class _LoginPageState extends ConsumerState<LoginPage> {
 
     try {
       final notifier = ref.read(authStateProvider.notifier);
-      final success = await notifier.signInWithApple();
+      final error = await notifier.signInWithApple();
       if (!mounted) return;
-      if (success) {
+      if (error == null) {
         context.go('/dashboard');
       } else {
         setState(() {
           _isLoading = false;
-          _errorMessage = 'Apple sign-in was cancelled or failed.';
+          _errorMessage = error;
         });
       }
     } catch (e) {
