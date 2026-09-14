@@ -221,6 +221,9 @@ final appRouterProvider = Provider<GoRouter>((ref) {
     initialLocation: RoutePaths.splash,
     debugLogDiagnostics: false,
 
+    // Tell GoRouter to re-evaluate the redirect whenever auth state changes.
+    refreshListenable: authRefreshNotifier,
+
     // ── Redirect logic ────────────────────────────────────────────
     redirect: (BuildContext context, GoRouterState state) {
       final location = state.matchedLocation;

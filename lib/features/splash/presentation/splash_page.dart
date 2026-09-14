@@ -1,9 +1,11 @@
-import 'dart:async';
 import 'package:flutter/material.dart';
-import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:phosphor_flutter/phosphor_flutter.dart';
 
+/// Splash screen shown while the app initializes.
+///
+/// Navigation is handled entirely by GoRouter's redirect logic.
+/// This page just plays its animation and waits.
 class SplashPage extends StatefulWidget {
   const SplashPage({super.key});
 
@@ -11,7 +13,8 @@ class SplashPage extends StatefulWidget {
   State<SplashPage> createState() => _SplashPageState();
 }
 
-class _SplashPageState extends State<SplashPage> with SingleTickerProviderStateMixin {
+class _SplashPageState extends State<SplashPage>
+    with SingleTickerProviderStateMixin {
   late AnimationController _controller;
   late Animation<double> _fadeLogo;
   late Animation<double> _fadeText;
@@ -57,19 +60,9 @@ class _SplashPageState extends State<SplashPage> with SingleTickerProviderStateM
 
     _controller.forward();
 
-    // Auto-navigate after 2 seconds
-    Timer(const Duration(seconds: 2), () {
-      if (mounted) {
-        // Check auth state here; for now, navigate to dashboard placeholder
-        // In production, use an auth provider to decide destination
-        _navigateNext();
-      }
-    });
-  }
-
-  void _navigateNext() {
-    // Use GoRouter for navigation (app uses GoRouter, not plain Navigator)
-    context.go('/login');
+    // No timer needed — GoRouter redirect handles navigation
+    // once the auth state resolves from 'unknown' to
+    // 'authenticated' or 'unauthenticated'.
   }
 
   @override
@@ -112,14 +105,17 @@ class _SplashPageState extends State<SplashPage> with SingleTickerProviderStateM
                           height: logoSize,
                           decoration: BoxDecoration(
                             color: const Color(0xFF3B82F6).withOpacity(0.15),
-                            borderRadius: BorderRadius.circular(logoSize * 0.28),
+                            borderRadius:
+                                BorderRadius.circular(logoSize * 0.28),
                             border: Border.all(
-                              color: const Color(0xFF3B82F6).withOpacity(0.3),
+                              color:
+                                  const Color(0xFF3B82F6).withOpacity(0.3),
                               width: 1.5,
                             ),
                             boxShadow: [
                               BoxShadow(
-                                color: const Color(0xFF3B82F6).withOpacity(0.2),
+                                color:
+                                    const Color(0xFF3B82F6).withOpacity(0.2),
                                 blurRadius: 40,
                                 spreadRadius: 4,
                               ),
@@ -177,7 +173,8 @@ class _SplashPageState extends State<SplashPage> with SingleTickerProviderStateM
                           height: 28,
                           child: CircularProgressIndicator(
                             strokeWidth: 2.5,
-                            color: const Color(0xFF3B82F6).withOpacity(0.8),
+                            color:
+                                const Color(0xFF3B82F6).withOpacity(0.8),
                           ),
                         ),
                       ),

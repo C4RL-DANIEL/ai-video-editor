@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../config/appwrite_config.dart';
@@ -13,6 +14,10 @@ final authServiceProvider = Provider<AppwriteAuthService>((ref) {
 /// after checking the Appwrite session.
 enum AuthState { unknown, authenticated, unauthenticated }
 
+/// Global notifier that GoRouter listens to for redirect re-evaluation.
+/// When the auth state changes, this fires and GoRouter re-runs its redirect.
+final authRefreshNotifier = ValueNotifier<AuthState>(AuthState.unknown);
+
 /// Notifier that manages auth state and exposes login/logout methods.
 class AuthNotifier extends StateNotifier<AuthState> {
   AuthNotifier(this._authService) : super(AuthState.unknown) {
@@ -23,15 +28,21 @@ class AuthNotifier extends StateNotifier<AuthState> {
 
   AppwriteAuthService get authService => _authService;
 
+  /// Updates both the Riverpod state and the GoRouter refresh notifier.
+  void _setAuthState(AuthState newState) {
+    state = newState;
+    authRefreshNotifier.value = newState;
+  }
+
   Future<void> _checkInitialAuth() async {
     final isAuth = await _authService.checkAuthState();
-    state = isAuth ? AuthState.authenticated : AuthState.unauthenticated;
+    _setAuthState(isAuth ? AuthState.authenticated : AuthState.unauthenticated);
   }
 
   Future<bool> signIn({required String email, required String password}) async {
     final result = await _authService.signIn(email: email, password: password);
     if (result.isSuccess) {
-      state = AuthState.authenticated;
+      _setAuthState(AuthState.authenticated);
       return true;
     }
     return false;
@@ -48,7 +59,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
       name: name,
     );
     if (result.isSuccess) {
-      state = AuthState.authenticated;
+      _setAuthState(AuthState.authenticated);
       return true;
     }
     return false;
@@ -56,7 +67,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
 
   Future<void> signOut() async {
     await _authService.signOut();
-    state = AuthState.unauthenticated;
+    _setAuthState(AuthState.unauthenticated);
   }
 }
 
