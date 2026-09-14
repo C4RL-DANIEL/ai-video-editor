@@ -554,7 +554,7 @@ class _UploadPageState extends State<UploadPage>
       MaterialPageRoute(
         builder: (context) => AnalysisProgressPage(
           sourceType: sourceType,
-          sourceName: sourceName,
+          sourceName: sourcePath ?? sourceName,
         ),
       ),
     );
