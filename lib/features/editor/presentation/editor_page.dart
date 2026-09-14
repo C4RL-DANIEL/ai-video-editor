@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:io';
 
 import 'package:chewie/chewie.dart';
 import 'package:file_picker/file_picker.dart';
@@ -469,7 +470,7 @@ class VideoPlayerNotifier extends StateNotifier<VideoPlayerState> {
 
     try {
       final controller = VideoPlayerController.file(
-        Uri.file(path),
+        File(path),
       );
       await controller.initialize();
 
@@ -833,7 +834,7 @@ class _EditorPageState extends ConsumerState<EditorPage> {
               decoration: BoxDecoration(color: _borderColor, borderRadius: BorderRadius.circular(2)),
             ),
             _MenuOption(
-              icon: PhosphorIconsRegular.import,
+              icon: PhosphorIconsRegular.upload,
               label: 'Import Video',
               onTap: () {
                 Navigator.pop(ctx);
@@ -934,7 +935,7 @@ class _EditorTopBar extends StatelessWidget {
 
           // Import Video
           _ToolBarButton(
-            icon: PhosphorIconsRegular.import,
+            icon: PhosphorIconsRegular.upload,
             tooltip: 'Import Video',
             onTap: onImportVideo,
           ),
@@ -1410,7 +1411,7 @@ class _VideoPreviewArea extends StatelessWidget {
               child: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  const Icon(PhosphorIconsRegular.import, size: 14, color: Colors.white),
+                  const Icon(PhosphorIconsRegular.upload, size: 14, color: Colors.white),
                   const SizedBox(width: 8),
                   Text(
                     'Import Video',

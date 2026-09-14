@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io';
 import 'dart:math' as math;
 
@@ -437,7 +438,7 @@ class _UploadPageState extends State<UploadPage>
 
     // Try og:title
     final ogTitleRegex = RegExp(
-      r'<meta\s+[^>]*property=["\']og:title["\'][^>]*content=["\']([^"\']+)["\']',
+      r'''<meta\s+[^>]*property=["']og:title["'][^>]*content=["']([^"']+)["']''',
       caseSensitive: false,
     );
     final ogTitleMatch = ogTitleRegex.firstMatch(html);
@@ -459,7 +460,7 @@ class _UploadPageState extends State<UploadPage>
 
     // Try og:site_name
     final ogSiteRegex = RegExp(
-      r'<meta\s+[^>]*property=["\']og:site_name["\'][^>]*content=["\']([^"\']+)["\']',
+      r'''<meta\s+[^>]*property=["']og:site_name["'][^>]*content=["']([^"']+)["']''',
       caseSensitive: false,
     );
     final ogSiteMatch = ogSiteRegex.firstMatch(html);
@@ -469,7 +470,7 @@ class _UploadPageState extends State<UploadPage>
 
     // Try og:image
     final ogImageRegex = RegExp(
-      r'<meta\s+[^>]*property=["\']og:image["\'][^>]*content=["\']([^"\']+)["\']',
+      r'''<meta\s+[^>]*property=["']og:image["'][^>]*content=["']([^"']+)["']''',
       caseSensitive: false,
     );
     final ogImageMatch = ogImageRegex.firstMatch(html);

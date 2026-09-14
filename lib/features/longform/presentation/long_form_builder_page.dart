@@ -1497,7 +1497,7 @@ class _SectionPickerSheet extends ConsumerWidget {
               return GestureDetector(
                 onTap: () {
                   onAdd(e.key);
-                  Navigator.of(ctx).pop();
+                  Navigator.of(context).pop();
                 },
                 child: Container(
                   margin: const EdgeInsets.only(bottom: 6),
