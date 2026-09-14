@@ -125,24 +125,42 @@ class AppwriteAuthService {
   /// Sign in with Google via Appwrite OAuth.
   Future<ApiResponse<models.User>> signInWithGoogle() async {
     try {
+      // Create OAuth2 session - this opens the browser for Google auth
+      // After auth, Google redirects to Appwrite, which redirects back to the app
+      // using the appwrite-callback-{projectId}:// scheme
       await _account.createOAuth2Session(
         provider: OAuthProvider.google,
       );
+
+      // After browser closes and app receives callback, check auth state
+      // Give the session a moment to be established
+      await Future.delayed(const Duration(milliseconds: 500));
+
       final user = await _fetchCurrentUser();
       if (user != null) {
         _current_user = user;
         return ApiResponse.success(user);
       }
-      return ApiResponse.error('Google sign-in completed but could not fetch user info.');
+
+      // Even if we can't get user details, the session might exist
+      // Try checking if there's a session
+      try {
+        final sessions = await _account.listSessions();
+        if (sessions.sessions.isNotEmpty) {
+          return ApiResponse.success(null);
+        }
+      } catch (_) {}
+
+      return ApiResponse.error('Google sign-in completed but could not verify session.');
     } on AppwriteException catch (e) {
-      debugPrint('Appwrite Google sign-in error: ${e.message}');
+      debugPrint('Appwrite Google sign-in error: ${e.message} (type: ${e.type}, code: ${e.code})');
       return ApiResponse.error(
         _mapError(e.type ?? 'unknown'),
         statusCode: e.code ?? 500,
       );
     } catch (e) {
-      debugPrint('Unexpected Google sign-in error: $e');
-      return ApiResponse.error('Google sign-in failed: ${e.toString()}');
+      debugPrint('Unexpected Google sign-in error: ${e.runtimeType}: $e');
+      return ApiResponse.error('Google sign-in failed. Please try again.');
     }
   }
 

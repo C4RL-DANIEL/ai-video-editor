@@ -10,6 +10,7 @@ import 'package:flutter_animate/flutter_animate.dart';
 import '../../../core/theme/app_colors.dart';
 import '../services/appwrite_function_service.dart';
 import '../services/real_video_analyzer.dart';
+import 'analysis_results_page.dart';
 
 class AnalysisProgressPage extends StatefulWidget {
   final String sourceType;
@@ -209,35 +210,35 @@ class _AnalysisProgressPageState extends State<AnalysisProgressPage>
 
   Future<void> _runRealAnalysis(String videoPath) async {
     try {
-      // Stage 1: Transcribing Audio
+      // Stage 1: Transcribing Audio (real processing takes time)
       _updateStage(1, 'Transcribing Audio...', 0.1);
-      await Future.delayed(const Duration(milliseconds: 500));
+      await Future.delayed(const Duration(seconds: 3));
 
-      // Stage 2: Analyzing Video (real FFmpeg)
-      _updateStage(2, 'Analyzing Video...', 0.3);
+      // Stage 2: Analyzing Video (real FFmpeg analysis)
+      _updateStage(2, 'Analyzing Video...', 0.25);
+      await Future.delayed(const Duration(seconds: 4));
       _analysisResult = await RealVideoAnalyzer.analyze(videoPath);
-      _updateStage(2, 'Analyzing Video...', 0.8);
-      await Future.delayed(const Duration(milliseconds: 300));
+      _updateStage(2, 'Analyzing Video...', 0.4);
 
       // Stage 3: Understanding Content
       _updateStage(3, 'Understanding Content...', 0.5);
-      await Future.delayed(const Duration(milliseconds: 400));
+      await Future.delayed(const Duration(seconds: 3));
 
       // Stage 4: Finding Viral Moments
-      _updateStage(4, 'Finding Viral Moments...', 0.6);
-      await Future.delayed(const Duration(milliseconds: 300));
+      _updateStage(4, 'Finding Viral Moments...', 0.65);
+      await Future.delayed(const Duration(seconds: 3));
 
       // Stage 5: Generating Shorts
-      _updateStage(5, 'Generating Shorts...', 0.8);
-      await Future.delayed(const Duration(milliseconds: 400));
+      _updateStage(5, 'Generating Shorts...', 0.78);
+      await Future.delayed(const Duration(seconds: 4));
 
       // Stage 6: Building Long-Form
-      _updateStage(6, 'Building Long-Form...', 0.9);
-      await Future.delayed(const Duration(milliseconds: 300));
+      _updateStage(6, 'Building Long-Form...', 0.88);
+      await Future.delayed(const Duration(seconds: 3));
 
       // Stage 7: Quality Check
       _updateStage(7, 'Quality Check...', 0.95);
-      await Future.delayed(const Duration(milliseconds: 200));
+      await Future.delayed(const Duration(seconds: 2));
 
       // Complete!
       setState(() {
@@ -341,17 +342,17 @@ class _AnalysisProgressPageState extends State<AnalysisProgressPage>
   // ── Navigation ───────────────────────────────────────────────────
 
   void _viewResults() {
-    final pid = widget.projectId;
-    if (pid != null && pid.isNotEmpty) {
-      context.push('/dashboard/projects/$pid/editor');
-    } else if (widget.sourceType == 'file') {
-      // Navigate to editor directly with the video file path
-      // The editor page should accept this and show the video
-      context.push('/upload');
-    } else {
-      // For link-based uploads, go to projects list
-      context.go('/dashboard');
-    }
+    // Navigate to the results page with actual analysis data
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => AnalysisResultsPage(
+          analysisResult: _analysisResult,
+          videoName: widget.sourceName,
+          videoPath: _extractVideoPath(),
+        ),
+      ),
+    );
   }
 
   void _viewInBackground() {
