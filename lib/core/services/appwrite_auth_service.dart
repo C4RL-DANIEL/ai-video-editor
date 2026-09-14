@@ -27,17 +27,22 @@ class AppwriteAuthService {
     required String name,
   }) async {
     try {
-      final user = await _account.create(
+      await _account.create(
         userId: ID.unique(),
         email: email,
         password: password,
         name: name,
       );
-      _current_user = user;
 
       // Auto sign-in after registration
-      await signIn(email: email, password: password);
+      final signInResult = await signIn(email: email, password: password);
+      if (signInResult.isSuccess && signInResult.data != null) {
+        return signInResult;
+      }
 
+      // Sign-up succeeded but auto sign-in failed — return the created user info
+      final user = await _account.get();
+      _current_user = user;
       return ApiResponse.success(user);
     } on AppwriteException catch (e) {
       debugPrint('Appwrite signUp error: ${e.message}');
@@ -45,6 +50,10 @@ class AppwriteAuthService {
         _mapError(e.type ?? 'unknown'),
         statusCode: e.code ?? 500,
       );
+    } catch (e) {
+      debugPrint('Unexpected signUp error: $e');
+      return ApiResponse.error('Sign up failed: ${e.toString()}');
+    }
     }
   }
 
@@ -54,19 +63,23 @@ class AppwriteAuthService {
     required String password,
   }) async {
     try {
-      final session = await _account.createEmailPasswordSession(
+      await _account.createEmailPasswordSession(
         email: email,
         password: password,
       );
 
-      _current_user = await _account.get();
-      return ApiResponse.success(_current_user!);
+      final user = await _account.get();
+      _current_user = user;
+      return ApiResponse.success(user);
     } on AppwriteException catch (e) {
       debugPrint('Appwrite signIn error: ${e.message}');
       return ApiResponse.error(
         _mapError(e.type ?? 'unknown'),
         statusCode: e.code ?? 500,
       );
+    } catch (e) {
+      debugPrint('Unexpected signIn error: $e');
+      return ApiResponse.error('Sign in failed: ${e.toString()}');
     }
   }
 
@@ -82,6 +95,47 @@ class AppwriteAuthService {
         _mapError(e.type ?? 'unknown'),
         statusCode: e.code ?? 500,
       );
+    }
+  }
+
+  /// Sign in with Google via Appwrite OAuth.
+  /// Opens a browser/webview for Google login, then returns the session.
+  Future<ApiResponse<models.User>> signInWithGoogle() async {
+    try {
+      await _account.createOAuth2Session(
+        provider: OAuthProvider.google,
+      );
+      _current_user = await _account.get();
+      return ApiResponse.success(_current_user!);
+    } on AppwriteException catch (e) {
+      debugPrint('Appwrite Google sign-in error: ${e.message}');
+      return ApiResponse.error(
+        _mapError(e.type ?? 'unknown'),
+        statusCode: e.code ?? 500,
+      );
+    } catch (e) {
+      debugPrint('Unexpected Google sign-in error: $e');
+      return ApiResponse.error('Google sign-in failed: ${e.toString()}');
+    }
+  }
+
+  /// Sign in with Apple via Appwrite OAuth.
+  Future<ApiResponse<models.User>> signInWithApple() async {
+    try {
+      await _account.createOAuth2Session(
+        provider: OAuthProvider.apple,
+      );
+      _current_user = await _account.get();
+      return ApiResponse.success(_current_user!);
+    } on AppwriteException catch (e) {
+      debugPrint('Appwrite Apple sign-in error: ${e.message}');
+      return ApiResponse.error(
+        _mapError(e.type ?? 'unknown'),
+        statusCode: e.code ?? 500,
+      );
+    } catch (e) {
+      debugPrint('Unexpected Apple sign-in error: $e');
+      return ApiResponse.error('Apple sign-in failed: ${e.toString()}');
     }
   }
 

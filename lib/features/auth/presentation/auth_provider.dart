@@ -65,6 +65,24 @@ class AuthNotifier extends StateNotifier<AuthState> {
     return false;
   }
 
+  Future<bool> signInWithGoogle() async {
+    final result = await _authService.signInWithGoogle();
+    if (result.isSuccess) {
+      _setAuthState(AuthState.authenticated);
+      return true;
+    }
+    return false;
+  }
+
+  Future<bool> signInWithApple() async {
+    final result = await _authService.signInWithApple();
+    if (result.isSuccess) {
+      _setAuthState(AuthState.authenticated);
+      return true;
+    }
+    return false;
+  }
+
   Future<void> signOut() async {
     await _authService.signOut();
     _setAuthState(AuthState.unauthenticated);

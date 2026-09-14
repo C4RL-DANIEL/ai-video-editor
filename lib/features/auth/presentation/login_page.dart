@@ -28,14 +28,14 @@ class _LoginPageState extends ConsumerState<LoginPage> {
     super.dispose();
   }
 
-  void _showComingSoonSnackBar(String provider) {
+  void _showErrorSnackBar(String message) {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(
-          '$provider sign-in coming soon!',
+          message,
           style: GoogleFonts.inter(color: Colors.white),
         ),
-        backgroundColor: const Color(0xFF1A1A1F),
+        backgroundColor: const Color(0xFFEF4444),
         behavior: SnackBarBehavior.floating,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
       ),
@@ -76,6 +76,60 @@ class _LoginPageState extends ConsumerState<LoginPage> {
       setState(() {
         _isLoading = false;
         _errorMessage = 'Error: ${e.toString()}';
+      });
+    }
+  }
+
+  Future<void> _handleGoogleSignIn() async {
+    setState(() {
+      _isLoading = true;
+      _errorMessage = null;
+    });
+
+    try {
+      final notifier = ref.read(authStateProvider.notifier);
+      final success = await notifier.signInWithGoogle();
+      if (!mounted) return;
+      if (success) {
+        context.go('/dashboard');
+      } else {
+        setState(() {
+          _isLoading = false;
+          _errorMessage = 'Google sign-in was cancelled or failed.';
+        });
+      }
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _isLoading = false;
+        _errorMessage = 'Google sign-in error: ${e.toString()}';
+      });
+    }
+  }
+
+  Future<void> _handleAppleSignIn() async {
+    setState(() {
+      _isLoading = true;
+      _errorMessage = null;
+    });
+
+    try {
+      final notifier = ref.read(authStateProvider.notifier);
+      final success = await notifier.signInWithApple();
+      if (!mounted) return;
+      if (success) {
+        context.go('/dashboard');
+      } else {
+        setState(() {
+          _isLoading = false;
+          _errorMessage = 'Apple sign-in was cancelled or failed.';
+        });
+      }
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _isLoading = false;
+        _errorMessage = 'Apple sign-in error: ${e.toString()}';
       });
     }
   }
@@ -339,7 +393,7 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                             child: _SocialButton(
                               label: 'Google',
                               icon: Icon(PhosphorIconsLight.googleLogo, size: 20),
-                              onTap: () => _showComingSoonSnackBar('Google'),
+                              onTap: _handleGoogleSignIn,
                               isTablet: isTablet,
                             ),
                           ),
@@ -348,7 +402,7 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                             child: _SocialButton(
                               label: 'Apple',
                               icon: Icon(PhosphorIconsLight.appleLogo, size: 20),
-                              onTap: () => _showComingSoonSnackBar('Apple'),
+                              onTap: _handleAppleSignIn,
                               isTablet: isTablet,
                             ),
                           ),
