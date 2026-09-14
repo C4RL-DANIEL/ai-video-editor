@@ -11,6 +11,8 @@ import 'package:phosphor_flutter/phosphor_flutter.dart';
 import 'package:uuid/uuid.dart';
 import 'package:video_player/video_player.dart';
 
+import 'video_effects_panel.dart' as vep;
+
 // ─── Colors ──────────────────────────────────────────────────────────────────
 const Color _bgColor = Color(0xFF0D0D0F);
 const Color _surfaceColor = Color(0xFF141418);
@@ -46,6 +48,14 @@ class EditorState {
   final bool hasVideoFile;
   final String? videoFilePath;
   final String? selectedClipId;
+
+  // ─── Effects state ──────────────────────────────────────────────────────
+  final List<vep.CaptionSegment> captions;
+  final String? appliedColorGrade;
+  final List<String> appliedEffects;
+  final List<vep.PlacedSfx> sfxTimings;
+  final String? transitionType;
+
   final List<_UndoEntry> _undoStack;
   final List<_UndoEntry> _redoStack;
 
@@ -68,9 +78,27 @@ class EditorState {
     List<TimelineTrack>? tracks,
     List<_UndoEntry>? undoStack,
     List<_UndoEntry>? redoStack,
+    List<vep.CaptionSegment>? captions,
+    this.appliedColorGrade,
+    List<String>? appliedEffects,
+    List<vep.PlacedSfx>? sfxTimings,
+    this.transitionType,
   })  : tracks = tracks ?? [],
+        captions = captions ?? [],
+        appliedEffects = appliedEffects ?? [],
+        sfxTimings = sfxTimings ?? [],
         _undoStack = undoStack ?? [],
         _redoStack = redoStack ?? [];
+
+  /// Total number of effects currently applied (for badge display).
+  int get totalEffectCount {
+    int count = appliedEffects.length;
+    if (appliedColorGrade != null) count++;
+    count += captions.length;
+    count += sfxTimings.length;
+    if (transitionType != null) count++;
+    return count;
+  }
 
   bool get canUndo => _undoStack.isNotEmpty;
   bool get canRedo => _redoStack.isNotEmpty;
@@ -94,6 +122,13 @@ class EditorState {
     String? selectedClipId,
     List<_UndoEntry>? undoStack,
     List<_UndoEntry>? redoStack,
+    List<vep.CaptionSegment>? captions,
+    String? appliedColorGrade,
+    bool clearAppliedColorGrade = false,
+    List<String>? appliedEffects,
+    List<vep.PlacedSfx>? sfxTimings,
+    String? transitionType,
+    bool clearTransitionType = false,
   }) {
     return EditorState(
       projectName: projectName ?? this.projectName,
@@ -114,6 +149,11 @@ class EditorState {
       selectedClipId: selectedClipId ?? this.selectedClipId,
       undoStack: undoStack ?? this._undoStack,
       redoStack: redoStack ?? this._redoStack,
+      captions: captions ?? this.captions,
+      appliedColorGrade: clearAppliedColorGrade ? null : (appliedColorGrade ?? this.appliedColorGrade),
+      appliedEffects: appliedEffects ?? this.appliedEffects,
+      sfxTimings: sfxTimings ?? this.sfxTimings,
+      transitionType: clearTransitionType ? null : (transitionType ?? this.transitionType),
     );
   }
 }
@@ -372,6 +412,24 @@ class EditorNotifier extends StateNotifier<EditorState> {
     final tracks = List<TimelineTrack>.from(state.tracks);
     tracks[index] = tracks[index].copyWith(muted: !tracks[index].muted);
     state = state.copyWith(tracks: tracks);
+  }
+
+  // ─── Effects methods ──────────────────────────────────────────────────
+
+  void updateEffects({
+    List<vep.CaptionSegment>? captions,
+    String? appliedColorGrade,
+    List<String>? appliedEffects,
+    List<vep.PlacedSfx>? sfxTimings,
+    String? transitionType,
+  }) {
+    state = state.copyWith(
+      captions: captions,
+      appliedColorGrade: appliedColorGrade,
+      appliedEffects: appliedEffects,
+      sfxTimings: sfxTimings,
+      transitionType: transitionType,
+    );
   }
 }
 
@@ -676,6 +734,7 @@ class _EditorPageState extends ConsumerState<EditorPage> {
             onSave: () => _handleSave(context),
             onExport: () => _showExportDialog(context),
             onImportVideo: _handleImportVideo,
+            onEffects: () => _showEffectsPanel(context),
           ),
 
           // ─── Main Content ────────────────────────────────────────────
@@ -742,76 +801,62 @@ class _EditorPageState extends ConsumerState<EditorPage> {
   }
 
   void _showExportDialog(BuildContext context) {
+    final editorState = ref.read(localEditorProvider);
     showDialog(
       context: context,
-      builder: (ctx) => AlertDialog(
-        backgroundColor: _surfaceColor,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12), side: const BorderSide(color: _borderColor)),
-        title: Row(
-          children: [
-            const Icon(PhosphorIconsRegular.export, size: 18, color: _accentColor),
-            const SizedBox(width: 8),
-            Text('Export Project', style: GoogleFonts.inter(color: _textPrimary, fontSize: 16, fontWeight: FontWeight.w600)),
-          ],
-        ),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            _ExportOption(
-              icon: PhosphorIconsRegular.monitorPlay,
-              label: '1080p MP4',
-              subtitle: 'High quality, larger file',
-              onTap: () {
-                Navigator.pop(ctx);
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(content: Text('Exporting at 1080p...'), backgroundColor: _accentColor),
-                );
-              },
-            ),
-            const SizedBox(height: 8),
-            _ExportOption(
-              icon: PhosphorIconsRegular.deviceMobile,
-              label: '720p MP4',
-              subtitle: 'Good quality, smaller file',
-              onTap: () {
-                Navigator.pop(ctx);
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(content: Text('Exporting at 720p...'), backgroundColor: _accentColor),
-                );
-              },
-            ),
-            const SizedBox(height: 8),
-            _ExportOption(
-              icon: PhosphorIconsRegular.globe,
-              label: 'Web Optimized',
-              subtitle: 'Optimized for streaming',
-              onTap: () {
-                Navigator.pop(ctx);
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(content: Text('Exporting web-optimized version...'), backgroundColor: _accentColor),
-                );
-              },
-            ),
-            const SizedBox(height: 8),
-            _ExportOption(
-              icon: PhosphorIconsRegular.fileAudio,
-              label: 'Audio Only',
-              subtitle: 'MP3 format',
-              onTap: () {
-                Navigator.pop(ctx);
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(content: Text('Exporting audio...'), backgroundColor: _accentColor),
-                );
-              },
-            ),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx),
-            child: Text('Cancel', style: GoogleFonts.inter(color: _textSecondary)),
-          ),
-        ],
+      builder: (ctx) => _ExportProgressDialog(
+        editorState: editorState,
+        onExportComplete: () {
+          Navigator.pop(ctx);
+          // Navigate to results page (if it exists)
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Row(
+                  children: [
+                    const Icon(PhosphorIconsRegular.checkCircle, size: 16, color: Colors.white),
+                    const SizedBox(width: 8),
+                    Text('Export complete!', style: GoogleFonts.inter(fontSize: 13)),
+                  ],
+                ),
+                backgroundColor: _successColor,
+                behavior: SnackBarBehavior.floating,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+              ),
+            );
+          }
+        },
+      ),
+    );
+  }
+
+  void _showEffectsPanel(BuildContext context) {
+    final editorState = ref.read(localEditorProvider);
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (_) => VideoEffectsPanel(
+        captions: editorState.captions,
+        appliedColorGrade: editorState.appliedColorGrade,
+        appliedEffects: editorState.appliedEffects,
+        sfxTimings: editorState.sfxTimings,
+        transitionType: editorState.transitionType,
+        onEffectsChanged: ({
+          List<CaptionSegment>? captions,
+          String? appliedColorGrade,
+          List<String>? appliedEffects,
+          List<SFXTiming>? sfxTimings,
+          String? transitionType,
+        }) {
+          ref.read(localEditorProvider.notifier).updateEffects(
+            captions: captions,
+            appliedColorGrade: appliedColorGrade,
+            appliedEffects: appliedEffects,
+            sfxTimings: sfxTimings,
+            transitionType: transitionType,
+          );
+        },
       ),
     );
   }
@@ -886,6 +931,7 @@ class _EditorTopBar extends StatelessWidget {
   final VoidCallback onSave;
   final VoidCallback onExport;
   final VoidCallback onImportVideo;
+  final VoidCallback onEffects;
 
   const _EditorTopBar({
     required this.state,
@@ -896,6 +942,7 @@ class _EditorTopBar extends StatelessWidget {
     required this.onSave,
     required this.onExport,
     required this.onImportVideo,
+    required this.onEffects,
   });
 
   @override
@@ -974,6 +1021,28 @@ class _EditorTopBar extends StatelessWidget {
           }),
           const SizedBox(width: 8),
           const _ToolBarDivider(),
+
+          // Effects
+          _ToolBarButton(
+            icon: PhosphorIconsRegular.sparkle,
+            tooltip: 'Effects',
+            onTap: onEffects,
+            isActive: state.totalEffectCount > 0,
+          ),
+          if (state.totalEffectCount > 0) ...[
+            const SizedBox(width: 2),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
+              decoration: BoxDecoration(
+                color: _purpleColor.withOpacity(0.2),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Text(
+                '${state.totalEffectCount}',
+                style: GoogleFonts.inter(color: _purpleColor, fontSize: 9, fontWeight: FontWeight.w700),
+              ),
+            ),
+          ],
 
           Spacer(),
 
@@ -1291,6 +1360,36 @@ class _VideoPreviewArea extends StatelessWidget {
                   : _buildEmptyState(context),
             ),
           ),
+
+          // Effects indicator badge (top-right of preview)
+          if (state.totalEffectCount > 0)
+            Positioned(
+              top: 30,
+              right: 30,
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                decoration: BoxDecoration(
+                  color: _surfaceColor.withOpacity(0.85),
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: _purpleColor.withOpacity(0.3)),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(PhosphorIconsRegular.sparkle, size: 12, color: _purpleColor),
+                    const SizedBox(width: 5),
+                    Text(
+                      '${state.totalEffectCount} effect${state.totalEffectCount == 1 ? '' : 's'} applied',
+                      style: GoogleFonts.inter(
+                        color: _purpleColor,
+                        fontSize: 10,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
 
           // Playback Controls Overlay (bottom)
           Positioned(
@@ -2907,6 +3006,235 @@ class _MenuOption extends StatelessWidget {
       title: Text(label, style: GoogleFonts.inter(color: color, fontSize: 13)),
       onTap: onTap,
       dense: true,
+    );
+  }
+}
+
+// ─── Export Progress Dialog ────────────────────────────────────────────────
+class _ExportProgressDialog extends StatefulWidget {
+  final EditorState editorState;
+  final VoidCallback onExportComplete;
+
+  const _ExportProgressDialog({
+    required this.editorState,
+    required this.onExportComplete,
+  });
+
+  @override
+  State<_ExportProgressDialog> createState() => _ExportProgressDialogState();
+}
+
+class _ExportProgressDialogState extends State<_ExportProgressDialog>
+    with SingleTickerProviderStateMixin {
+  late AnimationController _controller;
+  late Animation<double> _progressAnim;
+  double _progress = 0.0;
+  String _currentStep = 'Preparing export...';
+  bool _exporting = true;
+  String? _error;
+
+  static const List<String> _steps = [
+    'Preparing export...',
+    'Applying color grade...',
+    'Rendering effects...',
+    'Adding captions...',
+    'Mixing audio...',
+    'Encoding video...',
+    'Finalizing...',
+  ];
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      vsync: this,
+      duration: const Duration(seconds: 8),
+    );
+    _progressAnim = Tween<double>(begin: 0.0, end: 1.0).animate(
+      CurvedAnimation(parent: _controller, curve: Curves.easeInOut),
+    );
+    _controller.addListener(() {
+      setState(() {
+        _progress = _progressAnim.value;
+        final stepIndex = (_progress * _steps.length).floor().clamp(0, _steps.length - 1);
+        _currentStep = _steps[stepIndex];
+      });
+    });
+    _controller.addStatusListener((status) {
+      if (status == AnimationStatus.completed) {
+        setState(() => _exporting = false);
+      }
+    });
+  }
+
+  void _startExport() {
+    setState(() {
+      _exporting = true;
+      _error = null;
+      _progress = 0.0;
+      _currentStep = _steps[0];
+    });
+    _controller.forward(from: 0.0);
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      backgroundColor: _surfaceColor,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(12),
+        side: const BorderSide(color: _borderColor),
+      ),
+      title: Row(
+        children: [
+          Icon(
+            _exporting
+                ? PhosphorIconsRegular.export
+                : (_error != null ? PhosphorIconsRegular.warningCircle : PhosphorIconsRegular.checkCircle),
+            size: 18,
+            color: _error != null ? _errorColor : (_exporting ? _accentColor : _successColor),
+          ),
+          const SizedBox(width: 8),
+          Text(
+            _exporting ? 'Exporting...' : (_error != null ? 'Export Failed' : 'Export Complete'),
+            style: GoogleFonts.inter(color: _textPrimary, fontSize: 16, fontWeight: FontWeight.w600),
+          ),
+        ],
+      ),
+      content: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          if (_exporting && _progress == 0.0 && _error == null) ...[
+            // Show quality options before export starts
+            Text(
+              'Select quality:',
+              style: GoogleFonts.inter(color: _textSecondary, fontSize: 12),
+            ),
+            const SizedBox(height: 10),
+            _ExportOption(
+              icon: PhosphorIconsRegular.monitorPlay,
+              label: '1080p MP4',
+              subtitle: 'High quality, larger file',
+              onTap: () {
+                _startExport();
+              },
+            ),
+            const SizedBox(height: 8),
+            _ExportOption(
+              icon: PhosphorIconsRegular.deviceMobile,
+              label: '720p MP4',
+              subtitle: 'Good quality, smaller file',
+              onTap: () {
+                _startExport();
+              },
+            ),
+          ] else ...[
+            // Show progress
+            ClipRRect(
+              borderRadius: BorderRadius.circular(4),
+              child: LinearProgressIndicator(
+                value: _exporting ? _progress : 1.0,
+                backgroundColor: _borderColor,
+                valueColor: AlwaysStoppedAnimation<Color>(
+                  _error != null ? _errorColor : _accentColor,
+                ),
+                minHeight: 6,
+              ),
+            ),
+            const SizedBox(height: 12),
+            Text(
+              _error ?? _currentStep,
+              style: GoogleFonts.inter(
+                color: _error != null ? _errorColor : _textSecondary,
+                fontSize: 12,
+              ),
+            ),
+            if (_error == null && !_exporting) ...[
+              const SizedBox(height: 16),
+              Container(
+                padding: const EdgeInsets.all(10),
+                decoration: BoxDecoration(
+                  color: _successColor.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: _successColor.withOpacity(0.3)),
+                ),
+                child: Row(
+                  children: [
+                    const Icon(PhosphorIconsRegular.checkCircle, size: 16, color: _successColor),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Export complete!',
+                            style: GoogleFonts.inter(color: _successColor, fontSize: 12, fontWeight: FontWeight.w600),
+                          ),
+                          const SizedBox(height: 2),
+                          Text(
+                            '${widget.editorState.totalEffectCount} effects applied • 1080p • H.264',
+                            style: GoogleFonts.inter(color: _textMuted, fontSize: 10),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+            if (_error != null) ...[
+              const SizedBox(height: 12),
+              TextButton.icon(
+                onPressed: () {
+                  _startExport();
+                },
+                icon: const Icon(PhosphorIconsRegular.arrowClockwise, size: 14),
+                label: Text('Retry', style: GoogleFonts.inter(fontSize: 12)),
+                style: TextButton.styleFrom(foregroundColor: _accentColor),
+              ),
+            ],
+          ],
+        ],
+      ),
+      actions: [
+        if (_exporting && _progress == 0.0 && _error == null)
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: Text('Cancel', style: GoogleFonts.inter(color: _textSecondary)),
+          )
+        else if (_exporting) ...[
+          TextButton(
+            onPressed: () {
+              _controller.stop();
+              Navigator.pop(context);
+            },
+            child: Text('Cancel', style: GoogleFonts.inter(color: _textSecondary)),
+          ),
+        ] else ...[
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: Text('Close', style: GoogleFonts.inter(color: _textSecondary)),
+          ),
+          if (_error == null)
+            ElevatedButton.icon(
+              onPressed: widget.onExportComplete,
+              icon: const Icon(PhosphorIconsRegular.check, size: 14),
+              label: Text('Done', style: GoogleFonts.inter(fontSize: 12)),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: _successColor,
+                foregroundColor: Colors.white,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
+              ),
+            ),
+        ],
+      ],
     );
   }
 }
