@@ -98,19 +98,8 @@ class AppwriteAuthService {
         return ApiResponse.success(user);
       }
 
-      // Session was created but couldn't fetch user — still consider it a success
-      return ApiResponse.success(
-        models.User(
-          id: '',
-          name: '',
-          email: email,
-          emailVerification: false,
-          status: true,
-          prefs: {},
-          createdAt: DateTime.now().toIso8601String(),
-          updatedAt: DateTime.now().toIso8601String(),
-        ),
-      );
+      // Session was created — sign-in succeeded even if we can't get user details.
+      return ApiResponse.success(null);
     } on AppwriteException catch (e) {
       debugPrint('Appwrite signIn error: ${e.message}');
       return ApiResponse.error(
