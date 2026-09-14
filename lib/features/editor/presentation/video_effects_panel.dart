@@ -1372,7 +1372,7 @@ class SfxTab extends StatelessWidget {
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      const Icon(PhosphorIconsRegular.timeline, size: 32, color: AppColors.textDisabled),
+                      const Icon(PhosphorIconsRegular.clock, size: 32, color: AppColors.textDisabled),
                       const SizedBox(height: 8),
                       Text('No SFX placed yet', style: GoogleFonts.inter(color: AppColors.textDisabled, fontSize: 12)),
                     ],

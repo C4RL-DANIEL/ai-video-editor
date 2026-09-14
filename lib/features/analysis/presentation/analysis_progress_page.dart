@@ -269,8 +269,6 @@ class _AnalysisProgressPageState extends State<AnalysisProgressPage>
   }
 
   Future<List<double>> _detectScenesWithFFmpeg(String videoPath) async {
-    // Scene detection using video metadata heuristics
-    // (FFmpeg is processed server-side via Appwrite Function)
     final scenes = <double>[];
     try {
       final info = await VideoEditorService.getVideoInfo(videoPath);
@@ -310,11 +308,10 @@ class _AnalysisProgressPageState extends State<AnalysisProgressPage>
     final sorted = List<double>.from(scenes)..sort();
 
     for (int i = 0; i < sorted.length && clips.length < 6; i++) {
-      final startTime = max(0.0, sorted[i] - 2);
-      final clipDuration = min(30.0, info.duration - startTime);
+      final startTime = sorted[i] - 2 < 0 ? 0.0 : sorted[i] - 2;
+      final clipDuration = info.duration - startTime < 30.0 ? info.duration - startTime : 30.0;
       if (clipDuration < 5) continue;
 
-      // Check overlap with existing clips
       bool overlaps = false;
       for (final existing in clips) {
         if (startTime < existing.endTime && startTime + clipDuration > existing.startTime) {
