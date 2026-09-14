@@ -4,7 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:phosphor_flutter/phosphor_flutter.dart';
 
-import '../presentation/auth_provider.dart';
+import '../../auth/presentation/auth_provider.dart';
 
 /// Splash screen that checks auth state and navigates to the right place.
 class SplashPage extends ConsumerStatefulWidget {
