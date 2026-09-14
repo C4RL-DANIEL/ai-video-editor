@@ -78,7 +78,7 @@ class _RegisterPageState extends ConsumerState<RegisterPage> {
       if (!mounted) return;
       setState(() {
         _isLoading = false;
-        _errorMessage = 'Connection error. Please check your internet and try again.';
+        _errorMessage = 'Error: ${e.toString()}';
       });
     }
   }
