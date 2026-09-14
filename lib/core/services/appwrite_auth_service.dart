@@ -102,7 +102,7 @@ class AppwriteAuthService {
   Future<ApiResponse<models.User>> signInWithGoogle() async {
     try {
       await _account.createOAuth2Session(
-        provider: 'google',
+        provider: OAuthProvider.google,
       );
       _current_user = await _account.get();
       return ApiResponse.success(_current_user!);
@@ -122,7 +122,7 @@ class AppwriteAuthService {
   Future<ApiResponse<models.User>> signInWithApple() async {
     try {
       await _account.createOAuth2Session(
-        provider: 'apple',
+        provider: OAuthProvider.apple,
       );
       _current_user = await _account.get();
       return ApiResponse.success(_current_user!);
