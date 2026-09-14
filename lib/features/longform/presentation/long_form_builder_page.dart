@@ -339,26 +339,16 @@ class _LongFormBuilderPageState extends ConsumerState<LongFormBuilderPage> {
           _BuildButton(state: state, ref: ref),
           const SizedBox(width: 8),
           // Render button - navigate to editor page
-          Tooltip(
-            message: state.chapters.isEmpty ? 'Build a story first to render' : 'Render Long-Form',
-            child: GestureDetector(
-              onTap: state.chapters.isEmpty
-                  ? () {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(
-                          content: Text('Build a story first before rendering.', style: GoogleFonts.inter()),
-                          backgroundColor: _surfaceColor,
-                          behavior: SnackBarBehavior.floating,
-                        ),
-                      );
-                    }
-                  : () {
-                      final projectId = state.projectId ?? widget.projectId ?? 'default';
-                      context.push(
-                        RoutePaths.longFormDetailPath(projectId, 'new'),
-                      );
-                    },
-              child: Container(
+          GestureDetector(
+            onTap: state.chapters.isEmpty
+                ? null
+                : () {
+                    final projectId = state.projectId ?? widget.projectId ?? 'default';
+                    context.push(
+                      RoutePaths.longFormDetailPath(projectId, 'new'),
+                    );
+                  },
+            child: Container(
               height: 32,
               margin: const EdgeInsets.symmetric(vertical: 8),
               padding: const EdgeInsets.symmetric(horizontal: 14),
@@ -1212,22 +1202,85 @@ class _FootageNarrationPanel extends StatelessWidget {
                 : ListView(
                     padding: const EdgeInsets.all(12),
                     children: [
-                      // Empty state when no footage is available
-                      Center(
-                        child: Padding(
-                          padding: const EdgeInsets.all(24),
-                          child: Column(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Icon(PhosphorIconsRegular.folderOpen, size: 32, color: _textMuted),
-                              const SizedBox(height: 12),
-                              Text('No footage available', style: GoogleFonts.inter(color: _textSecondary, fontSize: 12)),
-                              const SizedBox(height: 4),
-                              Text('Upload footage to your project to assign it to sections',
-                                  style: GoogleFonts.inter(color: _textMuted, fontSize: 10), textAlign: TextAlign.center),
-                            ],
-                          ),
-                        ),
+                      _FootageItem(
+                        name: 'Interview - Opening',
+                        duration: '01:30',
+                        type: 'Interview',
+                        color: _accentColor,
+                        sectionCount: sectionCount,
+                        onAdd: (sectionIdx) {
+                          ref.read(longFormBuilderProvider.notifier).addFootageToSection(sectionIdx, 'Interview - Opening');
+                        },
+                      ),
+                      _FootageItem(
+                        name: 'City Skyline B-Roll',
+                        duration: '00:45',
+                        type: 'B-Roll',
+                        color: _successColor,
+                        sectionCount: sectionCount,
+                        onAdd: (sectionIdx) {
+                          ref.read(longFormBuilderProvider.notifier).addFootageToSection(sectionIdx, 'City Skyline B-Roll');
+                        },
+                      ),
+                      _FootageItem(
+                        name: 'Crowd Reaction',
+                        duration: '00:15',
+                        type: 'Reaction',
+                        color: _warningColor,
+                        sectionCount: sectionCount,
+                        onAdd: (sectionIdx) {
+                          ref.read(longFormBuilderProvider.notifier).addFootageToSection(sectionIdx, 'Crowd Reaction');
+                        },
+                      ),
+                      _FootageItem(
+                        name: 'Interview - Key Moment',
+                        duration: '02:15',
+                        type: 'Interview',
+                        color: _accentColor,
+                        sectionCount: sectionCount,
+                        onAdd: (sectionIdx) {
+                          ref.read(longFormBuilderProvider.notifier).addFootageToSection(sectionIdx, 'Interview - Key Moment');
+                        },
+                      ),
+                      _FootageItem(
+                        name: 'Close-up Details',
+                        duration: '00:30',
+                        type: 'B-Roll',
+                        color: _successColor,
+                        sectionCount: sectionCount,
+                        onAdd: (sectionIdx) {
+                          ref.read(longFormBuilderProvider.notifier).addFootageToSection(sectionIdx, 'Close-up Details');
+                        },
+                      ),
+                      _FootageItem(
+                        name: 'Audience Response',
+                        duration: '00:20',
+                        type: 'Reaction',
+                        color: _warningColor,
+                        sectionCount: sectionCount,
+                        onAdd: (sectionIdx) {
+                          ref.read(longFormBuilderProvider.notifier).addFootageToSection(sectionIdx, 'Audience Response');
+                        },
+                      ),
+                      _FootageItem(
+                        name: 'Establishing Shot',
+                        duration: '00:10',
+                        type: 'Establishing',
+                        color: _purpleColor,
+                        sectionCount: sectionCount,
+                        onAdd: (sectionIdx) {
+                          ref.read(longFormBuilderProvider.notifier).addFootageToSection(sectionIdx, 'Establishing Shot');
+                        },
+                      ),
+                      _FootageItem(
+                        name: 'Interview - Conclusion',
+                        duration: '01:00',
+                        type: 'Interview',
+                        color: _accentColor,
+                        sectionCount: sectionCount,
+                        onAdd: (sectionIdx) {
+                          ref.read(longFormBuilderProvider.notifier).addFootageToSection(sectionIdx, 'Interview - Conclusion');
+                        },
                       ),
                     ],
                   ),
@@ -1248,26 +1301,10 @@ class _FootageNarrationPanel extends StatelessWidget {
                     const SizedBox(width: 8),
                     Text('Narration', style: GoogleFonts.inter(color: _textPrimary, fontSize: 12, fontWeight: FontWeight.w600)),
                     const Spacer(),
-                    Tooltip(
-                      message: state.sections.isEmpty
-                          ? 'Add sections first to generate narration'
-                          : state.isGeneratingNarration
-                              ? 'Generating...'
-                              : 'AI Generate narration from sections',
-                      child: GestureDetector(
-                        onTap: state.isGeneratingNarration || state.sections.isEmpty
-                            ? () {
-                                if (state.sections.isEmpty) {
-                                  ScaffoldMessenger.of(context).showSnackBar(
-                                    SnackBar(
-                                      content: Text('Add at least one section before generating narration.', style: GoogleFonts.inter()),
-                                      backgroundColor: _surfaceColor,
-                                      behavior: SnackBarBehavior.floating,
-                                    ),
-                                  );
-                                }
-                              }
-                            : () => ref.read(longFormBuilderProvider.notifier).generateNarration(),
+                    GestureDetector(
+                      onTap: state.isGeneratingNarration
+                          ? null
+                          : () => ref.read(longFormBuilderProvider.notifier).generateNarration(),
                       child: state.isGeneratingNarration
                           ? Row(
                               mainAxisSize: MainAxisSize.min,
@@ -1331,28 +1368,8 @@ class _BuildButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isDisabled = state.isBuilding;
-    final hasNoSections = state.sections.isEmpty;
-    return Tooltip(
-      message: hasNoSections
-          ? 'Add sections before building'
-          : isDisabled
-              ? 'Building...'
-              : 'Build Story',
-      child: GestureDetector(
-        onTap: isDisabled || hasNoSections
-            ? () {
-                if (hasNoSections) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Text('Add at least one section before building.', style: GoogleFonts.inter()),
-                      backgroundColor: _surfaceColor,
-                      behavior: SnackBarBehavior.floating,
-                    ),
-                  );
-                }
-              }
-            : () => ref.read(longFormBuilderProvider.notifier).buildStory(),
+    return GestureDetector(
+      onTap: state.isBuilding ? null : () => ref.read(longFormBuilderProvider.notifier).buildStory(),
       child: Container(
         height: 32,
         margin: const EdgeInsets.symmetric(vertical: 8),

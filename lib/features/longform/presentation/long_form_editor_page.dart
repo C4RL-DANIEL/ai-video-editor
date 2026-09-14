@@ -1075,60 +1075,65 @@ class _TimelineArea extends StatelessWidget {
                           scrollDirection: Axis.horizontal,
                           child: SizedBox(
                             width: 800 * state.zoom,
-                            child: Column(
+                            child: Stack(
                               children: [
-                                // Ruler
-                                _TimelineRuler(totalSeconds: state.totalDuration.inSeconds.toDouble(), zoom: state.zoom),
-                                // Video track
-                                _TimelineTrack(
-                                  clips: state.chapters.map((ch) => _TimelineClip(
-                                    name: ch.title,
-                                    start: ch.startTime,
-                                    duration: ch.endTime - ch.startTime,
-                                    color: ch.color,
-                                  )).toList(),
-                                  totalSeconds: state.totalDuration.inSeconds.toDouble(),
-                                  zoom: state.zoom,
-                                  height: 32,
-                                ),
-                                // Commentary track
-                                _TimelineTrack(
-                                  clips: state.chapters.where((ch) => ch.commentary.isNotEmpty).map((ch) => _TimelineClip(
-                                    name: ch.title,
-                                    start: ch.startTime,
-                                    duration: ch.endTime - ch.startTime,
-                                    color: _purpleColor.withOpacity(0.6),
-                                  )).toList(),
-                                  totalSeconds: state.totalDuration.inSeconds.toDouble(),
-                                  zoom: state.zoom,
-                                  height: 28,
-                                ),
-                                // Music track
-                                _TimelineTrack(
-                                  clips: [_TimelineClip(name: 'Background Music', start: 0, duration: state.totalDuration.inSeconds.toDouble(), color: _successColor.withOpacity(0.3))],
-                                  totalSeconds: state.totalDuration.inSeconds.toDouble(),
-                                  zoom: state.zoom,
-                                  height: 24,
-                                ),
-                                // Chapters track
-                                _TimelineTrack(
-                                  clips: state.chapters.map((ch) => _TimelineClip(
-                                    name: '${ch.number}',
-                                    start: ch.startTime,
-                                    duration: ch.endTime - ch.startTime,
-                                    color: ch.color.withOpacity(0.4),
-                                  )).toList(),
-                                  totalSeconds: state.totalDuration.inSeconds.toDouble(),
-                                  zoom: state.zoom,
-                                  height: 24,
+                                Column(
+                                  children: [
+                                    // Ruler
+                                    _TimelineRuler(totalSeconds: state.totalDuration.inSeconds.toDouble(), zoom: state.zoom),
+                                    // Video track
+                                    _TimelineTrack(
+                                      clips: state.chapters.map((ch) => _TimelineClip(
+                                        name: ch.title,
+                                        start: ch.startTime,
+                                        duration: ch.endTime - ch.startTime,
+                                        color: ch.color,
+                                      )).toList(),
+                                      totalSeconds: state.totalDuration.inSeconds.toDouble(),
+                                      zoom: state.zoom,
+                                      height: 32,
+                                    ),
+                                    // Commentary track
+                                    _TimelineTrack(
+                                      clips: state.chapters.where((ch) => ch.commentary.isNotEmpty).map((ch) => _TimelineClip(
+                                        name: ch.title,
+                                        start: ch.startTime,
+                                        duration: ch.endTime - ch.startTime,
+                                        color: _purpleColor.withOpacity(0.6),
+                                      )).toList(),
+                                      totalSeconds: state.totalDuration.inSeconds.toDouble(),
+                                      zoom: state.zoom,
+                                      height: 28,
+                                    ),
+                                    // Music track
+                                    _TimelineTrack(
+                                      clips: [_TimelineClip(name: 'Background Music', start: 0, duration: state.totalDuration.inSeconds.toDouble(), color: _successColor.withOpacity(0.3))],
+                                      totalSeconds: state.totalDuration.inSeconds.toDouble(),
+                                      zoom: state.zoom,
+                                      height: 24,
+                                    ),
+                                    // Chapters track
+                                    _TimelineTrack(
+                                      clips: state.chapters.map((ch) => _TimelineClip(
+                                        name: '${ch.number}',
+                                        start: ch.startTime,
+                                        duration: ch.endTime - ch.startTime,
+                                        color: ch.color.withOpacity(0.4),
+                                      )).toList(),
+                                      totalSeconds: state.totalDuration.inSeconds.toDouble(),
+                                      zoom: state.zoom,
+                                      height: 24,
+                                    ),
+                                  ],
                                 ),
 
                                 // Playhead
-                                Align(
-                                  alignment: Alignment.centerLeft,
+                                Positioned(
+                                  left: (state.currentTime.inSeconds.toDouble() / state.totalDuration.inSeconds.toDouble()) * (800 * state.zoom),
+                                  top: 0,
+                                  bottom: 0,
                                   child: SizedBox(
                                     width: 2,
-                                    height: double.infinity,
                                     child: Container(color: _playheadColor),
                                   ),
                                 ),
