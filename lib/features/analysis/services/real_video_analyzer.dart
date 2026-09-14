@@ -116,13 +116,13 @@ class RealVideoAnalyzer {
     final duration = metadata.duration;
 
     // Calculate bitrate indicators
-    final videoBitrate = duration > 0 ? (fileSize * 8) / duration : 0; // bits per second
-    final estimatedAudioBitrate = videoBitrate * 0.15; // ~15% of total bitrate is audio
+    final double videoBitrate = duration > 0 ? (fileSize * 8).toDouble() / duration : 0.0;
+    final double estimatedAudioBitrate = videoBitrate * 0.15;
 
     // Content density: higher bitrate = more action/complex content
-    final contentDensity = videoBitrate > 5000000 ? 0.8 : // >5Mbps = high
-        videoBitrate > 2000000 ? 0.6 : // >2Mbps = medium
-        0.4; // low bitrate = talking head / simple content
+    final double contentDensity = videoBitrate > 5000000 ? 0.8 :
+        videoBitrate > 2000000 ? 0.6 :
+        0.4;
 
     return FileAnalysis(
       estimatedVideoBitrate: videoBitrate,
@@ -199,8 +199,8 @@ class RealVideoAnalyzer {
           ? scenes.lastWhere((s) => s.time < moment.time && moment.time - s.time < 5)
           : null;
 
-      final start = max(0, prevScene?.time ?? moment.time - 2);
-      final end = min(metadata.duration, moment.time + 15);
+      final double start = max(0.0, prevScene?.time ?? moment.time - 2);
+      final double end = min(metadata.duration, moment.time + 15);
 
       // Skip if too short (< 3s)
       if (end - start < 3) continue;
