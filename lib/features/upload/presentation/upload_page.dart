@@ -162,7 +162,7 @@ class _UploadPageState extends State<UploadPage>
         });
       }
 
-      _showSuccessSnackBar('Video saved successfully!');
+      _showErrorSnackBar('Video saved successfully!');
     } catch (e) {
       if (mounted) {
         setState(() {
@@ -177,7 +177,11 @@ class _UploadPageState extends State<UploadPage>
   /// Extracts real video metadata (duration, resolution, fps) using video_player.
   Future<void> _extractFileDetails(String filePath, String fileName) async {
     try {
-      final controller = VideoPlayerController.file(File(filePath));
+      final localFile = File(filePath);
+      final fileBytes = await localFile.length();
+      final ext = fileName.split('.').last.toLowerCase();
+
+      final controller = VideoPlayerController.file(localFile);
       await controller.initialize();
 
       final value = controller.value;
@@ -185,7 +189,6 @@ class _UploadPageState extends State<UploadPage>
       // Extract metadata from the initialized controller
       final duration = value.duration;
       final size = value.size; // Width x Height
-      final fps = value.playbackSpeed; // Note: video_player doesn't expose fps directly
 
       await controller.dispose();
 
@@ -193,14 +196,13 @@ class _UploadPageState extends State<UploadPage>
         setState(() {
           _isUploading = false;
           _fileDetails = FileDetails(
-            name: file.name,
-            size: file.size,
-            format: _getFormatFromExtension(file.extension ?? ''),
+            name: fileName,
+            size: fileBytes,
+            format: _getFormatFromExtension(ext),
             duration: duration,
-            resolution:
-                '${size.width.toInt()}×${size.height.toInt()}',
-            fps: _estimateFps(file.path ?? ''),
-            path: file.path,
+            resolution: '${size.width.toInt()}×${size.height.toInt()}',
+            fps: _estimateFps(filePath),
+            path: filePath,
           );
         });
       }
@@ -208,16 +210,19 @@ class _UploadPageState extends State<UploadPage>
       // Fallback: if video_player can't parse the file, use basic info
       debugPrint('Could not extract video metadata: $e');
       if (mounted) {
+        final localFile = File(filePath);
+        final fileBytes = await localFile.length();
+        final ext = fileName.split('.').last.toLowerCase();
         setState(() {
           _isUploading = false;
           _fileDetails = FileDetails(
-            name: file.name,
-            size: file.size,
-            format: _getFormatFromExtension(file.extension ?? ''),
+            name: fileName,
+            size: fileBytes,
+            format: _getFormatFromExtension(ext),
             duration: Duration.zero,
             resolution: 'Unknown',
-            fps: 30, // Default estimate
-            path: file.path,
+            fps: 30,
+            path: filePath,
           );
         });
       }
