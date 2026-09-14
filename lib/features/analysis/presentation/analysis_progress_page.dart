@@ -199,10 +199,11 @@ class _AnalysisProgressPageState extends State<AnalysisProgressPage>
 
   void _viewResults() {
     final pid = widget.projectId;
-    if (pid != null) {
+    if (pid != null && pid.isNotEmpty) {
       context.push('/dashboard/projects/$pid/editor');
     } else {
-      Navigator.pop(context);
+      // Navigate back to projects list if no projectId
+      context.go('/dashboard/projects');
     }
   }
 

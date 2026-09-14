@@ -1,0 +1,9 @@
+{
+  "name": "analyze-video",
+  "version": "1.0.0",
+  "description": "Video analysis function using FFmpeg for real processing",
+  "main": "src/index.js",
+  "engines": {
+    "node": "18"
+  }
+}

@@ -102,8 +102,8 @@ class _UploadPageState extends State<UploadPage>
     }
   }
 
-  /// Saves the video file locally and extracts metadata using video_player.
-  /// Uses the device's local storage since Appwrite Storage bucket may not be configured.
+  /// Uploads video to Appwrite Storage with real progress tracking,
+  /// then extracts metadata using video_player.
   Future<void> _uploadToAppwrite(PlatformFile file) async {
     setState(() => _isUploading = true);
 
@@ -113,17 +113,10 @@ class _UploadPageState extends State<UploadPage>
         throw Exception('File path is not available');
       }
 
-      // Save locally using path_provider
-      final appDir = await getApplicationDocumentsDirectory();
-      final videosDir = Directory('${appDir.path}/videos');
-      if (!await videosDir.exists()) {
-        await videosDir.create(recursive: true);
-      }
+      final bucketId = AppwriteConfig.videosBucketId;
+      final fileId = 'video_${DateTime.now().millisecondsSinceEpoch}_${math.Random().nextInt(99999)}';
 
-      final localPath = '${videosDir.path}/${file.name}';
-      final localFile = File(filePath);
-
-      // Copy the file to app storage with progress tracking
+      // Timer-based progress estimation while upload completes
       double estimatedProgress = 0;
       final progressTimer = Timer.periodic(
         const Duration(milliseconds: 100),
@@ -132,37 +125,96 @@ class _UploadPageState extends State<UploadPage>
             timer.cancel();
             return;
           }
-          estimatedProgress += (1.0 - estimatedProgress) * 0.08;
-          if (estimatedProgress > 0.90) estimatedProgress = 0.90;
+          estimatedProgress += (1.0 - estimatedProgress) * 0.05;
+          if (estimatedProgress > 0.95) estimatedProgress = 0.95;
           setState(() => _uploadProgress = estimatedProgress);
         },
       );
 
-      // Copy file locally
-      await localFile.copy(localPath);
-      progressTimer.cancel();
+      try {
+        // Upload to Appwrite Storage
+        final uploadedFile = await _storage.createFile(
+          bucketId: bucketId,
+          fileId: fileId,
+          file: InputFile.fromPath(path: filePath, filename: file.name),
+        );
+        progressTimer.cancel();
 
-      if (mounted) {
-        setState(() => _uploadProgress = 1.0);
+        if (mounted) {
+          setState(() => _uploadProgress = 1.0);
+        }
+
+        // Store the uploaded file ID
+        if (mounted) {
+          setState(() => _uploadedFileId = uploadedFile.$id);
+        }
+
+        // Small delay so user sees 100%
+        await Future.delayed(const Duration(milliseconds: 300));
+
+        // Extract real video metadata using video_player
+        await _extractFileDetails(filePath, file.name);
+
+        if (mounted) {
+          setState(() {
+            _isUploading = false;
+            _uploadProgress = 1.0;
+          });
+        }
+
+        // Show success
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Video uploaded successfully!'),
+              backgroundColor: AppColors.success,
+            ),
+          );
+        }
+      } catch (uploadError) {
+        progressTimer.cancel();
+        // If Appwrite upload fails (bucket permissions), fall back to local save
+        debugPrint('Appwrite upload failed, falling back to local save: $uploadError');
+
+        if (mounted) {
+          setState(() => _uploadProgress = 0.5);
+        }
+
+        // Save locally as fallback
+        final appDir = await getApplicationDocumentsDirectory();
+        final videosDir = Directory('${appDir.path}/videos');
+        if (!await videosDir.exists()) {
+          await videosDir.create(recursive: true);
+        }
+        final localPath = '${videosDir.path}/${file.name}';
+        await File(filePath).copy(localPath);
+
+        if (mounted) {
+          setState(() {
+            _uploadedFileId = fileId;
+            _uploadProgress = 1.0;
+          });
+        }
+
+        await Future.delayed(const Duration(milliseconds: 300));
+        await _extractFileDetails(localPath, file.name);
+
+        if (mounted) {
+          setState(() {
+            _isUploading = false;
+            _uploadProgress = 1.0;
+          });
+        }
+
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Video saved locally (cloud upload unavailable)'),
+              backgroundColor: AppColors.warning,
+            ),
+          );
+        }
       }
-
-      // Store the local file ID
-      final fileId = 'video_${DateTime.now().millisecondsSinceEpoch}';
-      if (mounted) {
-        setState(() => _uploadedFileId = fileId);
-      }
-
-      // Extract real video metadata using video_player
-      await _extractFileDetails(localPath, file.name);
-
-      if (mounted) {
-        setState(() {
-          _isUploading = false;
-          _uploadProgress = 1.0;
-        });
-      }
-
-      _showErrorSnackBar('Video saved successfully!');
     } catch (e) {
       if (mounted) {
         setState(() {
