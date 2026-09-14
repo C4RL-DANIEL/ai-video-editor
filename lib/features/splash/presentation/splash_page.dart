@@ -1,25 +1,27 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:phosphor_flutter/phosphor_flutter.dart';
 
-/// Splash screen shown while the app initializes.
-///
-/// Navigation is handled entirely by GoRouter's redirect logic.
-/// This page just plays its animation and waits.
-class SplashPage extends StatefulWidget {
+import '../presentation/auth_provider.dart';
+
+/// Splash screen that checks auth state and navigates to the right place.
+class SplashPage extends ConsumerStatefulWidget {
   const SplashPage({super.key});
 
   @override
-  State<SplashPage> createState() => _SplashPageState();
+  ConsumerState<SplashPage> createState() => _SplashPageState();
 }
 
-class _SplashPageState extends State<SplashPage>
+class _SplashPageState extends ConsumerState<SplashPage>
     with SingleTickerProviderStateMixin {
   late AnimationController _controller;
   late Animation<double> _fadeLogo;
   late Animation<double> _fadeText;
   late Animation<double> _fadeTagline;
   late Animation<double> _fadeLoading;
+  bool _navigated = false;
 
   @override
   void initState() {
@@ -31,38 +33,19 @@ class _SplashPageState extends State<SplashPage>
     );
 
     _fadeLogo = Tween<double>(begin: 0.0, end: 1.0).animate(
-      CurvedAnimation(
-        parent: _controller,
-        curve: const Interval(0.0, 0.4, curve: Curves.easeOut),
-      ),
+      CurvedAnimation(parent: _controller, curve: const Interval(0.0, 0.4, curve: Curves.easeOut)),
     );
-
     _fadeText = Tween<double>(begin: 0.0, end: 1.0).animate(
-      CurvedAnimation(
-        parent: _controller,
-        curve: const Interval(0.25, 0.6, curve: Curves.easeOut),
-      ),
+      CurvedAnimation(parent: _controller, curve: const Interval(0.25, 0.6, curve: Curves.easeOut)),
     );
-
     _fadeTagline = Tween<double>(begin: 0.0, end: 1.0).animate(
-      CurvedAnimation(
-        parent: _controller,
-        curve: const Interval(0.45, 0.8, curve: Curves.easeOut),
-      ),
+      CurvedAnimation(parent: _controller, curve: const Interval(0.45, 0.8, curve: Curves.easeOut)),
     );
-
     _fadeLoading = Tween<double>(begin: 0.0, end: 1.0).animate(
-      CurvedAnimation(
-        parent: _controller,
-        curve: const Interval(0.7, 1.0, curve: Curves.easeOut),
-      ),
+      CurvedAnimation(parent: _controller, curve: const Interval(0.7, 1.0, curve: Curves.easeOut)),
     );
 
     _controller.forward();
-
-    // No timer needed — GoRouter redirect handles navigation
-    // once the auth state resolves from 'unknown' to
-    // 'authenticated' or 'unauthenticated'.
   }
 
   @override
@@ -71,15 +54,38 @@ class _SplashPageState extends State<SplashPage>
     super.dispose();
   }
 
+  void _navigateBasedOnAuth(AuthState authState) {
+    if (_navigated || !mounted) return;
+
+    if (authState == AuthState.unknown) return; // still loading
+
+    _navigated = true;
+
+    if (authState == AuthState.authenticated) {
+      context.go('/dashboard');
+    } else {
+      context.go('/login');
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
+    // Listen to auth state changes and navigate when ready.
+    ref.listen<AuthState>(authStateProvider, (previous, next) {
+      _navigateBasedOnAuth(next);
+    });
+
+    // Also check current state in case it already resolved.
+    final authState = ref.watch(authStateProvider);
+    // Defer navigation to after the first frame to avoid GoRouter conflicts.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _navigateBasedOnAuth(authState);
+    });
+
     return LayoutBuilder(
       builder: (context, constraints) {
         final maxWidth = constraints.maxWidth;
-        final maxHeight = constraints.maxHeight;
         final isTablet = maxWidth > 600;
-
-        // Responsive sizing
         final logoSize = isTablet ? 120.0 : 88.0;
         final titleSize = isTablet ? 42.0 : 32.0;
         final taglineSize = isTablet ? 18.0 : 14.0;
@@ -96,8 +102,6 @@ class _SplashPageState extends State<SplashPage>
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
                       const Spacer(flex: 3),
-
-                      // App logo
                       FadeTransition(
                         opacity: _fadeLogo,
                         child: Container(
@@ -105,17 +109,14 @@ class _SplashPageState extends State<SplashPage>
                           height: logoSize,
                           decoration: BoxDecoration(
                             color: const Color(0xFF3B82F6).withOpacity(0.15),
-                            borderRadius:
-                                BorderRadius.circular(logoSize * 0.28),
+                            borderRadius: BorderRadius.circular(logoSize * 0.28),
                             border: Border.all(
-                              color:
-                                  const Color(0xFF3B82F6).withOpacity(0.3),
+                              color: const Color(0xFF3B82F6).withOpacity(0.3),
                               width: 1.5,
                             ),
                             boxShadow: [
                               BoxShadow(
-                                color:
-                                    const Color(0xFF3B82F6).withOpacity(0.2),
+                                color: const Color(0xFF3B82F6).withOpacity(0.2),
                                 blurRadius: 40,
                                 spreadRadius: 4,
                               ),
@@ -130,10 +131,7 @@ class _SplashPageState extends State<SplashPage>
                           ),
                         ),
                       ),
-
                       SizedBox(height: isTablet ? 40 : 32),
-
-                      // App name
                       FadeTransition(
                         opacity: _fadeText,
                         child: Text(
@@ -146,10 +144,7 @@ class _SplashPageState extends State<SplashPage>
                           ),
                         ),
                       ),
-
                       SizedBox(height: isTablet ? 16 : 12),
-
-                      // Tagline
                       FadeTransition(
                         opacity: _fadeTagline,
                         child: Text(
@@ -162,10 +157,7 @@ class _SplashPageState extends State<SplashPage>
                           ),
                         ),
                       ),
-
                       const Spacer(flex: 3),
-
-                      // Loading indicator
                       FadeTransition(
                         opacity: _fadeLoading,
                         child: SizedBox(
@@ -173,12 +165,10 @@ class _SplashPageState extends State<SplashPage>
                           height: 28,
                           child: CircularProgressIndicator(
                             strokeWidth: 2.5,
-                            color:
-                                const Color(0xFF3B82F6).withOpacity(0.8),
+                            color: const Color(0xFF3B82F6).withOpacity(0.8),
                           ),
                         ),
                       ),
-
                       SizedBox(height: isTablet ? 48 : 36),
                     ],
                   ),

@@ -221,40 +221,8 @@ final appRouterProvider = Provider<GoRouter>((ref) {
     initialLocation: RoutePaths.splash,
     debugLogDiagnostics: false,
 
-    // Tell GoRouter to re-evaluate the redirect whenever auth state changes.
-    refreshListenable: authRefreshNotifier,
-
-    // ── Redirect logic ────────────────────────────────────────────
-    redirect: (BuildContext context, GoRouterState state) {
-      final location = state.matchedLocation;
-
-      // Read the auth state from Riverpod.
-      // During the first frame, the auth state may still be 'unknown'.
-      final authState = ref.read(authStateProvider);
-
-      // Still checking auth – stay on splash.
-      if (authState == AuthState.unknown) {
-        return location == RoutePaths.splash ? null : RoutePaths.splash;
-      }
-
-      // Unauthenticated: only allow auth routes.
-      final isAuthRoute =
-          location == RoutePaths.splash ||
-          location == RoutePaths.login ||
-          location == RoutePaths.register;
-
-      if (authState == AuthState.unauthenticated && !isAuthRoute) {
-        return RoutePaths.login;
-      }
-
-      // Authenticated on splash → go to dashboard.
-      if (authState == AuthState.authenticated &&
-          location == RoutePaths.splash) {
-        return RoutePaths.dashboard;
-      }
-
-      return null;
-    },
+    // No redirect logic — the splash page handles auth-based navigation
+    // using ref.listen(authStateProvider) and context.go().
 
     // ── Error page ────────────────────────────────────────────────
     errorBuilder: (context, state) => _ErrorPage(
