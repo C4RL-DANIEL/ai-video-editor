@@ -1,4 +1,7 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:phosphor_flutter/phosphor_flutter.dart';
 import 'package:flutter_animate/flutter_animate.dart';
@@ -8,11 +11,21 @@ import '../../../core/theme/app_colors.dart';
 class AnalysisProgressPage extends StatefulWidget {
   final String sourceType;
   final String sourceName;
+  final String? projectId;
+
+  /// Optional external pipeline stages. When null, a sensible default is used.
+  final List<PipelineStage>? stages;
+
+  /// Base duration per stage (ms).  The timer-based countdown scales from this.
+  final int stageDurationMs;
 
   const AnalysisProgressPage({
     super.key,
     required this.sourceType,
     required this.sourceName,
+    this.projectId,
+    this.stages,
+    this.stageDurationMs = 2000,
   });
 
   @override
@@ -24,57 +37,72 @@ class _AnalysisProgressPageState extends State<AnalysisProgressPage>
   late AnimationController _pulseController;
   late Animation<double> _pulseAnimation;
 
-  int _currentStageIndex = 1;
+  late List<PipelineStage> _stages;
+  int _currentStageIndex = 1; // 0 is "Upload Complete" → already done
   double _overallProgress = 0;
   bool _isComplete = false;
-  Duration _estimatedTimeRemaining = const Duration(minutes: 3, seconds: 45);
+  bool _isCancelled = false;
+  Duration _estimatedTimeRemaining = Duration.zero;
 
-  final List<PipelineStage> _stages = [
-    PipelineStage(
-      name: 'Upload Complete',
-      icon: PhosphorIconsLight.cloudArrowUp,
-      status: StageStatus.completed,
-    ),
-    PipelineStage(
-      name: 'Transcribing Audio',
-      icon: PhosphorIconsLight.microphone,
-      status: StageStatus.inProgress,
-    ),
-    PipelineStage(
-      name: 'Analyzing Video',
-      icon: PhosphorIconsLight.filmStrip,
-      status: StageStatus.pending,
-    ),
-    PipelineStage(
-      name: 'Understanding Content',
-      icon: PhosphorIconsLight.brain,
-      status: StageStatus.pending,
-    ),
-    PipelineStage(
-      name: 'Finding Viral Moments',
-      icon: PhosphorIconsLight.fire,
-      status: StageStatus.pending,
-    ),
-    PipelineStage(
-      name: 'Generating Shorts',
-      icon: PhosphorIconsLight.scissors,
-      status: StageStatus.pending,
-    ),
-    PipelineStage(
-      name: 'Building Long-Form',
-      icon: PhosphorIconsLight.filmSlate,
-      status: StageStatus.pending,
-    ),
-    PipelineStage(
-      name: 'Quality Check',
-      icon: PhosphorIconsLight.checkCircle,
-      status: StageStatus.pending,
-    ),
-  ];
+  Timer? _progressTimer;
+  double _stageProgress = 0; // 0.0 → 1.0 within current stage
+
+  // ── Default pipeline stages ──────────────────────────────────────
+
+  static List<PipelineStage> _defaultStages() => [
+        PipelineStage(
+          name: 'Upload Complete',
+          icon: PhosphorIconsLight.cloudArrowUp,
+          status: StageStatus.completed,
+        ),
+        PipelineStage(
+          name: 'Transcribing Audio',
+          icon: PhosphorIconsLight.microphone,
+          status: StageStatus.inProgress,
+        ),
+        PipelineStage(
+          name: 'Analyzing Video',
+          icon: PhosphorIconsLight.filmStrip,
+          status: StageStatus.pending,
+        ),
+        PipelineStage(
+          name: 'Understanding Content',
+          icon: PhosphorIconsLight.brain,
+          status: StageStatus.pending,
+        ),
+        PipelineStage(
+          name: 'Finding Viral Moments',
+          icon: PhosphorIconsLight.fire,
+          status: StageStatus.pending,
+        ),
+        PipelineStage(
+          name: 'Generating Shorts',
+          icon: PhosphorIconsLight.scissors,
+          status: StageStatus.pending,
+        ),
+        PipelineStage(
+          name: 'Building Long-Form',
+          icon: PhosphorIconsLight.filmSlate,
+          status: StageStatus.pending,
+        ),
+        PipelineStage(
+          name: 'Quality Check',
+          icon: PhosphorIconsLight.checkCircle,
+          status: StageStatus.pending,
+        ),
+      ];
+
+  // ── Lifecycle ────────────────────────────────────────────────────
 
   @override
   void initState() {
     super.initState();
+    _stages = widget.stages ?? _defaultStages();
+    // Ensure first stage is marked completed
+    if (_stages.isNotEmpty) _stages[0].status = StageStatus.completed;
+    _currentStageIndex = 1;
+    _computeEstimate();
+
     _pulseController = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 1500),
@@ -88,67 +116,157 @@ class _AnalysisProgressPageState extends State<AnalysisProgressPage>
 
   @override
   void dispose() {
+    _progressTimer?.cancel();
     _pulseController.dispose();
     super.dispose();
   }
 
-  // ── Pipeline simulation ───────────────────────────────────────────
+  // ── Pipeline – real timer-based progress ──────────────────────────
 
-  Future<void> _startAnalysis() async {
-    for (int i = 1; i < _stages.length; i++) {
-      if (!mounted) return;
+  void _startAnalysis() {
+    _stageProgress = 0;
+    _progressTimer?.cancel();
+
+    final durationMs = widget.stageDurationMs;
+    const tickMs = 50; // update every 50 ms
+    final totalTicks = durationMs ~/ tickMs;
+    int tick = 0;
+
+    _progressTimer = Timer.periodic(const Duration(milliseconds: tickMs), (timer) {
+      if (!mounted || _isCancelled) {
+        timer.cancel();
+        return;
+      }
+
+      tick++;
+      _stageProgress = (tick / totalTicks).clamp(0.0, 1.0);
+
+      // Compute overall progress: done stages + current fraction
+      final completedWeight = _currentStageIndex;
+      final totalStages = _stages.length - 1; // first stage always done
+      final newProgress =
+          (completedWeight + _stageProgress) / totalStages;
 
       setState(() {
-        _currentStageIndex = i;
-        _overallProgress = i / (_stages.length - 1);
-        _stages[i].status = StageStatus.inProgress;
-
-        final remaining = _stages.length - i - 1;
-        _estimatedTimeRemaining = Duration(
-          minutes: remaining * 30,
-          seconds: (remaining * 45) % 60,
-        );
+        _overallProgress = newProgress.clamp(0.0, 1.0);
       });
 
-      final duration = 1500 + (i * 400);
-      await Future.delayed(Duration(milliseconds: duration));
-
-      if (!mounted) return;
-      setState(() {
-        _stages[i].status = StageStatus.completed;
-      });
-    }
-
-    if (!mounted) return;
-    setState(() {
-      _isComplete = true;
-      _overallProgress = 1.0;
-      _estimatedTimeRemaining = Duration.zero;
+      // Stage finished
+      if (_stageProgress >= 1.0) {
+        timer.cancel();
+        _advanceStage();
+      }
     });
   }
 
-  // ── Navigation ────────────────────────────────────────────────────
+  void _advanceStage() {
+    if (!mounted || _isCancelled) return;
+
+    // Mark current stage completed
+    setState(() {
+      _stages[_currentStageIndex].status = StageStatus.completed;
+    });
+
+    // Move to next
+    _currentStageIndex++;
+    if (_currentStageIndex >= _stages.length) {
+      // All done
+      setState(() {
+        _isComplete = true;
+        _overallProgress = 1.0;
+        _estimatedTimeRemaining = Duration.zero;
+      });
+      return;
+    }
+
+    // Start next stage
+    setState(() {
+      _stages[_currentStageIndex].status = StageStatus.inProgress;
+      _computeEstimate();
+    });
+    _stageProgress = 0;
+    _startAnalysis();
+  }
+
+  void _computeEstimate() {
+    final remaining = _stages.length - _currentStageIndex - 1;
+    final msPerStage = widget.stageDurationMs;
+    final totalMs = remaining * msPerStage;
+    _estimatedTimeRemaining = Duration(milliseconds: totalMs);
+  }
+
+  // ── Navigation ───────────────────────────────────────────────────
 
   void _viewResults() {
-    Navigator.pop(context);
-    // TODO: Navigate to actual content map page once wired into router
+    final pid = widget.projectId;
+    if (pid != null) {
+      context.push('/dashboard/projects/$pid/editor');
+    } else {
+      Navigator.pop(context);
+    }
   }
 
   void _viewInBackground() {
     Navigator.pop(context);
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text(
-          'Analysis running in background. We\'ll notify you when ready.',
-          style: GoogleFonts.inter(color: AppColors.white),
+        content: Row(
+          children: [
+            const PhosphorIcon(
+              PhosphorIconsLight.clock,
+              color: AppColors.white,
+              size: 18,
+            ),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Text(
+                'Analysis running in background. We\'ll notify you when ready.',
+                style: GoogleFonts.inter(color: AppColors.white),
+              ),
+            ),
+          ],
         ),
         backgroundColor: AppColors.accent,
-        duration: const Duration(seconds: 3),
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        duration: const Duration(seconds: 4),
+        action: SnackBarAction(
+          label: 'VIEW',
+          textColor: AppColors.white,
+          onPressed: () {
+            final pid = widget.projectId;
+            if (pid != null) {
+              context.push('/dashboard/projects/$pid/editor');
+            }
+          },
+        ),
       ),
     );
   }
 
-  // ── Build ─────────────────────────────────────────────────────────
+  void _cancelAnalysis() {
+    _progressTimer?.cancel();
+    setState(() => _isCancelled = true);
+
+    if (mounted) {
+      Navigator.pop(context);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            'Analysis cancelled.',
+            style: GoogleFonts.inter(color: AppColors.white),
+          ),
+          backgroundColor: AppColors.error,
+          behavior: SnackBarBehavior.floating,
+          shape:
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          duration: const Duration(seconds: 2),
+        ),
+      );
+    }
+  }
+
+  // ── Build ────────────────────────────────────────────────────────
 
   @override
   Widget build(BuildContext context) {
@@ -209,7 +327,11 @@ class _AnalysisProgressPageState extends State<AnalysisProgressPage>
 
           // Title
           Text(
-            _isComplete ? 'Analysis Complete' : 'Processing Video',
+            _isCancelled
+                ? 'Analysis Cancelled'
+                : _isComplete
+                    ? 'Analysis Complete'
+                    : 'Processing Video',
             style: GoogleFonts.inter(
               color: AppColors.textPrimary,
               fontSize: 24,
@@ -268,12 +390,16 @@ class _AnalysisProgressPageState extends State<AnalysisProgressPage>
               value: _overallProgress,
               backgroundColor: AppColors.progressTrack,
               valueColor: AlwaysStoppedAnimation<Color>(
-                _isComplete ? AppColors.success : AppColors.accent,
+                _isCancelled
+                    ? AppColors.error
+                    : _isComplete
+                        ? AppColors.success
+                        : AppColors.accent,
               ),
               minHeight: 8,
             ),
           ),
-          if (!_isComplete) ...[
+          if (!_isComplete && !_isCancelled) ...[
             const SizedBox(height: 12),
             Row(
               mainAxisAlignment: MainAxisAlignment.center,
@@ -384,7 +510,10 @@ class _AnalysisProgressPageState extends State<AnalysisProgressPage>
                                   height: 20,
                                   child: CircularProgressIndicator(
                                     strokeWidth: 2,
+                                    value: _stageProgress,
                                     color: AppColors.accent,
+                                    backgroundColor:
+                                        AppColors.progressTrack,
                                   ),
                                 )
                               : PhosphorIcon(
@@ -418,7 +547,7 @@ class _AnalysisProgressPageState extends State<AnalysisProgressPage>
                         if (isCurrent) ...[
                           const SizedBox(height: 4),
                           Text(
-                            'Processing…',
+                            '${(_stageProgress * 100).toInt()}% — Processing…',
                             style: GoogleFonts.inter(
                               color: AppColors.accent,
                               fontSize: 12,
@@ -489,36 +618,72 @@ class _AnalysisProgressPageState extends State<AnalysisProgressPage>
       ),
       child: Row(
         children: [
-          // View in Background
+          // Cancel / View in Background
           Expanded(
-            child: OutlinedButton(
-              onPressed: _isComplete ? null : _viewInBackground,
-              style: OutlinedButton.styleFrom(
-                foregroundColor: AppColors.textSecondary,
-                side: const BorderSide(color: AppColors.borderStrong),
-                padding: const EdgeInsets.symmetric(vertical: 14),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
+            child: _isComplete
+                ? const SizedBox.shrink()
+                : OutlinedButton(
+                    onPressed: _isCancelled ? null : _cancelAnalysis,
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: AppColors.error,
+                      side: const BorderSide(color: AppColors.error),
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                    ),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        const PhosphorIcon(
+                          PhosphorIconsLight.x,
+                          size: 18,
+                          color: AppColors.error,
+                        ),
+                        const SizedBox(width: 8),
+                        Text(
+                          'Cancel',
+                          style: GoogleFonts.inter(fontWeight: FontWeight.w500),
+                        ),
+                      ],
+                    ),
+                  ),
+          ),
+
+          if (_isComplete) ...[
+            // View in Background (only before completion, but we keep
+            // the layout space filled for consistency)
+            Expanded(
+              child: OutlinedButton(
+                onPressed: null, // disabled when complete
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: AppColors.textSecondary,
+                  side: const BorderSide(color: AppColors.border),
+                  padding: const EdgeInsets.symmetric(vertical: 14),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                ),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    const PhosphorIcon(PhosphorIconsLight.arrowsIn, size: 18),
+                    const SizedBox(width: 8),
+                    Text(
+                      'Background',
+                      style: GoogleFonts.inter(fontWeight: FontWeight.w500),
+                    ),
+                  ],
                 ),
               ),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  const PhosphorIcon(PhosphorIconsLight.arrowsIn, size: 18),
-                  const SizedBox(width: 8),
-                  Text(
-                    'View in Background',
-                    style: GoogleFonts.inter(fontWeight: FontWeight.w500),
-                  ),
-                ],
-              ),
             ),
-          ),
+          ],
 
           // View Results (visible when complete)
           if (_isComplete) ...[
             const SizedBox(width: 16),
             Expanded(
+              flex: 2,
               child: ElevatedButton(
                 onPressed: _viewResults,
                 style: ElevatedButton.styleFrom(
@@ -557,7 +722,7 @@ class _AnalysisProgressPageState extends State<AnalysisProgressPage>
     );
   }
 
-  // ── Helpers ───────────────────────────────────────────────────────
+  // ── Helpers ──────────────────────────────────────────────────────
 
   String _formatDuration(Duration duration) {
     if (duration == Duration.zero) return 'Done';

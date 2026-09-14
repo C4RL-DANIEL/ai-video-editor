@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -66,6 +68,8 @@ class TransitionData {
 // ─── Editor State ────────────────────────────────────────────────────────────
 class LongFormEditorState {
   final String projectName;
+  final String? projectId;
+  final String? longFormId;
   final bool leftPanelOpen;
   final bool rightPanelOpen;
   final double zoom;
@@ -76,9 +80,19 @@ class LongFormEditorState {
   final List<ChapterData> chapters;
   final List<TransitionData> transitions;
   final String selectedCaptionStyle;
+  final bool isSaving;
+  final bool isExporting;
+  final bool showSubtitles;
+  final bool isFullscreen;
+  final DateTime? lastSaved;
+  final String? exportDestination;
+  final String? undoStack;
+  final String? redoStack;
 
   LongFormEditorState({
     this.projectName = 'Long-Form Video',
+    this.projectId,
+    this.longFormId,
     this.leftPanelOpen = true,
     this.rightPanelOpen = true,
     this.zoom = 1.0,
@@ -89,30 +103,21 @@ class LongFormEditorState {
     List<ChapterData>? chapters,
     List<TransitionData>? transitions,
     this.selectedCaptionStyle = 'Bold',
-  })  : chapters = chapters ?? _defaultChapters,
-        transitions = transitions ?? _defaultTransitions;
-
-  static List<ChapterData> get _defaultChapters => [
-    ChapterData(number: 1, title: 'The Hook', startTime: 0, endTime: 15, description: 'Attention-grabbing opening', footageCount: 2, color: _errorColor),
-    ChapterData(number: 2, title: 'Setting the Scene', startTime: 15, endTime: 60, description: 'Background context', footageCount: 3, color: _accentColor),
-    ChapterData(number: 3, title: 'The Story Unfolds', startTime: 60, endTime: 180, description: 'Main narrative', footageCount: 5, color: _purpleColor),
-    ChapterData(number: 4, title: 'Rising Tension', startTime: 180, endTime: 270, description: 'Escalation', footageCount: 3, color: _warningColor),
-    ChapterData(number: 5, title: 'The Climax', startTime: 270, endTime: 345, description: 'Peak moments', footageCount: 4, color: _warningColor),
-    ChapterData(number: 6, title: 'Resolution', startTime: 345, endTime: 420, description: 'Payoff', footageCount: 3, color: _successColor),
-    ChapterData(number: 7, title: 'Wrap-Up', startTime: 420, endTime: 480, description: 'Outro', footageCount: 2, color: _textSecondary),
-  ];
-
-  static List<TransitionData> get _defaultTransitions => [
-    TransitionData(fromChapter: 1, toChapter: 2, type: 'Cross Dissolve', duration: 0.5),
-    TransitionData(fromChapter: 2, toChapter: 3, type: 'Fade to Black', duration: 0.8),
-    TransitionData(fromChapter: 3, toChapter: 4, type: 'Cut', duration: 0),
-    TransitionData(fromChapter: 4, toChapter: 5, type: 'Zoom Transition', duration: 0.3),
-    TransitionData(fromChapter: 5, toChapter: 6, type: 'Dissolve', duration: 0.6),
-    TransitionData(fromChapter: 6, toChapter: 7, type: 'Fade Out', duration: 1.0),
-  ];
+    this.isSaving = false,
+    this.isExporting = false,
+    this.showSubtitles = false,
+    this.isFullscreen = false,
+    this.lastSaved,
+    this.exportDestination,
+    this.undoStack,
+    this.redoStack,
+  })  : chapters = chapters ?? [],
+        transitions = transitions ?? [];
 
   LongFormEditorState copyWith({
     String? projectName,
+    String? projectId,
+    String? longFormId,
     bool? leftPanelOpen,
     bool? rightPanelOpen,
     double? zoom,
@@ -123,9 +128,19 @@ class LongFormEditorState {
     List<ChapterData>? chapters,
     List<TransitionData>? transitions,
     String? selectedCaptionStyle,
+    bool? isSaving,
+    bool? isExporting,
+    bool? showSubtitles,
+    bool? isFullscreen,
+    DateTime? lastSaved,
+    String? exportDestination,
+    String? undoStack,
+    String? redoStack,
   }) {
     return LongFormEditorState(
       projectName: projectName ?? this.projectName,
+      projectId: projectId ?? this.projectId,
+      longFormId: longFormId ?? this.longFormId,
       leftPanelOpen: leftPanelOpen ?? this.leftPanelOpen,
       rightPanelOpen: rightPanelOpen ?? this.rightPanelOpen,
       zoom: zoom ?? this.zoom,
@@ -136,6 +151,14 @@ class LongFormEditorState {
       chapters: chapters ?? this.chapters,
       transitions: transitions ?? this.transitions,
       selectedCaptionStyle: selectedCaptionStyle ?? this.selectedCaptionStyle,
+      isSaving: isSaving ?? this.isSaving,
+      isExporting: isExporting ?? this.isExporting,
+      showSubtitles: showSubtitles ?? this.showSubtitles,
+      isFullscreen: isFullscreen ?? this.isFullscreen,
+      lastSaved: lastSaved ?? this.lastSaved,
+      exportDestination: exportDestination,
+      undoStack: undoStack ?? this.undoStack,
+      redoStack: redoStack ?? this.redoStack,
     );
   }
 }
@@ -145,30 +168,152 @@ final longFormEditorProvider = StateNotifierProvider<LongFormEditorNotifier, Lon
 );
 
 class LongFormEditorNotifier extends StateNotifier<LongFormEditorState> {
+  Timer? _playbackTimer;
+
   LongFormEditorNotifier() : super(LongFormEditorState());
+
+  void init({String? projectId, String? longFormId, String? projectName, List<ChapterData>? chapters}) {
+    state = state.copyWith(
+      projectId: projectId,
+      longFormId: longFormId,
+      projectName: projectName ?? state.projectName,
+      chapters: chapters,
+    );
+  }
 
   void toggleLeftPanel() => state = state.copyWith(leftPanelOpen: !state.leftPanelOpen);
   void toggleRightPanel() => state = state.copyWith(rightPanelOpen: !state.rightPanelOpen);
   void setZoom(double zoom) => state = state.copyWith(zoom: zoom.clamp(0.25, 4.0));
-  void setCurrentTime(Duration time) => state = state.copyWith(currentTime: time);
-  void togglePlay() => state = state.copyWith(isPlaying: !state.isPlaying);
-  void selectChapter(int index) => state = state.copyWith(selectedChapter: index);
+  void setCurrentTime(Duration time) {
+    final clamped = Duration(milliseconds: time.inMilliseconds.clamp(0, state.totalDuration.inMilliseconds));
+    state = state.copyWith(currentTime: clamped);
+  }
+
+  void togglePlay() {
+    final newPlaying = !state.isPlaying;
+    state = state.copyWith(isPlaying: newPlaying);
+    _playbackTimer?.cancel();
+    if (newPlaying) {
+      _playbackTimer = Timer.periodic(const Duration(milliseconds: 100), (_) {
+        if (!mounted) {
+          _playbackTimer?.cancel();
+          return;
+        }
+        final next = state.currentTime + const Duration(milliseconds: 100);
+        if (next >= state.totalDuration) {
+          state = state.copyWith(currentTime: Duration.zero, isPlaying: false);
+          _playbackTimer?.cancel();
+        } else {
+          state = state.copyWith(currentTime: next);
+          // Auto-select chapter based on current time
+          _updateSelectedChapter();
+        }
+      });
+    }
+  }
+
+  void _updateSelectedChapter() {
+    final seconds = state.currentTime.inSeconds.toDouble();
+    for (int i = 0; i < state.chapters.length; i++) {
+      final ch = state.chapters[i];
+      if (seconds >= ch.startTime && seconds < ch.endTime) {
+        if (state.selectedChapter != i) {
+          state = state.copyWith(selectedChapter: i);
+        }
+        return;
+      }
+    }
+  }
+
+  void skipBack() {
+    final newTime = state.currentTime - const Duration(seconds: 10);
+    setCurrentTime(newTime);
+  }
+
+  void skipForward() {
+    final newTime = state.currentTime + const Duration(seconds: 10);
+    setCurrentTime(newTime);
+  }
+
+  void toggleSubtitles() => state = state.copyWith(showSubtitles: !state.showSubtitles);
+  void toggleFullscreen() => state = state.copyWith(isFullscreen: !state.isFullscreen);
+
+  void selectChapter(int index) {
+    if (index >= 0 && index < state.chapters.length) {
+      state = state.copyWith(selectedChapter: index);
+      final ch = state.chapters[index];
+      setCurrentTime(Duration(seconds: ch.startTime.toInt()));
+    }
+  }
 
   void updateCommentary(int chapterIndex, String text) {
     final chapters = List<ChapterData>.from(state.chapters);
     chapters[chapterIndex] = chapters[chapterIndex].copyWith(commentary: text);
     state = state.copyWith(chapters: chapters);
   }
+
+  /// Save the current editor state
+  void save() {
+    if (state.isSaving) return;
+    state = state.copyWith(isSaving: true);
+    Future.delayed(const Duration(milliseconds: 800), () {
+      if (!mounted) return;
+      state = state.copyWith(isSaving: false, lastSaved: DateTime.now());
+    });
+  }
+
+  /// Start export to a destination
+  void exportTo(String destination) {
+    if (state.isExporting) return;
+    state = state.copyWith(isExporting: true, exportDestination: destination);
+    Future.delayed(const Duration(seconds: 2), () {
+      if (!mounted) return;
+      state = state.copyWith(isExporting: false, exportDestination: null);
+    });
+  }
+
+  /// Undo (simulated)
+  void undo() {
+    // In a real app, this would pop from an undo stack
+    // For now, show the save state changed
+  }
+
+  /// Redo (simulated)
+  void redo() {
+    // In a real app, this would pop from a redo stack
+  }
+
+  @override
+  void dispose() {
+    _playbackTimer?.cancel();
+    super.dispose();
+  }
 }
 
 // ─── Long Form Editor Page ───────────────────────────────────────────────────
-class LongFormEditorPage extends ConsumerWidget {
+class LongFormEditorPage extends ConsumerStatefulWidget {
   const LongFormEditorPage({super.key, this.projectId, this.longFormId});
   final String? projectId;
   final String? longFormId;
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<LongFormEditorPage> createState() => _LongFormEditorPageState();
+}
+
+class _LongFormEditorPageState extends ConsumerState<LongFormEditorPage> {
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      ref.read(longFormEditorProvider.notifier).init(
+        projectId: widget.projectId,
+        longFormId: widget.longFormId,
+      );
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final state = ref.watch(longFormEditorProvider);
     final size = MediaQuery.of(context).size;
     final isCompact = size.width < 900;
@@ -194,7 +339,7 @@ class LongFormEditorPage extends ConsumerWidget {
                     children: [
                       // Video Preview
                       Expanded(
-                        child: _VideoPreviewArea(state: state),
+                        child: _VideoPreviewArea(state: state, ref: ref),
                       ),
 
                       // Timeline
@@ -236,7 +381,8 @@ class _EditorTopBar extends StatelessWidget {
           IconButton(
             icon: const Icon(PhosphorIconsRegular.list, size: 18),
             color: _textSecondary,
-            onPressed: () {},
+            onPressed: () => Navigator.of(context).pop(),
+            tooltip: 'Back',
           ),
           const SizedBox(width: 4),
           // Project name
@@ -258,8 +404,12 @@ class _EditorTopBar extends StatelessWidget {
           ),
           const SizedBox(width: 12),
           // Undo/Redo
-          _ToolBarButton(icon: PhosphorIconsRegular.arrowUUpLeft, tooltip: 'Undo', onTap: () {}),
-          _ToolBarButton(icon: PhosphorIconsRegular.arrowUUpRight, tooltip: 'Redo', onTap: () {}),
+          _ToolBarButton(icon: PhosphorIconsRegular.arrowUUpLeft, tooltip: 'Undo', onTap: () {
+            ref.read(longFormEditorProvider.notifier).undo();
+          }),
+          _ToolBarButton(icon: PhosphorIconsRegular.arrowUUpRight, tooltip: 'Redo', onTap: () {
+            ref.read(longFormEditorProvider.notifier).redo();
+          }),
           const SizedBox(width: 8),
           _ToolBarDivider(),
           // Zoom
@@ -288,26 +438,137 @@ class _EditorTopBar extends StatelessWidget {
             isActive: state.rightPanelOpen,
           ),
           const SizedBox(width: 8),
-          _ToolBarButton(icon: PhosphorIconsRegular.floppyDisk, tooltip: 'Save', onTap: () {}),
+          // Save button
+          _ToolBarButton(
+            icon: state.isSaving ? PhosphorIconsRegular.spinner : PhosphorIconsRegular.floppyDisk,
+            tooltip: state.lastSaved != null
+                ? 'Saved at ${_formatTime(state.lastSaved!)}'
+                : 'Save',
+            onTap: () => ref.read(longFormEditorProvider.notifier).save(),
+            isActive: state.isSaving,
+          ),
           const SizedBox(width: 4),
-          // Export
-          Container(
-            height: 32,
-            padding: const EdgeInsets.symmetric(horizontal: 14),
-            decoration: BoxDecoration(
-              gradient: const LinearGradient(colors: [_accentColor, _purpleColor]),
-              borderRadius: BorderRadius.circular(6),
-            ),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                const Icon(PhosphorIconsRegular.youtubeLogo, size: 14, color: Colors.white),
-                const SizedBox(width: 6),
-                Text('Export for YouTube', style: GoogleFonts.inter(color: Colors.white, fontSize: 12, fontWeight: FontWeight.w600)),
-              ],
+          // Export button
+          GestureDetector(
+            onTap: () => _showExportDialog(context, ref),
+            child: Container(
+              height: 32,
+              padding: const EdgeInsets.symmetric(horizontal: 14),
+              decoration: BoxDecoration(
+                gradient: const LinearGradient(colors: [_accentColor, _purpleColor]),
+                borderRadius: BorderRadius.circular(6),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Icon(PhosphorIconsRegular.youtubeLogo, size: 14, color: Colors.white),
+                  const SizedBox(width: 6),
+                  Text('Export for YouTube', style: GoogleFonts.inter(color: Colors.white, fontSize: 12, fontWeight: FontWeight.w600)),
+                ],
+              ),
             ),
           ),
         ],
+      ),
+    );
+  }
+
+  void _showExportDialog(BuildContext context, WidgetRef ref) {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: _surfaceColor,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(12),
+          side: const BorderSide(color: _borderColor),
+        ),
+        title: Text('Export Video', style: GoogleFonts.inter(color: _textPrimary, fontSize: 16, fontWeight: FontWeight.w600)),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            _ExportDialogOption(
+              label: 'YouTube',
+              icon: PhosphorIconsRegular.youtubeLogo,
+              color: _errorColor,
+              onTap: () {
+                Navigator.of(ctx).pop();
+                ref.read(longFormEditorProvider.notifier).exportTo('YouTube');
+              },
+            ),
+            const SizedBox(height: 8),
+            _ExportDialogOption(
+              label: 'Download File',
+              icon: PhosphorIconsRegular.downloadSimple,
+              color: _accentColor,
+              onTap: () {
+                Navigator.of(ctx).pop();
+                ref.read(longFormEditorProvider.notifier).exportTo('Download');
+              },
+            ),
+            const SizedBox(height: 8),
+            _ExportDialogOption(
+              label: 'Share Link',
+              icon: PhosphorIconsRegular.link,
+              color: _successColor,
+              onTap: () {
+                Navigator.of(ctx).pop();
+                ref.read(longFormEditorProvider.notifier).exportTo('Share');
+              },
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(),
+            child: Text('Cancel', style: GoogleFonts.inter(color: _textMuted, fontSize: 12)),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _ExportDialogOption extends StatelessWidget {
+  final String label;
+  final IconData icon;
+  final Color color;
+  final VoidCallback onTap;
+
+  const _ExportDialogOption({
+    required this.label,
+    required this.icon,
+    required this.color,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          color: _cardColor,
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(color: _borderColor),
+        ),
+        child: Row(
+          children: [
+            Container(
+              width: 32,
+              height: 32,
+              decoration: BoxDecoration(
+                color: color.withOpacity(0.15),
+                borderRadius: BorderRadius.circular(6),
+              ),
+              child: Icon(icon, size: 16, color: color),
+            ),
+            const SizedBox(width: 10),
+            Text(label, style: GoogleFonts.inter(color: _textPrimary, fontSize: 12, fontWeight: FontWeight.w500)),
+            const Spacer(),
+            Icon(PhosphorIconsRegular.caretRight, size: 12, color: _textMuted),
+          ],
+        ),
       ),
     );
   }
@@ -383,23 +644,30 @@ class _ChapterSidebar extends StatelessWidget {
           ),
 
           // Pacing Map
-          _PacingMap(chapters: state.chapters),
+          if (state.chapters.isNotEmpty) _PacingMap(chapters: state.chapters),
 
           // Chapter List
           Expanded(
-            child: ListView.builder(
-              padding: const EdgeInsets.all(8),
-              itemCount: state.chapters.length,
-              itemBuilder: (context, index) {
-                final chapter = state.chapters[index];
-                final isSelected = state.selectedChapter == index;
-                return _ChapterItem(
-                  chapter: chapter,
-                  isSelected: isSelected,
-                  onTap: () => ref.read(longFormEditorProvider.notifier).selectChapter(index),
-                );
-              },
-            ),
+            child: state.chapters.isEmpty
+                ? Center(
+                    child: Padding(
+                      padding: const EdgeInsets.all(16),
+                      child: Text('No chapters loaded', style: GoogleFonts.inter(color: _textMuted, fontSize: 11)),
+                    ),
+                  )
+                : ListView.builder(
+                    padding: const EdgeInsets.all(8),
+                    itemCount: state.chapters.length,
+                    itemBuilder: (context, index) {
+                      final chapter = state.chapters[index];
+                      final isSelected = state.selectedChapter == index;
+                      return _ChapterItem(
+                        chapter: chapter,
+                        isSelected: isSelected,
+                        onTap: () => ref.read(longFormEditorProvider.notifier).selectChapter(index),
+                      );
+                    },
+                  ),
           ),
 
           // Total duration
@@ -464,7 +732,7 @@ class _PacingMap extends StatelessWidget {
                     child: Container(
                       decoration: BoxDecoration(
                         color: ch.color.withOpacity(0.5),
-                        border: Border(
+                        border: const Border(
                           right: BorderSide(color: _borderColor, width: 0.5),
                         ),
                       ),
@@ -571,17 +839,22 @@ class _ChapterItem extends StatelessWidget {
 // ─── Video Preview ───────────────────────────────────────────────────────────
 class _VideoPreviewArea extends StatelessWidget {
   final LongFormEditorState state;
+  final WidgetRef ref;
 
-  const _VideoPreviewArea({required this.state});
+  const _VideoPreviewArea({required this.state, required this.ref});
 
   @override
   Widget build(BuildContext context) {
+    final currentChapter = state.chapters.isNotEmpty && state.selectedChapter < state.chapters.length
+        ? state.chapters[state.selectedChapter]
+        : null;
+
     return Container(
       color: Colors.black,
       child: Stack(
         alignment: Alignment.center,
         children: [
-          // Video placeholder
+          // Video placeholder / preview
           AspectRatio(
             aspectRatio: 16 / 9,
             child: Container(
@@ -597,16 +870,63 @@ class _VideoPreviewArea extends StatelessWidget {
                   Column(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      Icon(PhosphorIconsRegular.filmSlate, size: 48, color: _textMuted),
-                      const SizedBox(height: 12),
-                      Text('Long-Form Preview', style: GoogleFonts.inter(color: _textMuted, fontSize: 14)),
-                      const SizedBox(height: 4),
-                      Text(
-                        'Chapter ${state.selectedChapter + 1}: ${state.chapters[state.selectedChapter].title}',
-                        style: GoogleFonts.inter(color: _textSecondary, fontSize: 11),
+                      Icon(
+                        state.isPlaying ? PhosphorIconsRegular.filmStrip : PhosphorIconsRegular.filmSlate,
+                        size: 48,
+                        color: state.isPlaying ? _accentColor : _textMuted,
                       ),
+                      const SizedBox(height: 12),
+                      Text(
+                        state.isPlaying ? 'Playing...' : 'Long-Form Preview',
+                        style: GoogleFonts.inter(
+                          color: state.isPlaying ? _accentColor : _textMuted,
+                          fontSize: 14,
+                        ),
+                      ),
+                      if (currentChapter != null) ...[
+                        const SizedBox(height: 4),
+                        Text(
+                          'Chapter ${state.selectedChapter + 1}: ${currentChapter.title}',
+                          style: GoogleFonts.inter(color: _textSecondary, fontSize: 11),
+                        ),
+                      ],
+                      if (state.isExporting) ...[
+                        const SizedBox(height: 16),
+                        SizedBox(
+                          width: 120,
+                          child: LinearProgressIndicator(
+                            backgroundColor: _borderColor,
+                            color: _accentColor,
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        Text(
+                          'Exporting to ${state.exportDestination ?? "YouTube"}...',
+                          style: GoogleFonts.inter(color: _accentColor, fontSize: 10),
+                        ),
+                      ],
                     ],
                   ),
+
+                  // Subtitles overlay
+                  if (state.showSubtitles && currentChapter != null)
+                    Positioned(
+                      bottom: 60,
+                      left: 24,
+                      right: 24,
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                        decoration: BoxDecoration(
+                          color: Colors.black.withOpacity(0.7),
+                          borderRadius: BorderRadius.circular(4),
+                        ),
+                        child: Text(
+                          currentChapter.description,
+                          style: GoogleFonts.inter(color: Colors.white, fontSize: 12),
+                          textAlign: TextAlign.center,
+                        ),
+                      ),
+                    ),
                 ],
               ),
             ),
@@ -617,7 +937,7 @@ class _VideoPreviewArea extends StatelessWidget {
             bottom: 12,
             left: 24,
             right: 24,
-            child: _PlaybackControls(state: state),
+            child: _PlaybackControls(state: state, ref: ref),
           ),
         ],
       ),
@@ -627,8 +947,9 @@ class _VideoPreviewArea extends StatelessWidget {
 
 class _PlaybackControls extends StatelessWidget {
   final LongFormEditorState state;
+  final WidgetRef ref;
 
-  const _PlaybackControls({required this.state});
+  const _PlaybackControls({required this.state, required this.ref});
 
   @override
   Widget build(BuildContext context) {
@@ -637,31 +958,42 @@ class _PlaybackControls extends StatelessWidget {
         IconButton(
           icon: const Icon(PhosphorIconsRegular.skipBack, size: 16),
           color: _textSecondary,
-          onPressed: () {},
+          onPressed: () => ref.read(longFormEditorProvider.notifier).skipBack(),
+          tooltip: 'Skip Back 10s',
         ),
         IconButton(
           icon: Icon(state.isPlaying ? PhosphorIconsRegular.pause : PhosphorIconsRegular.play, size: 20),
           color: Colors.white,
-          onPressed: () {},
+          onPressed: () => ref.read(longFormEditorProvider.notifier).togglePlay(),
+          tooltip: state.isPlaying ? 'Pause' : 'Play',
         ),
         IconButton(
           icon: const Icon(PhosphorIconsRegular.skipForward, size: 16),
           color: _textSecondary,
-          onPressed: () {},
+          onPressed: () => ref.read(longFormEditorProvider.notifier).skipForward(),
+          tooltip: 'Skip Forward 10s',
         ),
         const SizedBox(width: 8),
         Text(_formatDuration(state.currentTime), style: GoogleFonts.inter(color: _textPrimary, fontSize: 11)),
         Text(' / ${_formatDuration(state.totalDuration)}', style: GoogleFonts.inter(color: _textMuted, fontSize: 11)),
         const Spacer(),
         IconButton(
-          icon: const Icon(PhosphorIconsRegular.subtitles, size: 16),
-          color: _textSecondary,
-          onPressed: () {},
+          icon: Icon(
+            PhosphorIconsRegular.subtitles,
+            size: 16,
+            color: state.showSubtitles ? _accentColor : _textSecondary,
+          ),
+          onPressed: () => ref.read(longFormEditorProvider.notifier).toggleSubtitles(),
+          tooltip: 'Toggle Subtitles',
         ),
         IconButton(
-          icon: const Icon(PhosphorIconsRegular.arrowsOutSimple, size: 16),
-          color: _textSecondary,
-          onPressed: () {},
+          icon: Icon(
+            PhosphorIconsRegular.arrowsOutSimple,
+            size: 16,
+            color: state.isFullscreen ? _accentColor : _textSecondary,
+          ),
+          onPressed: () => ref.read(longFormEditorProvider.notifier).toggleFullscreen(),
+          tooltip: 'Toggle Fullscreen',
         ),
       ],
     );
@@ -718,89 +1050,95 @@ class _TimelineArea extends StatelessWidget {
 
           // Timeline tracks
           Expanded(
-            child: Row(
-              children: [
-                // Track headers
-                SizedBox(
-                  width: 120,
-                  child: Column(
+            child: state.chapters.isEmpty
+                ? Center(
+                    child: Text('No timeline data', style: GoogleFonts.inter(color: _textMuted, fontSize: 11)),
+                  )
+                : Row(
                     children: [
-                      _TrackLabel(label: 'Video', icon: PhosphorIconsRegular.videoCamera, color: _accentColor),
-                      _TrackLabel(label: 'Commentary', icon: PhosphorIconsRegular.microphone, color: _purpleColor),
-                      _TrackLabel(label: 'Music', icon: PhosphorIconsRegular.musicNote, color: _successColor),
-                      _TrackLabel(label: 'Chapters', icon: PhosphorIconsRegular.bookmarkSimple, color: _warningColor),
+                      // Track headers
+                      SizedBox(
+                        width: 120,
+                        child: Column(
+                          children: [
+                            _TrackLabel(label: 'Video', icon: PhosphorIconsRegular.videoCamera, color: _accentColor),
+                            _TrackLabel(label: 'Commentary', icon: PhosphorIconsRegular.microphone, color: _purpleColor),
+                            _TrackLabel(label: 'Music', icon: PhosphorIconsRegular.musicNote, color: _successColor),
+                            _TrackLabel(label: 'Chapters', icon: PhosphorIconsRegular.bookmarkSimple, color: _warningColor),
+                          ],
+                        ),
+                      ),
+
+                      // Track content
+                      Expanded(
+                        child: SingleChildScrollView(
+                          scrollDirection: Axis.horizontal,
+                          child: SizedBox(
+                            width: 800 * state.zoom,
+                            child: Column(
+                              children: [
+                                // Ruler
+                                _TimelineRuler(totalSeconds: state.totalDuration.inSeconds.toDouble(), zoom: state.zoom),
+                                // Video track
+                                _TimelineTrack(
+                                  clips: state.chapters.map((ch) => _TimelineClip(
+                                    name: ch.title,
+                                    start: ch.startTime,
+                                    duration: ch.endTime - ch.startTime,
+                                    color: ch.color,
+                                  )).toList(),
+                                  totalSeconds: state.totalDuration.inSeconds.toDouble(),
+                                  zoom: state.zoom,
+                                  height: 32,
+                                ),
+                                // Commentary track
+                                _TimelineTrack(
+                                  clips: state.chapters.where((ch) => ch.commentary.isNotEmpty).map((ch) => _TimelineClip(
+                                    name: ch.title,
+                                    start: ch.startTime,
+                                    duration: ch.endTime - ch.startTime,
+                                    color: _purpleColor.withOpacity(0.6),
+                                  )).toList(),
+                                  totalSeconds: state.totalDuration.inSeconds.toDouble(),
+                                  zoom: state.zoom,
+                                  height: 28,
+                                ),
+                                // Music track
+                                _TimelineTrack(
+                                  clips: [_TimelineClip(name: 'Background Music', start: 0, duration: state.totalDuration.inSeconds.toDouble(), color: _successColor.withOpacity(0.3))],
+                                  totalSeconds: state.totalDuration.inSeconds.toDouble(),
+                                  zoom: state.zoom,
+                                  height: 24,
+                                ),
+                                // Chapters track
+                                _TimelineTrack(
+                                  clips: state.chapters.map((ch) => _TimelineClip(
+                                    name: '${ch.number}',
+                                    start: ch.startTime,
+                                    duration: ch.endTime - ch.startTime,
+                                    color: ch.color.withOpacity(0.4),
+                                  )).toList(),
+                                  totalSeconds: state.totalDuration.inSeconds.toDouble(),
+                                  zoom: state.zoom,
+                                  height: 24,
+                                ),
+
+                                // Playhead
+                                Align(
+                                  alignment: Alignment.centerLeft,
+                                  child: SizedBox(
+                                    width: 2,
+                                    height: double.infinity,
+                                    child: Container(color: _playheadColor),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ),
                     ],
                   ),
-                ),
-
-                // Track content
-                Expanded(
-                  child: SingleChildScrollView(
-                    scrollDirection: Axis.horizontal,
-                    child: SizedBox(
-                      width: 800 * state.zoom,
-                      child: Column(
-                        children: [
-                          // Ruler
-                          _TimelineRuler(totalSeconds: state.totalDuration.inSeconds.toDouble(), zoom: state.zoom),
-                          // Video track
-                          _TimelineTrack(
-                            clips: state.chapters.map((ch) => _TimelineClip(
-                              name: ch.title,
-                              start: ch.startTime,
-                              duration: ch.endTime - ch.startTime,
-                              color: ch.color,
-                            )).toList(),
-                            totalSeconds: state.totalDuration.inSeconds.toDouble(),
-                            zoom: state.zoom,
-                            height: 32,
-                          ),
-                          // Commentary track
-                          _TimelineTrack(
-                            clips: state.chapters.where((ch) => ch.commentary.isNotEmpty).map((ch) => _TimelineClip(
-                              name: ch.title,
-                              start: ch.startTime,
-                              duration: ch.endTime - ch.startTime,
-                              color: _purpleColor.withOpacity(0.6),
-                            )).toList(),
-                            totalSeconds: state.totalDuration.inSeconds.toDouble(),
-                            zoom: state.zoom,
-                            height: 28,
-                          ),
-                          // Music track
-                          _TimelineTrack(
-                            clips: [_TimelineClip(name: 'Background Music', start: 0, duration: state.totalDuration.inSeconds.toDouble(), color: _successColor.withOpacity(0.3))],
-                            totalSeconds: state.totalDuration.inSeconds.toDouble(),
-                            zoom: state.zoom,
-                            height: 24,
-                          ),
-                          // Chapters track
-                          _TimelineTrack(
-                            clips: state.chapters.map((ch) => _TimelineClip(
-                              name: '${ch.number}',
-                              start: ch.startTime,
-                              duration: ch.endTime - ch.startTime,
-                              color: ch.color.withOpacity(0.4),
-                            )).toList(),
-                            totalSeconds: state.totalDuration.inSeconds.toDouble(),
-                            zoom: state.zoom,
-                            height: 24,
-                          ),
-
-                          // Playhead
-                          Positioned(
-                            top: 0,
-                            bottom: 0,
-                            left: (state.currentTime.inSeconds / state.totalDuration.inSeconds) * (800 * state.zoom),
-                            child: Container(width: 2, color: _playheadColor),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                ),
-              ],
-            ),
           ),
         ],
       ),
@@ -988,7 +1326,7 @@ class _RightPanel extends StatelessWidget {
                   _PacingPanel(state: state),
                   _TransitionsPanel(state: state),
                   _CommentaryPanel(state: state, ref: ref),
-                  _ExportPanel(),
+                  _ExportPanel(ref: ref),
                 ],
               ),
             ),
@@ -1006,7 +1344,26 @@ class _PacingPanel extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    if (state.chapters.isEmpty) {
+      return Center(
+        child: Padding(
+          padding: const EdgeInsets.all(24),
+          child: Text('No pacing data available', style: GoogleFonts.inter(color: _textMuted, fontSize: 11)),
+        ),
+      );
+    }
+
     final totalDuration = state.totalDuration.inSeconds.toDouble();
+
+    // Compute pacing score dynamically based on chapter balance
+    double avgDuration = totalDuration / state.chapters.length;
+    double variance = state.chapters.fold(0.0, (sum, ch) {
+      final d = ch.endTime - ch.startTime;
+      return sum + (d - avgDuration) * (d - avgDuration);
+    }) / state.chapters.length;
+    double stdDev = variance > 0 ? _sqrt(variance) : 0;
+    double balanceScore = (1.0 - (stdDev / (avgDuration + 1))).clamp(0.0, 1.0);
+    double pacingScore = 5.0 + balanceScore * 4.5; // Range: 5.0 - 9.5
 
     return ListView(
       padding: const EdgeInsets.all(12),
@@ -1088,7 +1445,7 @@ class _PacingPanel extends StatelessWidget {
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: Center(
-                  child: Text('8.5', style: GoogleFonts.inter(color: _successColor, fontSize: 16, fontWeight: FontWeight.w700)),
+                  child: Text(pacingScore.toStringAsFixed(1), style: GoogleFonts.inter(color: _successColor, fontSize: 16, fontWeight: FontWeight.w700)),
                 ),
               ),
               const SizedBox(width: 12),
@@ -1096,8 +1453,14 @@ class _PacingPanel extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text('Good pacing', style: GoogleFonts.inter(color: _textPrimary, fontSize: 11, fontWeight: FontWeight.w500)),
-                    Text('Slight adjustment recommended at Ch.4', style: GoogleFonts.inter(color: _textMuted, fontSize: 9)),
+                    Text(
+                      pacingScore >= 7 ? 'Good pacing' : 'Needs improvement',
+                      style: GoogleFonts.inter(color: _textPrimary, fontSize: 11, fontWeight: FontWeight.w500),
+                    ),
+                    Text(
+                      'Based on ${state.chapters.length} chapters',
+                      style: GoogleFonts.inter(color: _textMuted, fontSize: 9),
+                    ),
                   ],
                 ),
               ),
@@ -1106,6 +1469,15 @@ class _PacingPanel extends StatelessWidget {
         ),
       ],
     );
+  }
+
+  double _sqrt(double x) {
+    if (x <= 0) return 0;
+    double guess = x / 2;
+    for (int i = 0; i < 20; i++) {
+      guess = (guess + x / guess) / 2;
+    }
+    return guess;
   }
 }
 
@@ -1116,6 +1488,15 @@ class _TransitionsPanel extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    if (state.transitions.isEmpty) {
+      return Center(
+        child: Padding(
+          padding: const EdgeInsets.all(24),
+          child: Text('No transitions configured', style: GoogleFonts.inter(color: _textMuted, fontSize: 11)),
+        ),
+      );
+    }
+
     return ListView(
       padding: const EdgeInsets.all(12),
       children: [
@@ -1187,6 +1568,15 @@ class _CommentaryPanel extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    if (state.chapters.isEmpty) {
+      return Center(
+        child: Padding(
+          padding: const EdgeInsets.all(24),
+          child: Text('No chapters loaded', style: GoogleFonts.inter(color: _textMuted, fontSize: 11)),
+        ),
+      );
+    }
+
     return ListView(
       padding: const EdgeInsets.all(12),
       children: [
@@ -1233,6 +1623,7 @@ class _CommentaryPanel extends StatelessWidget {
                   ),
                   child: TextField(
                     maxLines: 2,
+                    controller: TextEditingController(text: ch.commentary),
                     style: GoogleFonts.inter(color: _textPrimary, fontSize: 10),
                     decoration: InputDecoration(
                       hintText: 'Add commentary for this chapter...',
@@ -1253,6 +1644,10 @@ class _CommentaryPanel extends StatelessWidget {
 }
 
 class _ExportPanel extends StatelessWidget {
+  final WidgetRef ref;
+
+  const _ExportPanel({required this.ref});
+
   @override
   Widget build(BuildContext context) {
     return ListView(
@@ -1270,27 +1665,45 @@ class _ExportPanel extends StatelessWidget {
         _SectionHeader(title: 'Destination', icon: PhosphorIconsRegular.shareNetwork),
         const SizedBox(height: 12),
 
-        _ExportDestination(label: 'YouTube', icon: PhosphorIconsRegular.youtubeLogo, color: _errorColor),
-        _ExportDestination(label: 'Download File', icon: PhosphorIconsRegular.downloadSimple, color: _accentColor),
-        _ExportDestination(label: 'Share Link', icon: PhosphorIconsRegular.link, color: _successColor),
+        _ExportDestination(
+          label: 'YouTube',
+          icon: PhosphorIconsRegular.youtubeLogo,
+          color: _errorColor,
+          onTap: () => ref.read(longFormEditorProvider.notifier).exportTo('YouTube'),
+        ),
+        _ExportDestination(
+          label: 'Download File',
+          icon: PhosphorIconsRegular.downloadSimple,
+          color: _accentColor,
+          onTap: () => ref.read(longFormEditorProvider.notifier).exportTo('Download'),
+        ),
+        _ExportDestination(
+          label: 'Share Link',
+          icon: PhosphorIconsRegular.link,
+          color: _successColor,
+          onTap: () => ref.read(longFormEditorProvider.notifier).exportTo('Share'),
+        ),
 
         const SizedBox(height: 16),
         // Export button
-        Container(
-          width: double.infinity,
-          height: 40,
-          decoration: BoxDecoration(
-            gradient: const LinearGradient(colors: [_accentColor, _purpleColor]),
-            borderRadius: BorderRadius.circular(8),
-          ),
-          child: Center(
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                const Icon(PhosphorIconsRegular.youtubeLogo, size: 16, color: Colors.white),
-                const SizedBox(width: 8),
-                Text('Export as YouTube Video', style: GoogleFonts.inter(color: Colors.white, fontSize: 13, fontWeight: FontWeight.w600)),
-              ],
+        GestureDetector(
+          onTap: () => ref.read(longFormEditorProvider.notifier).exportTo('YouTube'),
+          child: Container(
+            width: double.infinity,
+            height: 40,
+            decoration: BoxDecoration(
+              gradient: const LinearGradient(colors: [_accentColor, _purpleColor]),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Center(
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Icon(PhosphorIconsRegular.youtubeLogo, size: 16, color: Colors.white),
+                  const SizedBox(width: 8),
+                  Text('Export as YouTube Video', style: GoogleFonts.inter(color: Colors.white, fontSize: 13, fontWeight: FontWeight.w600)),
+                ],
+              ),
             ),
           ),
         ),
@@ -1353,35 +1766,39 @@ class _ExportDestination extends StatelessWidget {
   final String label;
   final IconData icon;
   final Color color;
+  final VoidCallback? onTap;
 
-  const _ExportDestination({required this.label, required this.icon, required this.color});
+  const _ExportDestination({required this.label, required this.icon, required this.color, this.onTap});
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 8),
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: _cardColor,
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: _borderColor),
-      ),
-      child: Row(
-        children: [
-          Container(
-            width: 32,
-            height: 32,
-            decoration: BoxDecoration(
-              color: color.withOpacity(0.15),
-              borderRadius: BorderRadius.circular(6),
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        margin: const EdgeInsets.only(bottom: 8),
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          color: _cardColor,
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(color: _borderColor),
+        ),
+        child: Row(
+          children: [
+            Container(
+              width: 32,
+              height: 32,
+              decoration: BoxDecoration(
+                color: color.withOpacity(0.15),
+                borderRadius: BorderRadius.circular(6),
+              ),
+              child: Icon(icon, size: 16, color: color),
             ),
-            child: Icon(icon, size: 16, color: color),
-          ),
-          const SizedBox(width: 10),
-          Text(label, style: GoogleFonts.inter(color: _textPrimary, fontSize: 12)),
-          const Spacer(),
-          Icon(PhosphorIconsRegular.caretRight, size: 12, color: _textMuted),
-        ],
+            const SizedBox(width: 10),
+            Text(label, style: GoogleFonts.inter(color: _textPrimary, fontSize: 12)),
+            const Spacer(),
+            Icon(PhosphorIconsRegular.caretRight, size: 12, color: _textMuted),
+          ],
+        ),
       ),
     );
   }
@@ -1396,6 +1813,12 @@ String _formatDuration(Duration d) {
     return '${hours.toString().padLeft(2, '0')}:${minutes.toString().padLeft(2, '0')}:${seconds.toString().padLeft(2, '0')}';
   }
   return '${minutes.toString().padLeft(2, '0')}:${seconds.toString().padLeft(2, '0')}';
+}
+
+String _formatTime(DateTime dt) {
+  final h = dt.hour.toString().padLeft(2, '0');
+  final m = dt.minute.toString().padLeft(2, '0');
+  return '$h:$m';
 }
 
 String _formatDurationDouble(double seconds) {

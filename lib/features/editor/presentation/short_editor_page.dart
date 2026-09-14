@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -24,6 +26,7 @@ class ShortEditorState {
   final bool isGenerating;
   final Duration currentTime;
   final Duration totalDuration;
+  final bool isPlaying;
 
   // Hook
   final String hookText;
@@ -49,6 +52,9 @@ class ShortEditorState {
   final double sfxVolume;
   final bool musicDucking;
 
+  // SFX
+  final String? selectedSfx;
+
   // Overrides
   final bool overrideHook;
   final bool overrideCaptions;
@@ -61,6 +67,7 @@ class ShortEditorState {
     this.isGenerating = false,
     this.currentTime = Duration.zero,
     this.totalDuration = const Duration(seconds: 45),
+    this.isPlaying = false,
     this.hookText = 'WAIT FOR IT... 😱',
     this.hookFontSize = 28,
     this.captionStyle = 'Bold Pop',
@@ -77,6 +84,7 @@ class ShortEditorState {
     this.commentaryVolume = 1.0,
     this.sfxVolume = 0.8,
     this.musicDucking = true,
+    this.selectedSfx,
     this.overrideHook = false,
     this.overrideCaptions = false,
     this.overridePacing = false,
@@ -89,6 +97,7 @@ class ShortEditorState {
     bool? isGenerating,
     Duration? currentTime,
     Duration? totalDuration,
+    bool? isPlaying,
     String? hookText,
     double? hookFontSize,
     String? captionStyle,
@@ -105,6 +114,7 @@ class ShortEditorState {
     double? commentaryVolume,
     double? sfxVolume,
     bool? musicDucking,
+    String? selectedSfx,
     bool? overrideHook,
     bool? overrideCaptions,
     bool? overridePacing,
@@ -116,6 +126,7 @@ class ShortEditorState {
       isGenerating: isGenerating ?? this.isGenerating,
       currentTime: currentTime ?? this.currentTime,
       totalDuration: totalDuration ?? this.totalDuration,
+      isPlaying: isPlaying ?? this.isPlaying,
       hookText: hookText ?? this.hookText,
       hookFontSize: hookFontSize ?? this.hookFontSize,
       captionStyle: captionStyle ?? this.captionStyle,
@@ -132,6 +143,7 @@ class ShortEditorState {
       commentaryVolume: commentaryVolume ?? this.commentaryVolume,
       sfxVolume: sfxVolume ?? this.sfxVolume,
       musicDucking: musicDucking ?? this.musicDucking,
+      selectedSfx: selectedSfx == '__clear__' ? null : (selectedSfx ?? this.selectedSfx),
       overrideHook: overrideHook ?? this.overrideHook,
       overrideCaptions: overrideCaptions ?? this.overrideCaptions,
       overridePacing: overridePacing ?? this.overridePacing,
@@ -154,6 +166,7 @@ class ShortEditorNotifier extends StateNotifier<ShortEditorState> {
   void setCaptionPosition(String pos) => state = state.copyWith(captionPosition: pos);
   void setCaptionAnimation(String anim) => state = state.copyWith(captionAnimation: anim);
   void setCaptionFont(String font) => state = state.copyWith(captionFont: font);
+  void setCaptionColor(Color color) => state = state.copyWith(captionColor: color);
   void setZoomIntensity(double v) => state = state.copyWith(zoomIntensity: v);
   void setSpeedRamp(double v) => state = state.copyWith(speedRamp: v);
   void toggleFreezeFrame() => state = state.copyWith(freezeFrame: !state.freezeFrame);
@@ -168,11 +181,206 @@ class ShortEditorNotifier extends StateNotifier<ShortEditorState> {
   void toggleOverridePacing() => state = state.copyWith(overridePacing: !state.overridePacing);
   void toggleOverrideMusic() => state = state.copyWith(overrideMusic: !state.overrideMusic);
 
+  void selectSfx(String sfxName) {
+    if (state.selectedSfx == sfxName) {
+      state = state.copyWith(selectedSfx: '__clear__');
+    } else {
+      state = state.copyWith(selectedSfx: sfxName);
+    }
+  }
+
+  void togglePlayback() {
+    if (state.isPlaying) {
+      _stopPlayback();
+    } else {
+      _startPlayback();
+    }
+  }
+
+  void _startPlayback() {
+    state = state.copyWith(isPlaying: true);
+    // Simulate playback tick
+    Future.doWhile(() async {
+      await Future.delayed(const Duration(seconds: 1));
+      if (!state.isPlaying) return false;
+      final next = state.currentTime + const Duration(seconds: 1);
+      if (next >= state.totalDuration) {
+        state = state.copyWith(
+          currentTime: Duration.zero,
+          isPlaying: false,
+        );
+        return false;
+      }
+      state = state.copyWith(currentTime: next);
+      return true;
+    });
+  }
+
+  void _stopPlayback() {
+    state = state.copyWith(isPlaying: false);
+  }
+
+  void skipForward() {
+    final next = state.currentTime + const Duration(seconds: 5);
+    state = state.copyWith(
+      currentTime: next > state.totalDuration ? state.totalDuration : next,
+    );
+  }
+
+  void skipBackward() {
+    final prev = state.currentTime - const Duration(seconds: 5);
+    state = state.copyWith(
+      currentTime: prev < Duration.zero ? Duration.zero : prev,
+    );
+  }
+
   void regenerate() {
     state = state.copyWith(isGenerating: true);
-    Future.delayed(const Duration(seconds: 3), () {
-      state = state.copyWith(isGenerating: false);
+    Future.delayed(const Duration(seconds: 2), () {
+      if (!mounted) return;
+      // Shuffle/regenerate: randomize visual and audio settings
+      final hooks = [
+        'WAIT FOR IT... 😱',
+        '🔥 THIS CHANGES EVERYTHING',
+        'POV: You discovered...',
+        'Nobody expected this',
+        'Watch till the end',
+        'You won\'t believe this 😳',
+        'His reaction is priceless 💀',
+        'The most satisfying moment ever',
+      ];
+      final styles = ['Bold Pop', 'Minimal', 'Gradient Glow', 'Outlined', 'Shadow Drop'];
+      final fonts = ['Montserrat', 'Inter', 'Poppins', 'Bebas Neue', 'Impact'];
+      final animations = ['Word-by-Word', 'Line-by-Line', 'Typewriter', 'Pop-in', 'Fade-in'];
+      final positions = ['Top', 'Center', 'Bottom', 'Dynamic'];
+
+      final rand = _rng;
+      state = state.copyWith(
+        isGenerating: false,
+        hookText: hooks[rand.nextInt(hooks.length)],
+        captionStyle: styles[rand.nextInt(styles.length)],
+        captionFont: fonts[rand.nextInt(fonts.length)],
+        captionAnimation: animations[rand.nextInt(animations.length)],
+        captionPosition: positions[rand.nextInt(positions.length)],
+        zoomIntensity: 1.0 + rand.nextDouble(),
+        speedRamp: 0.5 + rand.nextDouble() * 2.5,
+      );
     });
+  }
+
+  static final _rng = math.Random();
+}
+
+// ─── Export Dialog ──────────────────────────────────────────────────────────
+void _showExportDialog(BuildContext context, ShortEditorState state) {
+  showDialog(
+    context: context,
+    builder: (ctx) => AlertDialog(
+      backgroundColor: _cardColor,
+      title: Text(
+        'Export Short',
+        style: GoogleFonts.inter(
+          fontSize: 16,
+          fontWeight: FontWeight.w600,
+          color: _textPrimary,
+        ),
+      ),
+      content: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'Export "${state.projectName}"?',
+            style: GoogleFonts.inter(color: _textSecondary),
+          ),
+          const SizedBox(height: 16),
+          // Export options
+          _ExportOption(
+            icon: PhosphorIconsRegular.fileVideo,
+            label: 'Save to Gallery',
+            onTap: () {
+              Navigator.of(ctx).pop();
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text('📥 Exporting to gallery…', style: GoogleFonts.inter()),
+                  backgroundColor: _surfaceColor,
+                ),
+              );
+            },
+          ),
+          const SizedBox(height: 8),
+          _ExportOption(
+            icon: PhosphorIconsRegular.shareFat,
+            label: 'Share via...',
+            onTap: () {
+              Navigator.of(ctx).pop();
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text('📤 Share sheet opening…', style: GoogleFonts.inter()),
+                  backgroundColor: _surfaceColor,
+                ),
+              );
+            },
+          ),
+          const SizedBox(height: 8),
+          _ExportOption(
+            icon: PhosphorIconsRegular.cloudArrowUp,
+            label: 'Upload to Cloud',
+            onTap: () {
+              Navigator.of(ctx).pop();
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text('☁️ Uploading…', style: GoogleFonts.inter()),
+                  backgroundColor: _surfaceColor,
+                ),
+              );
+            },
+          ),
+        ],
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.of(ctx).pop(),
+          child: Text('Cancel', style: GoogleFonts.inter(color: _textMuted)),
+        ),
+      ],
+    ),
+  );
+}
+
+class _ExportOption extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final VoidCallback onTap;
+
+  const _ExportOption({
+    required this.icon,
+    required this.label,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          color: _surfaceColor,
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(color: _borderColor),
+        ),
+        child: Row(
+          children: [
+            Icon(icon, size: 18, color: _accentColor),
+            const SizedBox(width: 12),
+            Text(label, style: GoogleFonts.inter(color: _textPrimary, fontSize: 13)),
+            const Spacer(),
+            Icon(PhosphorIconsRegular.caretRight, size: 14, color: _textMuted),
+          ],
+        ),
+      ),
+    );
   }
 }
 
@@ -233,21 +441,24 @@ class ShortEditorPage extends ConsumerWidget {
           const SizedBox(width: 8),
 
           // Export Short
-          Container(
-            height: 32,
-            margin: const EdgeInsets.symmetric(vertical: 8),
-            padding: const EdgeInsets.symmetric(horizontal: 14),
-            decoration: BoxDecoration(
-              gradient: const LinearGradient(colors: [_accentColor, _purpleColor]),
-              borderRadius: BorderRadius.circular(6),
-            ),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                const Icon(PhosphorIconsRegular.export, size: 14, color: Colors.white),
-                const SizedBox(width: 6),
-                Text('Export Short', style: GoogleFonts.inter(color: Colors.white, fontSize: 12, fontWeight: FontWeight.w600)),
-              ],
+          GestureDetector(
+            onTap: () => _showExportDialog(context, state),
+            child: Container(
+              height: 32,
+              margin: const EdgeInsets.symmetric(vertical: 8),
+              padding: const EdgeInsets.symmetric(horizontal: 14),
+              decoration: BoxDecoration(
+                gradient: const LinearGradient(colors: [_accentColor, _purpleColor]),
+                borderRadius: BorderRadius.circular(6),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Icon(PhosphorIconsRegular.export, size: 14, color: Colors.white),
+                  const SizedBox(width: 6),
+                  Text('Export Short', style: GoogleFonts.inter(color: Colors.white, fontSize: 12, fontWeight: FontWeight.w600)),
+                ],
+              ),
             ),
           ),
           const SizedBox(width: 12),
@@ -482,14 +693,14 @@ class _ControlPanels extends StatelessWidget {
                 _CaptionsTab(state: state, ref: ref),
                 _EffectsTab(state: state, ref: ref),
                 _AudioTab(state: state, ref: ref),
-                _SfxTab(state: state),
+                _SfxTab(state: state, ref: ref),
                 _OverridesTab(state: state, ref: ref),
               ],
             ),
           ),
 
           // Mini Timeline
-          _MiniTimeline(state: state),
+          _MiniTimeline(state: state, ref: ref),
         ],
       ),
     );
@@ -623,20 +834,30 @@ class _CaptionsTab extends StatelessWidget {
         const SizedBox(height: 8),
         Row(
           children: [
-            _ColorDot(color: Colors.white, isSelected: state.captionColor == Colors.white, onTap: () {}),
-            _ColorDot(color: _warningColor, isSelected: false, onTap: () {}),
-            _ColorDot(color: _accentColor, isSelected: false, onTap: () {}),
-            _ColorDot(color: _successColor, isSelected: false, onTap: () {}),
-            _ColorDot(color: _errorColor, isSelected: false, onTap: () {}),
-            _ColorDot(color: _purpleColor, isSelected: false, onTap: () {}),
+            _ColorDot(color: Colors.white, isSelected: state.captionColor == Colors.white, onTap: () => ref.read(shortEditorProvider.notifier).setCaptionColor(Colors.white)),
+            _ColorDot(color: _warningColor, isSelected: state.captionColor == _warningColor, onTap: () => ref.read(shortEditorProvider.notifier).setCaptionColor(_warningColor)),
+            _ColorDot(color: _accentColor, isSelected: state.captionColor == _accentColor, onTap: () => ref.read(shortEditorProvider.notifier).setCaptionColor(_accentColor)),
+            _ColorDot(color: _successColor, isSelected: state.captionColor == _successColor, onTap: () => ref.read(shortEditorProvider.notifier).setCaptionColor(_successColor)),
+            _ColorDot(color: _errorColor, isSelected: state.captionColor == _errorColor, onTap: () => ref.read(shortEditorProvider.notifier).setCaptionColor(_errorColor)),
+            _ColorDot(color: _purpleColor, isSelected: state.captionColor == _purpleColor, onTap: () => ref.read(shortEditorProvider.notifier).setCaptionColor(_purpleColor)),
             const SizedBox(width: 8),
-            Container(
-              width: 24,
-              height: 24,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                border: Border.all(color: _borderColor),
-                gradient: const LinearGradient(colors: [_accentColor, _purpleColor, _warningColor]),
+            GestureDetector(
+              onTap: () {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text('🎨 Custom color picker coming soon', style: GoogleFonts.inter()),
+                    backgroundColor: _surfaceColor,
+                  ),
+                );
+              },
+              child: Container(
+                width: 24,
+                height: 24,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  border: Border.all(color: _borderColor),
+                  gradient: const LinearGradient(colors: [_accentColor, _purpleColor, _warningColor]),
+                ),
               ),
             ),
           ],
@@ -760,8 +981,9 @@ class _AudioTab extends StatelessWidget {
 
 class _SfxTab extends StatelessWidget {
   final ShortEditorState state;
+  final WidgetRef ref;
 
-  const _SfxTab({required this.state});
+  const _SfxTab({required this.state, required this.ref});
 
   @override
   Widget build(BuildContext context) {
@@ -772,27 +994,67 @@ class _SfxTab extends StatelessWidget {
         const SizedBox(height: 12),
 
         // SFX items
-        _SfxItem(name: 'Whoosh', time: '00:02', icon: PhosphorIconsRegular.wind),
-        _SfxItem(name: 'Impact Boom', time: '00:08', icon: PhosphorIconsRegular.warning),
-        _SfxItem(name: 'Ding', time: '00:15', icon: PhosphorIconsRegular.bell),
-        _SfxItem(name: 'Crowd Ooh', time: '00:22', icon: PhosphorIconsRegular.users),
-        _SfxItem(name: 'Record Scratch', time: '00:30', icon: PhosphorIconsRegular.record),
+        _SfxItem(
+          name: 'Whoosh',
+          time: '00:02',
+          icon: PhosphorIconsRegular.wind,
+          isSelected: state.selectedSfx == 'Whoosh',
+          onTap: () => ref.read(shortEditorProvider.notifier).selectSfx('Whoosh'),
+        ),
+        _SfxItem(
+          name: 'Impact Boom',
+          time: '00:08',
+          icon: PhosphorIconsRegular.warning,
+          isSelected: state.selectedSfx == 'Impact Boom',
+          onTap: () => ref.read(shortEditorProvider.notifier).selectSfx('Impact Boom'),
+        ),
+        _SfxItem(
+          name: 'Ding',
+          time: '00:15',
+          icon: PhosphorIconsRegular.bell,
+          isSelected: state.selectedSfx == 'Ding',
+          onTap: () => ref.read(shortEditorProvider.notifier).selectSfx('Ding'),
+        ),
+        _SfxItem(
+          name: 'Crowd Ooh',
+          time: '00:22',
+          icon: PhosphorIconsRegular.users,
+          isSelected: state.selectedSfx == 'Crowd Ooh',
+          onTap: () => ref.read(shortEditorProvider.notifier).selectSfx('Crowd Ooh'),
+        ),
+        _SfxItem(
+          name: 'Record Scratch',
+          time: '00:30',
+          icon: PhosphorIconsRegular.record,
+          isSelected: state.selectedSfx == 'Record Scratch',
+          onTap: () => ref.read(shortEditorProvider.notifier).selectSfx('Record Scratch'),
+        ),
 
         const SizedBox(height: 16),
-        Container(
-          padding: const EdgeInsets.all(12),
-          decoration: BoxDecoration(
-            color: _cardColor,
-            borderRadius: BorderRadius.circular(8),
-            border: Border.all(color: _borderColor, style: BorderStyle.solid),
-          ),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(PhosphorIconsRegular.plus, size: 16, color: _accentColor),
-              const SizedBox(width: 8),
-              Text('Add SFX', style: GoogleFonts.inter(color: _accentColor, fontSize: 12, fontWeight: FontWeight.w600)),
-            ],
+        GestureDetector(
+          onTap: () {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text('🎵 SFX library coming soon', style: GoogleFonts.inter()),
+                backgroundColor: _surfaceColor,
+              ),
+            );
+          },
+          child: Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: _cardColor,
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(color: _borderColor, style: BorderStyle.solid),
+            ),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(PhosphorIconsRegular.plus, size: 16, color: _accentColor),
+                const SizedBox(width: 8),
+                Text('Add SFX', style: GoogleFonts.inter(color: _accentColor, fontSize: 12, fontWeight: FontWeight.w600)),
+              ],
+            ),
           ),
         ),
       ],
@@ -851,8 +1113,9 @@ class _OverridesTab extends StatelessWidget {
 // ─── Mini Timeline ───────────────────────────────────────────────────────────
 class _MiniTimeline extends StatelessWidget {
   final ShortEditorState state;
+  final WidgetRef ref;
 
-  const _MiniTimeline({required this.state});
+  const _MiniTimeline({required this.state, required this.ref});
 
   @override
   Widget build(BuildContext context) {
@@ -872,20 +1135,39 @@ class _MiniTimeline extends StatelessWidget {
               const SizedBox(width: 4),
               Text('Timeline', style: GoogleFonts.inter(color: _textMuted, fontSize: 9)),
               const Spacer(),
+              // Current time
+              Text(
+                '${state.currentTime.inSeconds}s / ${state.totalDuration.inSeconds}s',
+                style: GoogleFonts.inter(color: _textMuted, fontSize: 9),
+              ),
+              const SizedBox(width: 8),
               // Playback controls
-              Icon(PhosphorIconsRegular.skipBack, size: 10, color: _textSecondary),
-              const SizedBox(width: 4),
-              Container(
-                width: 20,
-                height: 20,
-                decoration: BoxDecoration(
-                  color: _accentColor,
-                  shape: BoxShape.circle,
-                ),
-                child: const Icon(PhosphorIconsRegular.play, size: 8, color: Colors.white),
+              GestureDetector(
+                onTap: () => ref.read(shortEditorProvider.notifier).skipBackward(),
+                child: Icon(PhosphorIconsRegular.skipBack, size: 10, color: _textSecondary),
               ),
               const SizedBox(width: 4),
-              Icon(PhosphorIconsRegular.skipForward, size: 10, color: _textSecondary),
+              GestureDetector(
+                onTap: () => ref.read(shortEditorProvider.notifier).togglePlayback(),
+                child: Container(
+                  width: 20,
+                  height: 20,
+                  decoration: const BoxDecoration(
+                    color: _accentColor,
+                    shape: BoxShape.circle,
+                  ),
+                  child: Icon(
+                    state.isPlaying ? PhosphorIconsRegular.pause : PhosphorIconsRegular.play,
+                    size: 8,
+                    color: Colors.white,
+                  ),
+                ),
+              ),
+              const SizedBox(width: 4),
+              GestureDetector(
+                onTap: () => ref.read(shortEditorProvider.notifier).skipForward(),
+                child: Icon(PhosphorIconsRegular.skipForward, size: 10, color: _textSecondary),
+              ),
             ],
           ),
           const SizedBox(height: 4),
@@ -1155,43 +1437,59 @@ class _SfxItem extends StatelessWidget {
   final String name;
   final String time;
   final IconData icon;
+  final bool isSelected;
+  final VoidCallback? onTap;
 
-  const _SfxItem({required this.name, required this.time, required this.icon});
+  const _SfxItem({
+    required this.name,
+    required this.time,
+    required this.icon,
+    this.isSelected = false,
+    this.onTap,
+  });
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 8),
-      padding: const EdgeInsets.all(10),
-      decoration: BoxDecoration(
-        color: _cardColor,
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: _borderColor),
-      ),
-      child: Row(
-        children: [
-          Container(
-            width: 32,
-            height: 32,
-            decoration: BoxDecoration(
-              color: _warningColor.withOpacity(0.15),
-              borderRadius: BorderRadius.circular(6),
-            ),
-            child: Icon(icon, size: 14, color: _warningColor),
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        margin: const EdgeInsets.only(bottom: 8),
+        padding: const EdgeInsets.all(10),
+        decoration: BoxDecoration(
+          color: isSelected ? _accentColor.withAlpha(15) : _cardColor,
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(
+            color: isSelected ? _accentColor : _borderColor,
           ),
-          const SizedBox(width: 10),
-          Expanded(child: Text(name, style: GoogleFonts.inter(color: _textPrimary, fontSize: 12))),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-            decoration: BoxDecoration(
-              color: _bgColor,
-              borderRadius: BorderRadius.circular(4),
+        ),
+        child: Row(
+          children: [
+            Container(
+              width: 32,
+              height: 32,
+              decoration: BoxDecoration(
+                color: (isSelected ? _accentColor : _warningColor).withAlpha(30),
+                borderRadius: BorderRadius.circular(6),
+              ),
+              child: Icon(icon, size: 14, color: isSelected ? _accentColor : _warningColor),
             ),
-            child: Text(time, style: GoogleFonts.inter(color: _textMuted, fontSize: 10)),
-          ),
-          const SizedBox(width: 8),
-          Icon(PhosphorIconsRegular.gear, size: 12, color: _textMuted),
-        ],
+            const SizedBox(width: 10),
+            Expanded(child: Text(name, style: GoogleFonts.inter(color: _textPrimary, fontSize: 12))),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+              decoration: BoxDecoration(
+                color: _bgColor,
+                borderRadius: BorderRadius.circular(4),
+              ),
+              child: Text(time, style: GoogleFonts.inter(color: _textMuted, fontSize: 10)),
+            ),
+            const SizedBox(width: 8),
+            if (isSelected)
+              Icon(PhosphorIconsRegular.checkCircle, size: 14, color: _accentColor)
+            else
+              Icon(PhosphorIconsRegular.gear, size: 12, color: _textMuted),
+          ],
+        ),
       ),
     );
   }

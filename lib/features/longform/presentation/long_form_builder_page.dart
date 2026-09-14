@@ -2,6 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:phosphor_flutter/phosphor_flutter.dart';
+import 'package:go_router/go_router.dart';
+
+import '../../../core/navigation/app_router.dart';
 
 // ─── Colors ──────────────────────────────────────────────────────────────────
 const Color _bgColor = Color(0xFF0D0D0F);
@@ -79,6 +82,7 @@ class Chapter {
 
 // ─── Builder State ───────────────────────────────────────────────────────────
 class LongFormBuilderState {
+  final String? projectId;
   final int targetDurationMinutes;
   final bool isCustomDuration;
   final double customDurationMinutes;
@@ -87,8 +91,11 @@ class LongFormBuilderState {
   final bool isBuilding;
   final String narrationText;
   final String selectedFootageFilter;
+  final bool isGeneratingNarration;
+  final String? buildError;
 
   LongFormBuilderState({
+    this.projectId,
     this.targetDurationMinutes = 10,
     this.isCustomDuration = false,
     this.customDurationMinutes = 10,
@@ -97,37 +104,17 @@ class LongFormBuilderState {
     this.isBuilding = false,
     this.narrationText = '',
     this.selectedFootageFilter = 'All',
-  })  : sections = sections ?? _defaultSections,
-        chapters = chapters ?? _defaultChapters;
-
-  static List<StorySection> get _defaultSections => [
-    StorySection(type: StorySectionType.hook, selectedFootage: ['Opening Reaction', 'Key Surprise'], estimatedDuration: 15),
-    StorySection(type: StorySectionType.setup, selectedFootage: ['Introduction', 'Background'], estimatedDuration: 45),
-    StorySection(type: StorySectionType.context, selectedFootage: ['Setting Scene', 'Interview Setup'], estimatedDuration: 60),
-    StorySection(type: StorySectionType.story, selectedFootage: ['Main Event 1', 'Main Event 2', 'Main Event 3'], estimatedDuration: 120),
-    StorySection(type: StorySectionType.escalation, selectedFootage: ['Tension Build', 'Rising Action'], estimatedDuration: 90),
-    StorySection(type: StorySectionType.majorEvents, selectedFootage: ['Climax Moment', 'Key Reveal'], estimatedDuration: 75),
-    StorySection(type: StorySectionType.reactions, selectedFootage: ['Crowd Reaction', 'Interview Response'], estimatedDuration: 60),
-    StorySection(type: StorySectionType.payoff, selectedFootage: ['Resolution', 'Resolution 2'], estimatedDuration: 45),
-    StorySection(type: StorySectionType.conclusion, selectedFootage: ['Outro', 'Closing Thoughts'], estimatedDuration: 30),
-  ];
-
-  static List<Chapter> get _defaultChapters => [
-    Chapter(number: 1, title: 'The Hook', startTime: 0, endTime: 15, description: 'Attention-grabbing opening with surprise element', sourceFootageCount: 2),
-    Chapter(number: 2, title: 'Setting the Scene', startTime: 15, endTime: 60, description: 'Introduction and background context', sourceFootageCount: 3),
-    Chapter(number: 3, title: 'The Story Unfolds', startTime: 60, endTime: 180, description: 'Main narrative with key events', sourceFootageCount: 5),
-    Chapter(number: 4, title: 'Rising Tension', startTime: 180, endTime: 270, description: 'Escalation and building drama', sourceFootageCount: 3),
-    Chapter(number: 5, title: 'The Climax', startTime: 270, endTime: 345, description: 'Peak moments and major reveals', sourceFootageCount: 4),
-    Chapter(number: 6, title: 'Aftermath', startTime: 345, endTime: 405, description: 'Reactions and emotional responses', sourceFootageCount: 3),
-    Chapter(number: 7, title: 'Resolution', startTime: 405, endTime: 450, description: 'Payoff and satisfying conclusion', sourceFootageCount: 2),
-    Chapter(number: 8, title: 'Wrap-Up', startTime: 450, endTime: 480, description: 'Closing thoughts and outro', sourceFootageCount: 2),
-  ];
+    this.isGeneratingNarration = false,
+    this.buildError,
+  })  : sections = sections ?? [],
+        chapters = chapters ?? [];
 
   double get totalEstimatedDuration => sections.fold(0, (sum, s) => sum + s.estimatedDuration);
   double get targetDurationSeconds => (isCustomDuration ? customDurationMinutes : targetDurationMinutes) * 60.0;
   double get durationDifference => totalEstimatedDuration - targetDurationSeconds;
 
   LongFormBuilderState copyWith({
+    String? projectId,
     int? targetDurationMinutes,
     bool? isCustomDuration,
     double? customDurationMinutes,
@@ -136,8 +123,11 @@ class LongFormBuilderState {
     bool? isBuilding,
     String? narrationText,
     String? selectedFootageFilter,
+    bool? isGeneratingNarration,
+    String? buildError,
   }) {
     return LongFormBuilderState(
+      projectId: projectId ?? this.projectId,
       targetDurationMinutes: targetDurationMinutes ?? this.targetDurationMinutes,
       isCustomDuration: isCustomDuration ?? this.isCustomDuration,
       customDurationMinutes: customDurationMinutes ?? this.customDurationMinutes,
@@ -146,6 +136,8 @@ class LongFormBuilderState {
       isBuilding: isBuilding ?? this.isBuilding,
       narrationText: narrationText ?? this.narrationText,
       selectedFootageFilter: selectedFootageFilter ?? this.selectedFootageFilter,
+      isGeneratingNarration: isGeneratingNarration ?? this.isGeneratingNarration,
+      buildError: buildError,
     );
   }
 }
@@ -157,9 +149,27 @@ final longFormBuilderProvider = StateNotifierProvider<LongFormBuilderNotifier, L
 class LongFormBuilderNotifier extends StateNotifier<LongFormBuilderState> {
   LongFormBuilderNotifier() : super(LongFormBuilderState());
 
+  void setProjectId(String id) => state = state.copyWith(projectId: id);
+
   void setTargetDuration(int minutes) => state = state.copyWith(targetDurationMinutes: minutes);
   void setCustomDuration(double minutes) => state = state.copyWith(customDurationMinutes: minutes, isCustomDuration: true);
   void toggleCustomDuration() => state = state.copyWith(isCustomDuration: !state.isCustomDuration);
+
+  /// Add a new empty section to the story structure
+  void addSection(StorySectionType type) {
+    final sections = List<StorySection>.from(state.sections);
+    sections.add(StorySection(type: type));
+    state = state.copyWith(sections: sections);
+  }
+
+  /// Remove a section by index
+  void removeSection(int index) {
+    final sections = List<StorySection>.from(state.sections);
+    if (index >= 0 && index < sections.length) {
+      sections.removeAt(index);
+      state = state.copyWith(sections: sections);
+    }
+  }
 
   void toggleSectionExpanded(int index) {
     final sections = List<StorySection>.from(state.sections);
@@ -198,10 +208,62 @@ class LongFormBuilderNotifier extends StateNotifier<LongFormBuilderState> {
   void setNarration(String text) => state = state.copyWith(narrationText: text);
   void setFootageFilter(String filter) => state = state.copyWith(selectedFootageFilter: filter);
 
+  /// Generate narration using AI (simulated - sets loading state, then populates)
+  void generateNarration() {
+    if (state.isGeneratingNarration) return;
+    state = state.copyWith(isGeneratingNarration: true);
+    Future.delayed(const Duration(seconds: 3), () {
+      if (!mounted) return;
+      final buffer = StringBuffer();
+      for (final section in state.sections) {
+        buffer.writeln('[${section.type.label}]');
+        if (section.selectedFootage.isEmpty) {
+          buffer.writeln('(No footage selected for this section)');
+        } else {
+          for (final f in section.selectedFootage) {
+            buffer.writeln('Narration over "$f" — describing the key moments and emotional beats.');
+          }
+        }
+        buffer.writeln();
+      }
+      state = state.copyWith(
+        narrationText: buffer.toString().trim(),
+        isGeneratingNarration: false,
+      );
+    });
+  }
+
+  /// Build the story: generates chapters from the current sections.
   void buildStory() {
-    state = state.copyWith(isBuilding: true);
-    Future.delayed(const Duration(seconds: 4), () {
-      state = state.copyWith(isBuilding: false);
+    if (state.isBuilding) return;
+    if (state.sections.isEmpty) {
+      state = state.copyWith(buildError: 'Add at least one section before building.');
+      return;
+    }
+    state = state.copyWith(isBuilding: true, buildError: null);
+
+    Future.delayed(const Duration(milliseconds: 800), () {
+      if (!mounted) return;
+      // Generate chapters from sections
+      double currentTime = 0;
+      final chapters = <Chapter>[];
+      for (int i = 0; i < state.sections.length; i++) {
+        final section = state.sections[i];
+        final duration = section.estimatedDuration > 0 ? section.estimatedDuration : 30.0;
+        chapters.add(Chapter(
+          number: i + 1,
+          title: section.type.label,
+          startTime: currentTime,
+          endTime: currentTime + duration,
+          description: 'Section with ${section.selectedFootage.length} clip(s)',
+          sourceFootageCount: section.selectedFootage.length,
+        ));
+        currentTime += duration;
+      }
+      state = state.copyWith(
+        isBuilding: false,
+        chapters: chapters,
+      );
     });
   }
 
@@ -210,26 +272,47 @@ class LongFormBuilderNotifier extends StateNotifier<LongFormBuilderState> {
     if (oldIndex < newIndex) newIndex--;
     final item = chapters.removeAt(oldIndex);
     chapters.insert(newIndex, item);
-    // Renumber
-    final renumbered = chapters.asMap().entries.map((e) => Chapter(
-      number: e.key + 1,
-      title: e.value.title,
-      startTime: e.value.startTime,
-      endTime: e.value.endTime,
-      description: e.value.description,
-      sourceFootageCount: e.value.sourceFootageCount,
-    )).toList();
+    // Renumber and recompute times
+    double currentTime = 0;
+    final renumbered = chapters.asMap().entries.map((e) {
+      final duration = e.value.endTime - e.value.startTime;
+      final chapter = Chapter(
+        number: e.key + 1,
+        title: e.value.title,
+        startTime: currentTime,
+        endTime: currentTime + duration,
+        description: e.value.description,
+        sourceFootageCount: e.value.sourceFootageCount,
+      );
+      currentTime += duration;
+      return chapter;
+    }).toList();
     state = state.copyWith(chapters: renumbered);
   }
 }
 
 // ─── Long Form Builder Page ──────────────────────────────────────────────────
-class LongFormBuilderPage extends ConsumerWidget {
+class LongFormBuilderPage extends ConsumerStatefulWidget {
   const LongFormBuilderPage({super.key, this.projectId});
   final String? projectId;
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<LongFormBuilderPage> createState() => _LongFormBuilderPageState();
+}
+
+class _LongFormBuilderPageState extends ConsumerState<LongFormBuilderPage> {
+  @override
+  void initState() {
+    super.initState();
+    if (widget.projectId != null && widget.projectId!.isNotEmpty) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        ref.read(longFormBuilderProvider.notifier).setProjectId(widget.projectId!);
+      });
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final state = ref.watch(longFormBuilderProvider);
     final size = MediaQuery.of(context).size;
     final isCompact = size.width < 1000;
@@ -255,22 +338,35 @@ class LongFormBuilderPage extends ConsumerWidget {
           // Build Story button
           _BuildButton(state: state, ref: ref),
           const SizedBox(width: 8),
-          // Render button
-          Container(
-            height: 32,
-            margin: const EdgeInsets.symmetric(vertical: 8),
-            padding: const EdgeInsets.symmetric(horizontal: 14),
-            decoration: BoxDecoration(
-              gradient: const LinearGradient(colors: [_accentColor, _purpleColor]),
-              borderRadius: BorderRadius.circular(6),
-            ),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                const Icon(PhosphorIconsRegular.export, size: 14, color: Colors.white),
-                const SizedBox(width: 6),
-                Text('Render Long-Form', style: GoogleFonts.inter(color: Colors.white, fontSize: 12, fontWeight: FontWeight.w600)),
-              ],
+          // Render button - navigate to editor page
+          GestureDetector(
+            onTap: state.chapters.isEmpty
+                ? null
+                : () {
+                    final projectId = state.projectId ?? widget.projectId ?? 'default';
+                    context.push(
+                      RoutePaths.longFormDetailPath(projectId, 'new'),
+                    );
+                  },
+            child: Container(
+              height: 32,
+              margin: const EdgeInsets.symmetric(vertical: 8),
+              padding: const EdgeInsets.symmetric(horizontal: 14),
+              decoration: BoxDecoration(
+                gradient: state.chapters.isEmpty
+                    ? null
+                    : const LinearGradient(colors: [_accentColor, _purpleColor]),
+                color: state.chapters.isEmpty ? _textMuted.withOpacity(0.3) : null,
+                borderRadius: BorderRadius.circular(6),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Icon(PhosphorIconsRegular.export, size: 14, color: Colors.white),
+                  const SizedBox(width: 6),
+                  Text('Render Long-Form', style: GoogleFonts.inter(color: Colors.white, fontSize: 12, fontWeight: FontWeight.w600)),
+                ],
+              ),
             ),
           ),
           const SizedBox(width: 12),
@@ -342,12 +438,15 @@ class _StoryStructurePanel extends StatelessWidget {
           _DurationIndicator(state: state),
 
           // Story Flow Visualization
-          _StoryFlowVisualization(state: state),
+          if (state.sections.isNotEmpty) _StoryFlowVisualization(state: state),
 
           // Sections List
           Expanded(
             child: _SectionsList(state: state, ref: ref),
           ),
+
+          // Add Section button
+          _AddSectionBar(ref: ref),
         ],
       ),
     );
@@ -555,7 +654,7 @@ class _StoryFlowVisualization extends StatelessWidget {
                 ),
                 child: Center(
                   child: Text(
-                    section.type.label.substring(0, min(section.type.label.length, 4)),
+                    section.type.label.substring(0, _min(section.type.label.length, 4)),
                     style: GoogleFonts.inter(color: section.type.color, fontSize: 7, fontWeight: FontWeight.w700),
                   ),
                 ),
@@ -576,6 +675,24 @@ class _SectionsList extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    if (state.sections.isEmpty) {
+      return Center(
+        child: Padding(
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(PhosphorIconsRegular.plusCircle, size: 32, color: _textMuted),
+              const SizedBox(height: 12),
+              Text('No sections yet', style: GoogleFonts.inter(color: _textSecondary, fontSize: 12)),
+              const SizedBox(height: 4),
+              Text('Tap "Add Section" below to start building your story',
+                  style: GoogleFonts.inter(color: _textMuted, fontSize: 10), textAlign: TextAlign.center),
+            ],
+          ),
+        ),
+      );
+    }
     return ListView.builder(
       padding: const EdgeInsets.all(12),
       itemCount: state.sections.length,
@@ -586,6 +703,7 @@ class _SectionsList extends StatelessWidget {
           index: index,
           onToggle: () => ref.read(longFormBuilderProvider.notifier).toggleSectionExpanded(index),
           onRemoveFootage: (fi) => ref.read(longFormBuilderProvider.notifier).removeFootageFromSection(index, fi),
+          onRemoveSection: () => ref.read(longFormBuilderProvider.notifier).removeSection(index),
         );
       },
     );
@@ -597,8 +715,15 @@ class _SectionCard extends StatelessWidget {
   final int index;
   final VoidCallback onToggle;
   final Function(int) onRemoveFootage;
+  final VoidCallback onRemoveSection;
 
-  const _SectionCard({required this.section, required this.index, required this.onToggle, required this.onRemoveFootage});
+  const _SectionCard({
+    required this.section,
+    required this.index,
+    required this.onToggle,
+    required this.onRemoveFootage,
+    required this.onRemoveSection,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -643,6 +768,15 @@ class _SectionCard extends StatelessWidget {
                       ],
                     ),
                   ),
+                  // Delete section button
+                  GestureDetector(
+                    onTap: onRemoveSection,
+                    child: Padding(
+                      padding: const EdgeInsets.all(4),
+                      child: Icon(PhosphorIconsRegular.trash, size: 12, color: _errorColor.withOpacity(0.6)),
+                    ),
+                  ),
+                  const SizedBox(width: 4),
                   Icon(
                     section.expanded ? PhosphorIconsRegular.caretUp : PhosphorIconsRegular.caretDown,
                     size: 12,
@@ -684,11 +818,98 @@ class _SectionCard extends StatelessWidget {
                       );
                     }),
                     if (section.selectedFootage.isEmpty)
-                      Text('No footage selected', style: GoogleFonts.inter(color: _textMuted, fontSize: 10, fontStyle: FontStyle.italic)),
+                      Text('No footage selected. Tap + on a footage item to add it here.',
+                          style: GoogleFonts.inter(color: _textMuted, fontSize: 10, fontStyle: FontStyle.italic)),
                   ],
                 ),
               ),
             ],
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+// ─── Add Section Bar ─────────────────────────────────────────────────────────
+class _AddSectionBar extends StatelessWidget {
+  final WidgetRef ref;
+
+  const _AddSectionBar({required this.ref});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: const BoxDecoration(
+        border: Border(top: BorderSide(color: _borderColor)),
+      ),
+      child: GestureDetector(
+        onTap: () => _showAddSectionDialog(context, ref),
+        child: Container(
+          padding: const EdgeInsets.symmetric(vertical: 10),
+          decoration: BoxDecoration(
+            color: _cardColor,
+            borderRadius: BorderRadius.circular(8),
+            border: Border.all(color: _borderColor),
+          ),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(PhosphorIconsRegular.plus, size: 14, color: _accentColor),
+              const SizedBox(width: 6),
+              Text('Add Section', style: GoogleFonts.inter(color: _accentColor, fontSize: 12, fontWeight: FontWeight.w600)),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  void _showAddSectionDialog(BuildContext context, WidgetRef ref) {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: _surfaceColor,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+      ),
+      builder: (ctx) => Container(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text('Add Story Section', style: GoogleFonts.inter(color: _textPrimary, fontSize: 14, fontWeight: FontWeight.w600)),
+            const SizedBox(height: 12),
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: StorySectionType.values.map((type) {
+                return GestureDetector(
+                  onTap: () {
+                    ref.read(longFormBuilderProvider.notifier).addSection(type);
+                    Navigator.of(ctx).pop();
+                  },
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                    decoration: BoxDecoration(
+                      color: type.color.withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(color: type.color.withOpacity(0.3)),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(type.icon, size: 12, color: type.color),
+                        const SizedBox(width: 6),
+                        Text(type.label, style: GoogleFonts.inter(color: type.color, fontSize: 11, fontWeight: FontWeight.w500)),
+                      ],
+                    ),
+                  ),
+                );
+              }).toList(),
+            ),
+            const SizedBox(height: 16),
           ],
         ),
       ),
@@ -729,20 +950,37 @@ class _ChaptersPanel extends StatelessWidget {
             ),
           ),
 
-          // Pacing Visualization
-          _PacingVisualization(state: state),
+          // Pacing Visualization (only if chapters exist)
+          if (state.chapters.isNotEmpty) _PacingVisualization(state: state),
 
-          // Chapters List (reorderable)
+          // Chapters List (reorderable) or empty state
           Expanded(
-            child: ReorderableListView.builder(
-              padding: const EdgeInsets.all(12),
-              itemCount: state.chapters.length,
-              onReorder: (oldIndex, newIndex) => ref.read(longFormBuilderProvider.notifier).reorderChapter(oldIndex, newIndex),
-              itemBuilder: (context, index) {
-                final chapter = state.chapters[index];
-                return _ChapterCard(key: ValueKey(chapter.number), chapter: chapter, index: index);
-              },
-            ),
+            child: state.chapters.isEmpty
+                ? Center(
+                    child: Padding(
+                      padding: const EdgeInsets.all(24),
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(PhosphorIconsRegular.bookmarkSimple, size: 32, color: _textMuted),
+                          const SizedBox(height: 12),
+                          Text('No chapters yet', style: GoogleFonts.inter(color: _textSecondary, fontSize: 12)),
+                          const SizedBox(height: 4),
+                          Text('Add sections and tap "Build Story" to generate chapters',
+                              style: GoogleFonts.inter(color: _textMuted, fontSize: 10), textAlign: TextAlign.center),
+                        ],
+                      ),
+                    ),
+                  )
+                : ReorderableListView.builder(
+                    padding: const EdgeInsets.all(12),
+                    itemCount: state.chapters.length,
+                    onReorder: (oldIndex, newIndex) => ref.read(longFormBuilderProvider.notifier).reorderChapter(oldIndex, newIndex),
+                    itemBuilder: (context, index) {
+                      final chapter = state.chapters[index];
+                      return _ChapterCard(key: ValueKey(chapter.number), chapter: chapter, index: index);
+                    },
+                  ),
           ),
         ],
       ),
@@ -757,7 +995,7 @@ class _PacingVisualization extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final totalDuration = state.chapters.isNotEmpty ? state.chapters.last.endTime : 480.0;
+    final totalDuration = state.chapters.isNotEmpty ? state.chapters.last.endTime : state.targetDurationSeconds;
 
     return Container(
       padding: const EdgeInsets.all(16),
@@ -785,7 +1023,7 @@ class _PacingVisualization extends StatelessWidget {
                   SizedBox(
                     width: 60,
                     child: Text(
-                      section.type.label.substring(0, min(section.type.label.length, 5)),
+                      section.type.label.substring(0, _min(section.type.label.length, 5)),
                       style: GoogleFonts.inter(color: _textMuted, fontSize: 8),
                     ),
                   ),
@@ -903,6 +1141,9 @@ class _FootageNarrationPanel extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // Compute which sections are available for adding footage
+    final sectionCount = state.sections.length;
+
     return Container(
       color: _surfaceColor,
       child: Column(
@@ -950,19 +1191,99 @@ class _FootageNarrationPanel extends StatelessWidget {
 
           // Footage list
           Expanded(
-            child: ListView(
-              padding: const EdgeInsets.all(12),
-              children: [
-                _FootageItem(name: 'Interview - Opening', duration: '01:30', type: 'Interview', color: _accentColor),
-                _FootageItem(name: 'City Skyline B-Roll', duration: '00:45', type: 'B-Roll', color: _successColor),
-                _FootageItem(name: 'Crowd Reaction', duration: '00:15', type: 'Reaction', color: _warningColor),
-                _FootageItem(name: 'Interview - Key Moment', duration: '02:15', type: 'Interview', color: _accentColor),
-                _FootageItem(name: 'Close-up Details', duration: '00:30', type: 'B-Roll', color: _successColor),
-                _FootageItem(name: 'Audience Response', duration: '00:20', type: 'Reaction', color: _warningColor),
-                _FootageItem(name: 'Establishing Shot', duration: '00:10', type: 'Establishing', color: _purpleColor),
-                _FootageItem(name: 'Interview - Conclusion', duration: '01:00', type: 'Interview', color: _accentColor),
-              ],
-            ),
+            child: sectionCount == 0
+                ? Center(
+                    child: Padding(
+                      padding: const EdgeInsets.all(24),
+                      child: Text('Add sections first to assign footage',
+                          style: GoogleFonts.inter(color: _textMuted, fontSize: 11), textAlign: TextAlign.center),
+                    ),
+                  )
+                : ListView(
+                    padding: const EdgeInsets.all(12),
+                    children: [
+                      _FootageItem(
+                        name: 'Interview - Opening',
+                        duration: '01:30',
+                        type: 'Interview',
+                        color: _accentColor,
+                        sectionCount: sectionCount,
+                        onAdd: (sectionIdx) {
+                          ref.read(longFormBuilderProvider.notifier).addFootageToSection(sectionIdx, 'Interview - Opening');
+                        },
+                      ),
+                      _FootageItem(
+                        name: 'City Skyline B-Roll',
+                        duration: '00:45',
+                        type: 'B-Roll',
+                        color: _successColor,
+                        sectionCount: sectionCount,
+                        onAdd: (sectionIdx) {
+                          ref.read(longFormBuilderProvider.notifier).addFootageToSection(sectionIdx, 'City Skyline B-Roll');
+                        },
+                      ),
+                      _FootageItem(
+                        name: 'Crowd Reaction',
+                        duration: '00:15',
+                        type: 'Reaction',
+                        color: _warningColor,
+                        sectionCount: sectionCount,
+                        onAdd: (sectionIdx) {
+                          ref.read(longFormBuilderProvider.notifier).addFootageToSection(sectionIdx, 'Crowd Reaction');
+                        },
+                      ),
+                      _FootageItem(
+                        name: 'Interview - Key Moment',
+                        duration: '02:15',
+                        type: 'Interview',
+                        color: _accentColor,
+                        sectionCount: sectionCount,
+                        onAdd: (sectionIdx) {
+                          ref.read(longFormBuilderProvider.notifier).addFootageToSection(sectionIdx, 'Interview - Key Moment');
+                        },
+                      ),
+                      _FootageItem(
+                        name: 'Close-up Details',
+                        duration: '00:30',
+                        type: 'B-Roll',
+                        color: _successColor,
+                        sectionCount: sectionCount,
+                        onAdd: (sectionIdx) {
+                          ref.read(longFormBuilderProvider.notifier).addFootageToSection(sectionIdx, 'Close-up Details');
+                        },
+                      ),
+                      _FootageItem(
+                        name: 'Audience Response',
+                        duration: '00:20',
+                        type: 'Reaction',
+                        color: _warningColor,
+                        sectionCount: sectionCount,
+                        onAdd: (sectionIdx) {
+                          ref.read(longFormBuilderProvider.notifier).addFootageToSection(sectionIdx, 'Audience Response');
+                        },
+                      ),
+                      _FootageItem(
+                        name: 'Establishing Shot',
+                        duration: '00:10',
+                        type: 'Establishing',
+                        color: _purpleColor,
+                        sectionCount: sectionCount,
+                        onAdd: (sectionIdx) {
+                          ref.read(longFormBuilderProvider.notifier).addFootageToSection(sectionIdx, 'Establishing Shot');
+                        },
+                      ),
+                      _FootageItem(
+                        name: 'Interview - Conclusion',
+                        duration: '01:00',
+                        type: 'Interview',
+                        color: _accentColor,
+                        sectionCount: sectionCount,
+                        onAdd: (sectionIdx) {
+                          ref.read(longFormBuilderProvider.notifier).addFootageToSection(sectionIdx, 'Interview - Conclusion');
+                        },
+                      ),
+                    ],
+                  ),
           ),
 
           // Narration Editor
@@ -980,7 +1301,25 @@ class _FootageNarrationPanel extends StatelessWidget {
                     const SizedBox(width: 8),
                     Text('Narration', style: GoogleFonts.inter(color: _textPrimary, fontSize: 12, fontWeight: FontWeight.w600)),
                     const Spacer(),
-                    Text('AI Generate', style: GoogleFonts.inter(color: _accentColor, fontSize: 10)),
+                    GestureDetector(
+                      onTap: state.isGeneratingNarration
+                          ? null
+                          : () => ref.read(longFormBuilderProvider.notifier).generateNarration(),
+                      child: state.isGeneratingNarration
+                          ? Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                SizedBox(
+                                  width: 10,
+                                  height: 10,
+                                  child: CircularProgressIndicator(strokeWidth: 1.5, color: _accentColor),
+                                ),
+                                const SizedBox(width: 4),
+                                Text('Generating...', style: GoogleFonts.inter(color: _textMuted, fontSize: 10)),
+                              ],
+                            )
+                          : Text('AI Generate', style: GoogleFonts.inter(color: _accentColor, fontSize: 10, fontWeight: FontWeight.w600)),
+                    ),
                   ],
                 ),
                 const SizedBox(height: 8),
@@ -995,6 +1334,7 @@ class _FootageNarrationPanel extends StatelessWidget {
                   child: TextField(
                     maxLines: null,
                     expands: true,
+                    controller: TextEditingController(text: state.narrationText),
                     style: GoogleFonts.inter(color: _textPrimary, fontSize: 11),
                     decoration: InputDecoration(
                       hintText: 'Write or generate narration script...',
@@ -1005,6 +1345,11 @@ class _FootageNarrationPanel extends StatelessWidget {
                     onChanged: (v) => ref.read(longFormBuilderProvider.notifier).setNarration(v),
                   ),
                 ),
+                // Build error display
+                if (state.buildError != null) ...[
+                  const SizedBox(height: 6),
+                  Text(state.buildError!, style: GoogleFonts.inter(color: _errorColor, fontSize: 10)),
+                ],
               ],
             ),
           ),
@@ -1037,7 +1382,7 @@ class _BuildButton extends StatelessWidget {
           mainAxisSize: MainAxisSize.min,
           children: [
             if (state.isBuilding)
-              SizedBox(width: 12, height: 12, child: CircularProgressIndicator(strokeWidth: 1.5, color: Colors.white))
+              const SizedBox(width: 12, height: 12, child: CircularProgressIndicator(strokeWidth: 1.5, color: Colors.white))
             else
               const Icon(PhosphorIconsRegular.magicWand, size: 14, color: Colors.white),
             const SizedBox(width: 6),
@@ -1058,41 +1403,127 @@ class _FootageItem extends StatelessWidget {
   final String duration;
   final String type;
   final Color color;
+  final int sectionCount;
+  final Function(int) onAdd;
 
-  const _FootageItem({required this.name, required this.duration, required this.type, required this.color});
+  const _FootageItem({
+    required this.name,
+    required this.duration,
+    required this.type,
+    required this.color,
+    required this.sectionCount,
+    required this.onAdd,
+  });
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 6),
-      padding: const EdgeInsets.all(10),
-      decoration: BoxDecoration(
-        color: _cardColor,
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: _borderColor),
+    return GestureDetector(
+      onTap: () => _showSectionPicker(context),
+      child: Container(
+        margin: const EdgeInsets.only(bottom: 6),
+        padding: const EdgeInsets.all(10),
+        decoration: BoxDecoration(
+          color: _cardColor,
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(color: _borderColor),
+        ),
+        child: Row(
+          children: [
+            Container(
+              width: 32,
+              height: 32,
+              decoration: BoxDecoration(
+                color: color.withOpacity(0.15),
+                borderRadius: BorderRadius.circular(6),
+              ),
+              child: Icon(PhosphorIconsRegular.filmStrip, size: 14, color: color),
+            ),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(name, style: GoogleFonts.inter(color: _textPrimary, fontSize: 11)),
+                  Text('$type • $duration', style: GoogleFonts.inter(color: _textMuted, fontSize: 9)),
+                ],
+              ),
+            ),
+            Icon(PhosphorIconsRegular.plusCircle, size: 16, color: _accentColor),
+          ],
+        ),
       ),
-      child: Row(
+    );
+  }
+
+  void _showSectionPicker(BuildContext context) {
+    // We need access to the ref to read the state. Use Builder to get context with ref.
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: _surfaceColor,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+      ),
+      builder: (ctx) => _SectionPickerSheet(
+        footageName: name,
+        onAdd: onAdd,
+      ),
+    );
+  }
+}
+
+class _SectionPickerSheet extends ConsumerWidget {
+  final String footageName;
+  final Function(int) onAdd;
+
+  const _SectionPickerSheet({required this.footageName, required this.onAdd});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final state = ref.watch(longFormBuilderProvider);
+    return Container(
+      padding: const EdgeInsets.all(16),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Container(
-            width: 32,
-            height: 32,
-            decoration: BoxDecoration(
-              color: color.withOpacity(0.15),
-              borderRadius: BorderRadius.circular(6),
-            ),
-            child: Icon(PhosphorIconsRegular.filmStrip, size: 14, color: color),
-          ),
-          const SizedBox(width: 10),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(name, style: GoogleFonts.inter(color: _textPrimary, fontSize: 11)),
-                Text('$type • $duration', style: GoogleFonts.inter(color: _textMuted, fontSize: 9)),
-              ],
-            ),
-          ),
-          Icon(PhosphorIconsRegular.plusCircle, size: 16, color: _textMuted),
+          Text('Add "$footageName" to section:',
+              style: GoogleFonts.inter(color: _textPrimary, fontSize: 12, fontWeight: FontWeight.w600)),
+          const SizedBox(height: 12),
+          if (state.sections.isEmpty)
+            Text('No sections available. Add a section first.',
+                style: GoogleFonts.inter(color: _textMuted, fontSize: 11))
+          else
+            ...state.sections.asMap().entries.map((e) {
+              return GestureDetector(
+                onTap: () {
+                  onAdd(e.key);
+                  Navigator.of(ctx).pop();
+                },
+                child: Container(
+                  margin: const EdgeInsets.only(bottom: 6),
+                  padding: const EdgeInsets.all(10),
+                  decoration: BoxDecoration(
+                    color: _cardColor,
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(color: _borderColor),
+                  ),
+                  child: Row(
+                    children: [
+                      Icon(e.value.type.icon, size: 14, color: e.value.type.color),
+                      const SizedBox(width: 8),
+                      Text(e.value.type.label,
+                          style: GoogleFonts.inter(color: _textPrimary, fontSize: 11, fontWeight: FontWeight.w500)),
+                      const Spacer(),
+                      Text('${e.value.selectedFootage.length} clips',
+                          style: GoogleFonts.inter(color: _textMuted, fontSize: 9)),
+                      const SizedBox(width: 4),
+                      Icon(PhosphorIconsRegular.plus, size: 12, color: _accentColor),
+                    ],
+                  ),
+                ),
+              );
+            }),
+          const SizedBox(height: 12),
         ],
       ),
     );
@@ -1106,5 +1537,5 @@ String _formatDuration(double seconds) {
   return '${mins.toString().padLeft(2, '0')}:${secs.toString().padLeft(2, '0')}';
 }
 
-int min(int a, int b) => a < b ? a : b;
-int max(int a, int b) => a > b ? a : b;
+int _min(int a, int b) => a < b ? a : b;
+int _max(int a, int b) => a > b ? a : b;

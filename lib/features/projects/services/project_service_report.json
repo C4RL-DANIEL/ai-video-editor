@@ -1,0 +1,8 @@
+{
+  "file": "lib/features/projects/services/project_service.dart",
+  "hasMockData": false,
+  "mockDetails": "No hardcoded/mock/placeholder data found. All methods delegate to a real ApiClient and return results from API endpoints.",
+  "brokenButtons": "No buttons or UI elements in this file; it is a service/data-layer file only.",
+  "missingLogic": "No video file upload method exists (e.g., multipart upload for videoPath). No TikTok/video URL fetching/importing endpoint. Analysis polling or streaming logic is absent—only a single fire-and-fetch is provided. No auth token refresh or error-retry logic.",
+  "tiktokOrVideoRefs": "The Project model has a videoPath field and the status enum includes 'uploaded'/'analyzing'/'processing', but there is no implementation for uploading video files, fetching TikTok URLs, or handling video-related API calls. These are implied stubs with no concrete upload/fetch endpoints wired up."
+}

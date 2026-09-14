@@ -1,7 +1,14 @@
+import 'dart:async';
+
+import 'package:chewie/chewie.dart';
+import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:path/path.dart' as p;
 import 'package:phosphor_flutter/phosphor_flutter.dart';
+import 'package:uuid/uuid.dart';
+import 'package:video_player/video_player.dart';
 
 // ─── Colors ──────────────────────────────────────────────────────────────────
 const Color _bgColor = Color(0xFF0D0D0F);
@@ -18,6 +25,8 @@ const Color _textPrimary = Color(0xFFF5F5F7);
 const Color _textSecondary = Color(0xFF9CA3AF);
 const Color _textMuted = Color(0xFF6B7280);
 
+const _uuid = Uuid();
+
 // ─── Editor State ────────────────────────────────────────────────────────────
 class EditorState {
   final String projectName;
@@ -30,6 +39,14 @@ class EditorState {
   final bool isPlaying;
   final int selectedTrack;
   final List<TimelineTrack> tracks;
+  final bool captionsEnabled;
+  final bool audioEnabled;
+  final bool isFullscreen;
+  final bool hasVideoFile;
+  final String? videoFilePath;
+  final String? selectedClipId;
+  final List<_UndoEntry> _undoStack;
+  final List<_UndoEntry> _redoStack;
 
   EditorState({
     this.projectName = 'Untitled Project',
@@ -38,67 +55,24 @@ class EditorState {
     this.aiChatOpen = false,
     this.zoom = 1.0,
     this.currentTime = Duration.zero,
-    this.totalDuration = const Duration(minutes: 5, seconds: 30),
+    this.totalDuration = const Duration(seconds: 30),
     this.isPlaying = false,
     this.selectedTrack = 0,
+    this.captionsEnabled = true,
+    this.audioEnabled = true,
+    this.isFullscreen = false,
+    this.hasVideoFile = false,
+    this.videoFilePath,
+    this.selectedClipId,
     List<TimelineTrack>? tracks,
-  }) : tracks = tracks ?? _defaultTracks;
+    List<_UndoEntry>? undoStack,
+    List<_UndoEntry>? redoStack,
+  })  : tracks = tracks ?? [],
+        _undoStack = undoStack ?? [],
+        _redoStack = redoStack ?? [];
 
-  static List<TimelineTrack> get _defaultTracks => [
-    TimelineTrack(
-      name: 'Video',
-      icon: PhosphorIconsRegular.videoCamera,
-      color: _accentColor,
-      clips: [
-        TimelineClip(id: 'v1', name: 'Intro', start: 0, duration: 120, color: _accentColor),
-        TimelineClip(id: 'v2', name: 'Main', start: 120, duration: 180, color: _accentColor.withOpacity(0.8)),
-        TimelineClip(id: 'v3', name: 'Outro', start: 300, duration: 30, color: _accentColor.withOpacity(0.6)),
-      ],
-    ),
-    TimelineTrack(
-      name: 'Commentary',
-      icon: PhosphorIconsRegular.microphone,
-      color: _purpleColor,
-      clips: [
-        TimelineClip(id: 'c1', name: 'Intro VO', start: 10, duration: 100, color: _purpleColor),
-        TimelineClip(id: 'c2', name: 'Main VO', start: 130, duration: 160, color: _purpleColor.withOpacity(0.8)),
-      ],
-    ),
-    TimelineTrack(
-      name: 'Music',
-      icon: PhosphorIconsRegular.musicNote,
-      color: _successColor,
-      clips: [
-        TimelineClip(id: 'm1', name: 'Background', start: 0, duration: 300, color: _successColor.withOpacity(0.6)),
-      ],
-    ),
-    TimelineTrack(
-      name: 'SFX',
-      icon: PhosphorIconsRegular.speakerHigh,
-      color: _warningColor,
-      clips: [
-        TimelineClip(id: 's1', name: 'Whoosh', start: 55, duration: 5, color: _warningColor),
-        TimelineClip(id: 's2', name: 'Impact', start: 120, duration: 3, color: _warningColor.withOpacity(0.8)),
-      ],
-    ),
-    TimelineTrack(
-      name: 'Captions',
-      icon: PhosphorIconsRegular.subtitles,
-      color: const Color(0xFF06B6D4),
-      clips: [
-        TimelineClip(id: 'cp1', name: 'Caption 1', start: 10, duration: 90, color: const Color(0xFF06B6D4)),
-        TimelineClip(id: 'cp2', name: 'Caption 2', start: 130, duration: 150, color: const Color(0xFF06B6D4).withOpacity(0.8)),
-      ],
-    ),
-    TimelineTrack(
-      name: 'Effects',
-      icon: PhosphorIconsRegular.sparkle,
-      color: const Color(0xFFF472B6),
-      clips: [
-        TimelineClip(id: 'e1', name: 'Zoom In', start: 50, duration: 10, color: const Color(0xFFF472B6)),
-      ],
-    ),
-  ];
+  bool get canUndo => _undoStack.isNotEmpty;
+  bool get canRedo => _redoStack.isNotEmpty;
 
   EditorState copyWith({
     String? projectName,
@@ -111,6 +85,14 @@ class EditorState {
     bool? isPlaying,
     int? selectedTrack,
     List<TimelineTrack>? tracks,
+    bool? captionsEnabled,
+    bool? audioEnabled,
+    bool? isFullscreen,
+    bool? hasVideoFile,
+    String? videoFilePath,
+    String? selectedClipId,
+    List<_UndoEntry>? undoStack,
+    List<_UndoEntry>? redoStack,
   }) {
     return EditorState(
       projectName: projectName ?? this.projectName,
@@ -123,8 +105,23 @@ class EditorState {
       isPlaying: isPlaying ?? this.isPlaying,
       selectedTrack: selectedTrack ?? this.selectedTrack,
       tracks: tracks ?? this.tracks,
+      captionsEnabled: captionsEnabled ?? this.captionsEnabled,
+      audioEnabled: audioEnabled ?? this.audioEnabled,
+      isFullscreen: isFullscreen ?? this.isFullscreen,
+      hasVideoFile: hasVideoFile ?? this.hasVideoFile,
+      videoFilePath: videoFilePath ?? this.videoFilePath,
+      selectedClipId: selectedClipId ?? this.selectedClipId,
+      undoStack: undoStack ?? this._undoStack,
+      redoStack: redoStack ?? this._redoStack,
     );
   }
+}
+
+class _UndoEntry {
+  final List<TimelineTrack> snapshot;
+  final Duration currentTime;
+
+  _UndoEntry({required this.snapshot, required this.currentTime});
 }
 
 class TimelineTrack {
@@ -181,6 +178,22 @@ final localEditorProvider = StateNotifierProvider<EditorNotifier, EditorState>((
 class EditorNotifier extends StateNotifier<EditorState> {
   EditorNotifier() : super(EditorState());
 
+  void _pushUndo() {
+    final snapshot = state.tracks.map((t) => TimelineTrack(
+      name: t.name,
+      icon: t.icon,
+      color: t.color,
+      clips: List<TimelineClip>.from(t.clips),
+      visible: t.visible,
+      locked: t.locked,
+      muted: t.muted,
+    )).toList();
+    state = state.copyWith(
+      undoStack: [...state._undoStack, _UndoEntry(snapshot: snapshot, currentTime: state.currentTime)],
+      redoStack: [],
+    );
+  }
+
   void toggleLeftPanel() => state = state.copyWith(leftPanelOpen: !state.leftPanelOpen);
   void toggleRightPanel() => state = state.copyWith(rightPanelOpen: !state.rightPanelOpen);
   void toggleAiChat() => state = state.copyWith(aiChatOpen: !state.aiChatOpen);
@@ -188,6 +201,159 @@ class EditorNotifier extends StateNotifier<EditorState> {
   void setCurrentTime(Duration time) => state = state.copyWith(currentTime: time);
   void togglePlay() => state = state.copyWith(isPlaying: !state.isPlaying);
   void selectTrack(int index) => state = state.copyWith(selectedTrack: index);
+  void toggleCaptions() => state = state.copyWith(captionsEnabled: !state.captionsEnabled);
+  void toggleAudio() => state = state.copyWith(audioEnabled: !state.audioEnabled);
+  void toggleFullscreen() => state = state.copyWith(isFullscreen: !state.isFullscreen);
+  void setTotalDuration(Duration d) => state = state.copyWith(totalDuration: d);
+
+  void selectClip(String? clipId) => state = state.copyWith(selectedClipId: clipId);
+
+  void undo() {
+    if (!state.canUndo) return;
+    final entry = state._undoStack.last;
+    final redoEntry = _UndoEntry(
+      snapshot: state.tracks.map((t) => TimelineTrack(
+        name: t.name,
+        icon: t.icon,
+        color: t.color,
+        clips: List<TimelineClip>.from(t.clips),
+        visible: t.visible,
+        locked: t.locked,
+        muted: t.muted,
+      )).toList(),
+      currentTime: state.currentTime,
+    );
+    state = state.copyWith(
+      tracks: entry.snapshot,
+      currentTime: entry.currentTime,
+      undoStack: state._undoStack.sublist(0, state._undoStack.length - 1),
+      redoStack: [...state._redoStack, redoEntry],
+    );
+  }
+
+  void redo() {
+    if (!state.canRedo) return;
+    final entry = state._redoStack.last;
+    final undoEntry = _UndoEntry(
+      snapshot: state.tracks.map((t) => TimelineTrack(
+        name: t.name,
+        icon: t.icon,
+        color: t.color,
+        clips: List<TimelineClip>.from(t.clips),
+        visible: t.visible,
+        locked: t.locked,
+        muted: t.muted,
+      )).toList(),
+      currentTime: state.currentTime,
+    );
+    state = state.copyWith(
+      tracks: entry.snapshot,
+      currentTime: entry.currentTime,
+      redoStack: state._redoStack.sublist(0, state._redoStack.length - 1),
+      undoStack: [...state._undoStack, undoEntry],
+    );
+  }
+
+  void addTrack() {
+    _pushUndo();
+    final trackNames = ['Video', 'Commentary', 'Music', 'SFX', 'Captions', 'Effects', 'Voiceover', 'B-Roll'];
+    final trackIcons = [
+      PhosphorIconsRegular.videoCamera,
+      PhosphorIconsRegular.microphone,
+      PhosphorIconsRegular.musicNote,
+      PhosphorIconsRegular.speakerHigh,
+      PhosphorIconsRegular.subtitles,
+      PhosphorIconsRegular.sparkle,
+      PhosphorIconsRegular.headphones,
+      PhosphorIconsRegular.monitorPlay,
+    ];
+    final trackColors = [_accentColor, _purpleColor, _successColor, _warningColor, const Color(0xFF06B6D4), const Color(0xFFF472B6), const Color(0xFF14B8A6), const Color(0xFF6366F1)];
+    final idx = state.tracks.length % trackNames.length;
+    state = state.copyWith(
+      tracks: [
+        ...state.tracks,
+        TimelineTrack(
+          name: trackNames[idx],
+          icon: trackIcons[idx],
+          color: trackColors[idx],
+          clips: [],
+        ),
+      ],
+    );
+  }
+
+  void deleteSelectedClip() {
+    if (state.selectedClipId == null) return;
+    _pushUndo();
+    final newTracks = state.tracks.map((track) {
+      return track.copyWith(
+        clips: track.clips.where((c) => c.id != state.selectedClipId).toList(),
+      );
+    }).toList();
+    state = state.copyWith(tracks: newTracks, selectedClipId: null);
+  }
+
+  void addClipToTrack(int trackIndex, TimelineClip clip) {
+    if (trackIndex < 0 || trackIndex >= state.tracks.length) return;
+    _pushUndo();
+    final tracks = List<TimelineTrack>.from(state.tracks);
+    tracks[trackIndex] = tracks[trackIndex].copyWith(
+      clips: [...tracks[trackIndex].clips, clip],
+    );
+    state = state.copyWith(tracks: tracks);
+  }
+
+  void loadVideoFile(String path) {
+    final name = p.basenameWithoutExtension(path);
+    _pushUndo();
+    // Add a video track if empty
+    List<TimelineTrack> tracks = List<TimelineTrack>.from(state.tracks);
+    if (tracks.isEmpty) {
+      tracks.add(TimelineTrack(
+        name: 'Video',
+        icon: PhosphorIconsRegular.videoCamera,
+        color: _accentColor,
+        clips: [],
+      ));
+    }
+    // Add the clip to the first track
+    tracks[0] = tracks[0].copyWith(
+      clips: [
+        ...tracks[0].clips,
+        TimelineClip(
+          id: _uuid.v4(),
+          name: name,
+          start: 0,
+          duration: state.totalDuration.inSeconds.toDouble(),
+          color: _accentColor,
+        ),
+      ],
+    );
+    state = state.copyWith(
+      hasVideoFile: true,
+      videoFilePath: path,
+      projectName: name,
+      tracks: tracks,
+    );
+  }
+
+  void removeVideo() {
+    _pushUndo();
+    state = state.copyWith(
+      hasVideoFile: false,
+      videoFilePath: null,
+      tracks: [],
+      currentTime: Duration.zero,
+      isPlaying: false,
+    );
+  }
+
+  void setVideoPath(String? path) {
+    state = state.copyWith(
+      hasVideoFile: path != null,
+      videoFilePath: path,
+    );
+  }
 
   void toggleTrackVisibility(int index) {
     final tracks = List<TimelineTrack>.from(state.tracks);
@@ -220,19 +386,24 @@ class ChatMessage {
 final aiChatProvider = StateNotifierProvider<AIChatNotifier, List<ChatMessage>>((ref) => AIChatNotifier());
 
 class AIChatNotifier extends StateNotifier<List<ChatMessage>> {
-  AIChatNotifier() : super([
-    ChatMessage(
-      text: "Hey! I'm your AI editing assistant. Try commands like \"Make it funnier\", \"Add dramatic music\", or \"Speed up the intro\".",
-      isUser: false,
-      timestamp: DateTime.now(),
-    ),
-  ]);
+  AIChatNotifier()
+      : super([
+          ChatMessage(
+            text: "Hey! I'm your AI editing assistant. Try commands like \"Make it funnier\", \"Add dramatic music\", or \"Speed up the intro\".",
+            isUser: false,
+            timestamp: DateTime.now(),
+          ),
+        ]);
+
+  final TextEditingController chatController = TextEditingController();
 
   void sendMessage(String text) {
+    if (text.trim().isEmpty) return;
     state = [
       ...state,
       ChatMessage(text: text, isUser: true, timestamp: DateTime.now()),
     ];
+    chatController.clear();
     // Simulate AI response
     Future.delayed(const Duration(seconds: 1), () {
       state = [
@@ -259,15 +430,233 @@ class AIChatNotifier extends StateNotifier<List<ChatMessage>> {
     }
     return "I understand you want to: \"$input\". Let me analyze the timeline and suggest the best approach. This may involve adjusting 2-3 clips. Shall I proceed?";
   }
+
+  @override
+  void dispose() {
+    chatController.dispose();
+    super.dispose();
+  }
+}
+
+// ─── Video Player Provider ───────────────────────────────────────────────────
+final videoPlayerProvider =
+    StateNotifierProvider<VideoPlayerNotifier, VideoPlayerState>((ref) => VideoPlayerNotifier());
+
+class VideoPlayerState {
+  final VideoPlayerController? controller;
+  final ChewieController? chewieController;
+  final bool isInitialized;
+  final bool hasError;
+  final String? errorMessage;
+
+  VideoPlayerState({
+    this.controller,
+    this.chewieController,
+    this.isInitialized = false,
+    this.hasError = false,
+    this.errorMessage,
+  });
+}
+
+class VideoPlayerNotifier extends StateNotifier<VideoPlayerState> {
+  VideoPlayerNotifier() : super(VideoPlayerState());
+
+  Timer? _positionTimer;
+
+  Future<void> loadVideo(String path) async {
+    // Dispose previous
+    await disposeControllers();
+
+    try {
+      final controller = VideoPlayerController.file(
+        Uri.file(path),
+      );
+      await controller.initialize();
+
+      final chewieController = ChewieController(
+        videoPlayerController: controller,
+        autoPlay: false,
+        looping: false,
+        showControls: false, // We use our own controls
+        allowMuting: true,
+        materialProgressColors: ChewieProgressColors(
+          playedColor: _accentColor,
+          handleColor: _accentColor,
+          bufferedColor: _accentColor.withOpacity(0.3),
+        ),
+      );
+
+      state = VideoPlayerState(
+        controller: controller,
+        chewieController: chewieController,
+        isInitialized: true,
+      );
+
+      // Start listening to position
+      _positionTimer?.cancel();
+      _positionTimer = Timer.periodic(const Duration(milliseconds: 200), (_) {
+        _syncPosition();
+      });
+    } catch (e) {
+      state = VideoPlayerState(
+        hasError: true,
+        errorMessage: 'Failed to load video: $e',
+      );
+    }
+  }
+
+  void _syncPosition() {
+    final controller = state.controller;
+    if (controller != null && controller.value.isInitialized) {
+      // Position sync is handled by the editor state
+    }
+  }
+
+  Duration get position => state.controller?.value.position ?? Duration.zero;
+  Duration get duration => state.controller?.value.duration ?? Duration.zero;
+
+  Future<void> play() async {
+    await state.controller?.play();
+  }
+
+  Future<void> pause() async {
+    await state.controller?.pause();
+  }
+
+  Future<void> seek(Duration position) async {
+    await state.controller?.seekTo(position);
+  }
+
+  Future<void> disposeControllers() async {
+    _positionTimer?.cancel();
+    state.chewieController?.dispose();
+    await state.controller?.dispose();
+    state = VideoPlayerState();
+  }
+
+  @override
+  void dispose() {
+    _positionTimer?.cancel();
+    state.chewieController?.dispose();
+    state.controller?.dispose();
+    super.dispose();
+  }
 }
 
 // ─── Editor Page ─────────────────────────────────────────────────────────────
-class EditorPage extends ConsumerWidget {
+class EditorPage extends ConsumerStatefulWidget {
   const EditorPage({super.key, this.projectId});
   final String? projectId;
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<EditorPage> createState() => _EditorPageState();
+}
+
+class _EditorPageState extends ConsumerState<EditorPage> {
+  Timer? _playbackTimer;
+
+  @override
+  void initState() {
+    super.initState();
+    // If we have a projectId, we could load project data here
+    // For now, start with empty state
+  }
+
+  @override
+  void dispose() {
+    _playbackTimer?.cancel();
+    final vpState = ref.read(videoPlayerProvider);
+    vpState.chewieController?.dispose();
+    vpState.controller?.dispose();
+    super.dispose();
+  }
+
+  void _handlePlayPause() {
+    final editorState = ref.read(localEditorProvider);
+    final vpState = ref.read(videoPlayerProvider);
+
+    if (editorState.isPlaying) {
+      // Pause
+      ref.read(localEditorProvider.notifier).togglePlay();
+      vpState.controller?.pause();
+      _playbackTimer?.cancel();
+    } else {
+      // Play
+      ref.read(localEditorProvider.notifier).togglePlay();
+      if (vpState.isInitialized) {
+        vpState.controller?.play();
+        // Start position sync timer
+        _playbackTimer?.cancel();
+        _playbackTimer = Timer.periodic(const Duration(milliseconds: 200), (_) {
+          final pos = vpState.controller?.value.position ?? Duration.zero;
+          final dur = vpState.controller?.value.duration ?? Duration.zero;
+          ref.read(localEditorProvider.notifier).setCurrentTime(pos);
+          ref.read(localEditorProvider.notifier).setTotalDuration(dur);
+          // Auto-pause at end
+          if (pos >= dur && dur > Duration.zero) {
+            ref.read(localEditorProvider.notifier).togglePlay();
+            vpState.controller?.pause();
+            _playbackTimer?.cancel();
+          }
+        });
+      }
+    }
+  }
+
+  void _handleSkipBack() {
+    final vpState = ref.read(videoPlayerProvider);
+    if (vpState.isInitialized) {
+      final current = vpState.controller?.value.position ?? Duration.zero;
+      final newPos = current - const Duration(seconds: 5);
+      final target = newPos.isNegative ? Duration.zero : newPos;
+      vpState.controller?.seekTo(target);
+      ref.read(localEditorProvider.notifier).setCurrentTime(target);
+    }
+  }
+
+  void _handleSkipForward() {
+    final vpState = ref.read(videoPlayerProvider);
+    if (vpState.isInitialized) {
+      final current = vpState.controller?.value.position ?? Duration.zero;
+      final dur = vpState.controller?.value.duration ?? Duration.zero;
+      final newPos = current + const Duration(seconds: 5);
+      final target = newPos > dur ? dur : newPos;
+      vpState.controller?.seekTo(target);
+      ref.read(localEditorProvider.notifier).setCurrentTime(target);
+    }
+  }
+
+  void _handleImportVideo() async {
+    try {
+      final result = await FilePicker.platform.pickFiles(
+        type: FileType.video,
+        allowMultiple: false,
+      );
+      if (result != null && result.files.isNotEmpty) {
+        final filePath = result.files.first.path;
+        if (filePath != null) {
+          ref.read(localEditorProvider.notifier).loadVideoFile(filePath);
+          // Load into video player
+          await ref.read(videoPlayerProvider.notifier).loadVideo(filePath);
+          // Update duration from video
+          final vpState = ref.read(videoPlayerProvider);
+          if (vpState.isInitialized && vpState.controller != null) {
+            final dur = vpState.controller!.value.duration;
+            ref.read(localEditorProvider.notifier).setTotalDuration(dur);
+          }
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Failed to import video: $e'), backgroundColor: _errorColor),
+        );
+      }
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final state = ref.watch(localEditorProvider);
     final size = MediaQuery.of(context).size;
     final isCompact = size.width < 900;
@@ -277,7 +666,16 @@ class EditorPage extends ConsumerWidget {
       body: Column(
         children: [
           // ─── Top Bar ─────────────────────────────────────────────────
-          _EditorTopBar(state: state, ref: ref),
+          _EditorTopBar(
+            state: state,
+            ref: ref,
+            onMenuTap: () => _showMenuSheet(context),
+            onUndo: () => ref.read(localEditorProvider.notifier).undo(),
+            onRedo: () => ref.read(localEditorProvider.notifier).redo(),
+            onSave: () => _handleSave(context),
+            onExport: () => _showExportDialog(context),
+            onImportVideo: _handleImportVideo,
+          ),
 
           // ─── Main Content ────────────────────────────────────────────
           Expanded(
@@ -293,7 +691,14 @@ class EditorPage extends ConsumerWidget {
                     children: [
                       // Video Preview
                       Expanded(
-                        child: _VideoPreviewArea(state: state),
+                        child: _VideoPreviewArea(
+                          state: state,
+                          ref: ref,
+                          onPlayPause: _handlePlayPause,
+                          onSkipBack: _handleSkipBack,
+                          onSkipForward: _handleSkipForward,
+                          onImportVideo: _handleImportVideo,
+                        ),
                       ),
 
                       // AI Chat Sidebar (overlay)
@@ -316,14 +721,181 @@ class EditorPage extends ConsumerWidget {
       ),
     );
   }
+
+  void _handleSave(BuildContext context) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Row(
+          children: [
+            const Icon(PhosphorIconsRegular.checkCircle, size: 16, color: Colors.white),
+            const SizedBox(width: 8),
+            Text('Project saved', style: GoogleFonts.inter(fontSize: 13)),
+          ],
+        ),
+        backgroundColor: _successColor,
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+        duration: const Duration(seconds: 2),
+      ),
+    );
+  }
+
+  void _showExportDialog(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: _surfaceColor,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12), side: const BorderSide(color: _borderColor)),
+        title: Row(
+          children: [
+            const Icon(PhosphorIconsRegular.export, size: 18, color: _accentColor),
+            const SizedBox(width: 8),
+            Text('Export Project', style: GoogleFonts.inter(color: _textPrimary, fontSize: 16, fontWeight: FontWeight.w600)),
+          ],
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            _ExportOption(
+              icon: PhosphorIconsRegular.monitorPlay,
+              label: '1080p MP4',
+              subtitle: 'High quality, larger file',
+              onTap: () {
+                Navigator.pop(ctx);
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(content: Text('Exporting at 1080p...'), backgroundColor: _accentColor),
+                );
+              },
+            ),
+            const SizedBox(height: 8),
+            _ExportOption(
+              icon: PhosphorIconsRegular.deviceMobile,
+              label: '720p MP4',
+              subtitle: 'Good quality, smaller file',
+              onTap: () {
+                Navigator.pop(ctx);
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(content: Text('Exporting at 720p...'), backgroundColor: _accentColor),
+                );
+              },
+            ),
+            const SizedBox(height: 8),
+            _ExportOption(
+              icon: PhosphorIconsRegular.globe,
+              label: 'Web Optimized',
+              subtitle: 'Optimized for streaming',
+              onTap: () {
+                Navigator.pop(ctx);
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(content: Text('Exporting web-optimized version...'), backgroundColor: _accentColor),
+                );
+              },
+            ),
+            const SizedBox(height: 8),
+            _ExportOption(
+              icon: PhosphorIconsRegular.fileAudio,
+              label: 'Audio Only',
+              subtitle: 'MP3 format',
+              onTap: () {
+                Navigator.pop(ctx);
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(content: Text('Exporting audio...'), backgroundColor: _accentColor),
+                );
+              },
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: Text('Cancel', style: GoogleFonts.inter(color: _textSecondary)),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showMenuSheet(BuildContext context) {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: _surfaceColor,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+      ),
+      builder: (ctx) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              width: 40,
+              height: 4,
+              margin: const EdgeInsets.only(top: 12, bottom: 16),
+              decoration: BoxDecoration(color: _borderColor, borderRadius: BorderRadius.circular(2)),
+            ),
+            _MenuOption(
+              icon: PhosphorIconsRegular.import,
+              label: 'Import Video',
+              onTap: () {
+                Navigator.pop(ctx);
+                _handleImportVideo();
+              },
+            ),
+            _MenuOption(
+              icon: PhosphorIconsRegular.floppyDisk,
+              label: 'Save Project',
+              onTap: () {
+                Navigator.pop(ctx);
+                _handleSave(context);
+              },
+            ),
+            _MenuOption(
+              icon: PhosphorIconsRegular.export,
+              label: 'Export',
+              onTap: () {
+                Navigator.pop(ctx);
+                _showExportDialog(context);
+              },
+            ),
+            const Divider(color: _borderColor),
+            _MenuOption(
+              icon: PhosphorIconsRegular.trash,
+              label: 'Clear Timeline',
+              onTap: () {
+                Navigator.pop(ctx);
+                ref.read(localEditorProvider.notifier).removeVideo();
+                ref.read(videoPlayerProvider.notifier).disposeControllers();
+              },
+              isDestructive: true,
+            ),
+            const SizedBox(height: 8),
+          ],
+        ),
+      ),
+    );
+  }
 }
 
 // ─── Top Bar ─────────────────────────────────────────────────────────────────
 class _EditorTopBar extends StatelessWidget {
   final EditorState state;
   final WidgetRef ref;
+  final VoidCallback onMenuTap;
+  final VoidCallback onUndo;
+  final VoidCallback onRedo;
+  final VoidCallback onSave;
+  final VoidCallback onExport;
+  final VoidCallback onImportVideo;
 
-  const _EditorTopBar({required this.state, required this.ref});
+  const _EditorTopBar({
+    required this.state,
+    required this.ref,
+    required this.onMenuTap,
+    required this.onUndo,
+    required this.onRedo,
+    required this.onSave,
+    required this.onExport,
+    required this.onImportVideo,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -340,7 +912,7 @@ class _EditorTopBar extends StatelessWidget {
           IconButton(
             icon: const Icon(PhosphorIconsRegular.list, size: 18),
             color: _textSecondary,
-            onPressed: () {},
+            onPressed: onMenuTap,
             tooltip: 'Menu',
           ),
           const SizedBox(width: 4),
@@ -360,9 +932,28 @@ class _EditorTopBar extends StatelessWidget {
           ),
           const SizedBox(width: 12),
 
+          // Import Video
+          _ToolBarButton(
+            icon: PhosphorIconsRegular.import,
+            tooltip: 'Import Video',
+            onTap: onImportVideo,
+          ),
+          const SizedBox(width: 8),
+          const _ToolBarDivider(),
+
           // Undo / Redo
-          _ToolBarButton(icon: PhosphorIconsRegular.arrowUUpLeft, tooltip: 'Undo', onTap: () {}),
-          _ToolBarButton(icon: PhosphorIconsRegular.arrowUUpRight, tooltip: 'Redo', onTap: () {}),
+          _ToolBarButton(
+            icon: PhosphorIconsRegular.arrowUUpLeft,
+            tooltip: 'Undo',
+            onTap: state.canUndo ? onUndo : () {},
+            isActive: state.canUndo,
+          ),
+          _ToolBarButton(
+            icon: PhosphorIconsRegular.arrowUUpRight,
+            tooltip: 'Redo',
+            onTap: state.canRedo ? onRedo : () {},
+            isActive: state.canRedo,
+          ),
           const SizedBox(width: 8),
           const _ToolBarDivider(),
 
@@ -395,24 +986,27 @@ class _EditorTopBar extends StatelessWidget {
           const SizedBox(width: 8),
 
           // Save
-          _ToolBarButton(icon: PhosphorIconsRegular.floppyDisk, tooltip: 'Save', onTap: () {}),
+          _ToolBarButton(icon: PhosphorIconsRegular.floppyDisk, tooltip: 'Save', onTap: onSave),
           const SizedBox(width: 4),
 
           // Export
-          Container(
-            height: 32,
-            padding: const EdgeInsets.symmetric(horizontal: 14),
-            decoration: BoxDecoration(
-              gradient: const LinearGradient(colors: [_accentColor, _purpleColor]),
-              borderRadius: BorderRadius.circular(6),
-            ),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                const Icon(PhosphorIconsRegular.export, size: 14, color: Colors.white),
-                const SizedBox(width: 6),
-                Text('Export', style: GoogleFonts.inter(color: Colors.white, fontSize: 12, fontWeight: FontWeight.w600)),
-              ],
+          GestureDetector(
+            onTap: onExport,
+            child: Container(
+              height: 32,
+              padding: const EdgeInsets.symmetric(horizontal: 14),
+              decoration: BoxDecoration(
+                gradient: const LinearGradient(colors: [_accentColor, _purpleColor]),
+                borderRadius: BorderRadius.circular(6),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Icon(PhosphorIconsRegular.export, size: 14, color: Colors.white),
+                  const SizedBox(width: 6),
+                  Text('Export', style: GoogleFonts.inter(color: Colors.white, fontSize: 12, fontWeight: FontWeight.w600)),
+                ],
+              ),
             ),
           ),
         ],
@@ -659,8 +1253,20 @@ class _AssetBrowser extends StatelessWidget {
 // ─── Video Preview Area ──────────────────────────────────────────────────────
 class _VideoPreviewArea extends StatelessWidget {
   final EditorState state;
+  final WidgetRef ref;
+  final VoidCallback onPlayPause;
+  final VoidCallback onSkipBack;
+  final VoidCallback onSkipForward;
+  final VoidCallback onImportVideo;
 
-  const _VideoPreviewArea({required this.state});
+  const _VideoPreviewArea({
+    required this.state,
+    required this.ref,
+    required this.onPlayPause,
+    required this.onSkipBack,
+    required this.onSkipForward,
+    required this.onImportVideo,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -669,7 +1275,7 @@ class _VideoPreviewArea extends StatelessWidget {
       child: Stack(
         alignment: Alignment.center,
         children: [
-          // Video Placeholder (16:9)
+          // Video or Empty State
           AspectRatio(
             aspectRatio: 16 / 9,
             child: Container(
@@ -679,51 +1285,9 @@ class _VideoPreviewArea extends StatelessWidget {
                 borderRadius: BorderRadius.circular(8),
                 border: Border.all(color: _borderColor),
               ),
-              child: Stack(
-                alignment: Alignment.center,
-                children: [
-                  // Placeholder
-                  Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Icon(PhosphorIconsRegular.filmSlate, size: 48, color: _textMuted),
-                      const SizedBox(height: 12),
-                      Text(
-                        'Video Preview',
-                        style: GoogleFonts.inter(color: _textMuted, fontSize: 14),
-                      ),
-                      const SizedBox(height: 4),
-                      Text(
-                        '16:9 • ${_formatDuration(state.currentTime)}',
-                        style: GoogleFonts.inter(color: _textMuted, fontSize: 11),
-                      ),
-                    ],
-                  ),
-
-                  // Caption Overlay
-                  Positioned(
-                    bottom: 60,
-                    left: 40,
-                    right: 40,
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                      decoration: BoxDecoration(
-                        color: Colors.black.withOpacity(0.7),
-                        borderRadius: BorderRadius.circular(4),
-                      ),
-                      child: Text(
-                        'Caption overlay appears here',
-                        textAlign: TextAlign.center,
-                        style: GoogleFonts.inter(
-                          color: Colors.white,
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
+              child: state.hasVideoFile
+                  ? _buildVideoPlayer()
+                  : _buildEmptyState(context),
             ),
           ),
 
@@ -732,7 +1296,129 @@ class _VideoPreviewArea extends StatelessWidget {
             bottom: 12,
             left: 24,
             right: 24,
-            child: _PlaybackControls(state: state),
+            child: _PlaybackControls(
+              state: state,
+              ref: ref,
+              onPlayPause: onPlayPause,
+              onSkipBack: onSkipBack,
+              onSkipForward: onSkipForward,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildVideoPlayer() {
+    final vpState = ref.watch(videoPlayerProvider);
+    if (vpState.isInitialized && vpState.chewieController != null) {
+      return ClipRRect(
+        borderRadius: BorderRadius.circular(8),
+        child: Stack(
+          alignment: Alignment.center,
+          children: [
+            Chewie(controller: vpState.chewieController!),
+            // Caption overlay
+            if (state.captionsEnabled)
+              Positioned(
+                bottom: 60,
+                left: 40,
+                right: 40,
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                  decoration: BoxDecoration(
+                    color: Colors.black.withOpacity(0.7),
+                    borderRadius: BorderRadius.circular(4),
+                  ),
+                  child: Text(
+                    'Caption overlay',
+                    textAlign: TextAlign.center,
+                    style: GoogleFonts.inter(
+                      color: Colors.white,
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+              ),
+          ],
+        ),
+      );
+    }
+    if (vpState.hasError) {
+      return Center(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Icon(PhosphorIconsRegular.warningCircle, size: 36, color: _errorColor),
+            const SizedBox(height: 8),
+            Text(
+              vpState.errorMessage ?? 'Error loading video',
+              style: GoogleFonts.inter(color: _errorColor, fontSize: 12),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 12),
+            TextButton(
+              onPressed: onImportVideo,
+              child: Text('Try Again', style: GoogleFonts.inter(color: _accentColor)),
+            ),
+          ],
+        ),
+      );
+    }
+    // Loading
+    return Center(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          const CircularProgressIndicator(color: _accentColor, strokeWidth: 2),
+          const SizedBox(height: 12),
+          Text(
+            'Loading video...',
+            style: GoogleFonts.inter(color: _textMuted, fontSize: 12),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildEmptyState(BuildContext context) {
+    return Center(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(PhosphorIconsRegular.filmSlate, size: 48, color: _textMuted),
+          const SizedBox(height: 12),
+          Text(
+            'Import a video to start editing',
+            style: GoogleFonts.inter(color: _textMuted, fontSize: 14),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            '16:9 • ${_formatDuration(state.currentTime)}',
+            style: GoogleFonts.inter(color: _textMuted, fontSize: 11),
+          ),
+          const SizedBox(height: 16),
+          GestureDetector(
+            onTap: onImportVideo,
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+              decoration: BoxDecoration(
+                gradient: const LinearGradient(colors: [_accentColor, _purpleColor]),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Icon(PhosphorIconsRegular.import, size: 14, color: Colors.white),
+                  const SizedBox(width: 8),
+                  Text(
+                    'Import Video',
+                    style: GoogleFonts.inter(color: Colors.white, fontSize: 13, fontWeight: FontWeight.w600),
+                  ),
+                ],
+              ),
+            ),
           ),
         ],
       ),
@@ -742,8 +1428,18 @@ class _VideoPreviewArea extends StatelessWidget {
 
 class _PlaybackControls extends StatelessWidget {
   final EditorState state;
+  final WidgetRef ref;
+  final VoidCallback onPlayPause;
+  final VoidCallback onSkipBack;
+  final VoidCallback onSkipForward;
 
-  const _PlaybackControls({required this.state});
+  const _PlaybackControls({
+    required this.state,
+    required this.ref,
+    required this.onPlayPause,
+    required this.onSkipBack,
+    required this.onSkipForward,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -752,7 +1448,8 @@ class _PlaybackControls extends StatelessWidget {
         IconButton(
           icon: const Icon(PhosphorIconsRegular.skipBack, size: 16),
           color: _textSecondary,
-          onPressed: () {},
+          onPressed: onSkipBack,
+          tooltip: 'Skip Back 5s',
         ),
         IconButton(
           icon: Icon(
@@ -760,12 +1457,14 @@ class _PlaybackControls extends StatelessWidget {
             size: 20,
           ),
           color: Colors.white,
-          onPressed: () {},
+          onPressed: onPlayPause,
+          tooltip: state.isPlaying ? 'Pause' : 'Play',
         ),
         IconButton(
           icon: const Icon(PhosphorIconsRegular.skipForward, size: 16),
           color: _textSecondary,
-          onPressed: () {},
+          onPressed: onSkipForward,
+          tooltip: 'Skip Forward 5s',
         ),
         const SizedBox(width: 8),
         Text(
@@ -778,21 +1477,30 @@ class _PlaybackControls extends StatelessWidget {
         ),
         const Spacer(),
         IconButton(
-          icon: const Icon(PhosphorIconsRegular.subtitles, size: 16),
-          color: _textSecondary,
-          onPressed: () {},
+          icon: Icon(
+            PhosphorIconsRegular.subtitles,
+            size: 16,
+            color: state.captionsEnabled ? _accentColor : _textSecondary,
+          ),
+          onPressed: () => ref.read(localEditorProvider.notifier).toggleCaptions(),
           tooltip: 'Captions',
         ),
         IconButton(
-          icon: const Icon(PhosphorIconsRegular.speakerHigh, size: 16),
-          color: _textSecondary,
-          onPressed: () {},
+          icon: Icon(
+            state.audioEnabled ? PhosphorIconsRegular.speakerHigh : PhosphorIconsRegular.speakerSlash,
+            size: 16,
+            color: state.audioEnabled ? _textSecondary : _errorColor,
+          ),
+          onPressed: () => ref.read(localEditorProvider.notifier).toggleAudio(),
           tooltip: 'Audio',
         ),
         IconButton(
-          icon: const Icon(PhosphorIconsRegular.arrowsOutSimple, size: 16),
+          icon: Icon(
+            state.isFullscreen ? PhosphorIconsRegular.arrowsInSimple : PhosphorIconsRegular.arrowsOutSimple,
+            size: 16,
+          ),
           color: _textSecondary,
-          onPressed: () {},
+          onPressed: () => ref.read(localEditorProvider.notifier).toggleFullscreen(),
           tooltip: 'Fullscreen',
         ),
       ],
@@ -801,13 +1509,46 @@ class _PlaybackControls extends StatelessWidget {
 }
 
 // ─── AI Chat Panel ───────────────────────────────────────────────────────────
-class _AiChatPanel extends ConsumerWidget {
+class _AiChatPanel extends ConsumerStatefulWidget {
   final WidgetRef ref;
 
   const _AiChatPanel({required this.ref});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<_AiChatPanel> createState() => _AiChatPanelState();
+}
+
+class _AiChatPanelState extends ConsumerState<_AiChatPanel> {
+  final TextEditingController _controller = TextEditingController();
+  final ScrollController _scrollController = ScrollController();
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    _scrollController.dispose();
+    super.dispose();
+  }
+
+  void _sendMessage() {
+    final text = _controller.text.trim();
+    if (text.isNotEmpty) {
+      ref.read(aiChatProvider.notifier).sendMessage(text);
+      _controller.clear();
+      // Scroll to bottom
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (_scrollController.hasClients) {
+          _scrollController.animateTo(
+            _scrollController.position.maxScrollExtent,
+            duration: const Duration(milliseconds: 300),
+            curve: Curves.easeOut,
+          );
+        }
+      });
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final messages = ref.watch(aiChatProvider);
 
     return Container(
@@ -852,6 +1593,7 @@ class _AiChatPanel extends ConsumerWidget {
           // Messages
           Expanded(
             child: ListView.builder(
+              controller: _scrollController,
               padding: const EdgeInsets.all(12),
               itemCount: messages.length,
               itemBuilder: (context, index) {
@@ -913,6 +1655,7 @@ class _AiChatPanel extends ConsumerWidget {
                       border: Border.all(color: _borderColor),
                     ),
                     child: TextField(
+                      controller: _controller,
                       style: GoogleFonts.inter(color: _textPrimary, fontSize: 12),
                       decoration: InputDecoration(
                         hintText: 'Ask AI to edit... (e.g., "Make it funnier")',
@@ -920,25 +1663,21 @@ class _AiChatPanel extends ConsumerWidget {
                         border: InputBorder.none,
                         contentPadding: const EdgeInsets.symmetric(vertical: 8),
                       ),
-                      onSubmitted: (value) {
-                        if (value.trim().isNotEmpty) {
-                          ref.read(aiChatProvider.notifier).sendMessage(value.trim());
-                        }
-                      },
+                      onSubmitted: (_) => _sendMessage(),
                     ),
                   ),
                 ),
                 const SizedBox(width: 8),
-                Container(
-                  height: 36,
-                  width: 36,
-                  decoration: BoxDecoration(
-                    gradient: const LinearGradient(colors: [_accentColor, _purpleColor]),
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: IconButton(
-                    icon: const Icon(PhosphorIconsRegular.paperPlaneRight, size: 14, color: Colors.white),
-                    onPressed: () {},
+                GestureDetector(
+                  onTap: _sendMessage,
+                  child: Container(
+                    height: 36,
+                    width: 36,
+                    decoration: BoxDecoration(
+                      gradient: const LinearGradient(colors: [_accentColor, _purpleColor]),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: const Icon(PhosphorIconsRegular.paperPlaneRight, size: 14, color: Colors.white),
                   ),
                 ),
               ],
@@ -1191,104 +1930,130 @@ class _TimelineAreaState extends State<_TimelineArea> {
 
           // Timeline Content
           Expanded(
-            child: Row(
-              children: [
-                // Track Headers
-                SizedBox(
-                  width: _trackHeaderWidth,
-                  child: ListView.builder(
-                    padding: const EdgeInsets.only(top: _rulerHeight),
-                    itemCount: widget.state.tracks.length,
-                    itemBuilder: (context, index) => _TrackHeader(
-                      track: widget.state.tracks[index],
-                      index: index,
-                      height: _trackHeight,
-                      isSelected: widget.state.selectedTrack == index,
-                      onToggleVisibility: () => widget.ref.read(localEditorProvider.notifier).toggleTrackVisibility(index),
-                      onToggleLock: () => widget.ref.read(localEditorProvider.notifier).toggleTrackLock(index),
-                      onToggleMute: () => widget.ref.read(localEditorProvider.notifier).toggleTrackMute(index),
-                      onSelect: () => widget.ref.read(localEditorProvider.notifier).selectTrack(index),
-                    ),
-                  ),
-                ),
-
-                // Timeline Ruler + Tracks
-                Expanded(
-                  child: SingleChildScrollView(
-                    controller: _scrollController,
-                    scrollDirection: Axis.horizontal,
-                    child: SizedBox(
-                      width: 800 * widget.state.zoom,
-                      child: Column(
-                        children: [
-                          // Ruler
-                          _TimelineRuler(
-                            height: _rulerHeight,
-                            totalSeconds: widget.state.totalDuration.inSeconds.toDouble(),
-                            zoom: widget.state.zoom,
+            child: widget.state.tracks.isEmpty
+                ? _buildEmptyTimeline()
+                : Row(
+                    children: [
+                      // Track Headers
+                      SizedBox(
+                        width: _trackHeaderWidth,
+                        child: ListView.builder(
+                          padding: const EdgeInsets.only(top: _rulerHeight),
+                          itemCount: widget.state.tracks.length,
+                          itemBuilder: (context, index) => _TrackHeader(
+                            track: widget.state.tracks[index],
+                            index: index,
+                            height: _trackHeight,
+                            isSelected: widget.state.selectedTrack == index,
+                            onToggleVisibility: () => widget.ref.read(localEditorProvider.notifier).toggleTrackVisibility(index),
+                            onToggleLock: () => widget.ref.read(localEditorProvider.notifier).toggleTrackLock(index),
+                            onToggleMute: () => widget.ref.read(localEditorProvider.notifier).toggleTrackMute(index),
+                            onSelect: () => widget.ref.read(localEditorProvider.notifier).selectTrack(index),
                           ),
+                        ),
+                      ),
 
-                          // Tracks
-                          Expanded(
-                            child: Stack(
+                      // Timeline Ruler + Tracks
+                      Expanded(
+                        child: SingleChildScrollView(
+                          controller: _scrollController,
+                          scrollDirection: Axis.horizontal,
+                          child: SizedBox(
+                            width: 800 * widget.state.zoom,
+                            child: Column(
                               children: [
-                                // Track backgrounds
-                                ...List.generate(widget.state.tracks.length, (index) {
-                                  return Positioned(
-                                    top: index * _trackHeight,
-                                    left: 0,
-                                    right: 0,
-                                    height: _trackHeight,
-                                    child: _TimelineTrackRow(
-                                      track: widget.state.tracks[index],
-                                      index: index,
-                                      totalSeconds: widget.state.totalDuration.inSeconds.toDouble(),
-                                      zoom: widget.state.zoom,
-                                      trackHeight: _trackHeight,
-                                    ),
-                                  );
-                                }),
+                                // Ruler
+                                _TimelineRuler(
+                                  height: _rulerHeight,
+                                  totalSeconds: widget.state.totalDuration.inSeconds.toDouble().clamp(1, double.infinity),
+                                  zoom: widget.state.zoom,
+                                  onSeek: (seconds) {
+                                    final target = Duration(milliseconds: (seconds * 1000).toInt());
+                                    widget.ref.read(localEditorProvider.notifier).setCurrentTime(target);
+                                    final vpState = widget.ref.read(videoPlayerProvider);
+                                    if (vpState.isInitialized) {
+                                      vpState.controller?.seekTo(target);
+                                    }
+                                  },
+                                ),
 
-                                // Playhead
-                                Positioned(
-                                  top: 0,
-                                  bottom: 0,
-                                  left: _getPlayheadPosition(
-                                    widget.state.currentTime.inSeconds.toDouble(),
-                                    widget.state.zoom,
-                                  ),
-                                  child: Container(
-                                    width: 2,
-                                    color: _playheadColor,
-                                    child: Stack(
-                                      clipBehavior: Clip.none,
-                                      children: [
-                                        Positioned(
-                                          top: -4,
-                                          left: -5,
-                                          child: Container(
-                                            width: 12,
-                                            height: 12,
-                                            decoration: BoxDecoration(
-                                              color: _playheadColor,
-                                              shape: BoxShape.circle,
-                                            ),
+                                // Tracks
+                                Expanded(
+                                  child: Stack(
+                                    children: [
+                                      // Track backgrounds
+                                      ...List.generate(widget.state.tracks.length, (index) {
+                                        return Positioned(
+                                          top: index * _trackHeight,
+                                          left: 0,
+                                          right: 0,
+                                          height: _trackHeight,
+                                          child: _TimelineTrackRow(
+                                            track: widget.state.tracks[index],
+                                            index: index,
+                                            totalSeconds: widget.state.totalDuration.inSeconds.toDouble().clamp(1, double.infinity),
+                                            zoom: widget.state.zoom,
+                                            trackHeight: _trackHeight,
+                                          ),
+                                        );
+                                      }),
+
+                                      // Playhead
+                                      Positioned(
+                                        top: 0,
+                                        bottom: 0,
+                                        left: _getPlayheadPosition(
+                                          widget.state.currentTime.inSeconds.toDouble(),
+                                          widget.state.zoom,
+                                        ),
+                                        child: Container(
+                                          width: 2,
+                                          color: _playheadColor,
+                                          child: Stack(
+                                            clipBehavior: Clip.none,
+                                            children: [
+                                              Positioned(
+                                                top: -4,
+                                                left: -5,
+                                                child: Container(
+                                                  width: 12,
+                                                  height: 12,
+                                                  decoration: const BoxDecoration(
+                                                    color: _playheadColor,
+                                                    shape: BoxShape.circle,
+                                                  ),
+                                                ),
+                                              ),
+                                            ],
                                           ),
                                         ),
-                                      ],
-                                    ),
+                                      ),
+                                    ],
                                   ),
                                 ),
                               ],
                             ),
                           ),
-                        ],
+                        ),
                       ),
-                    ),
+                    ],
                   ),
-                ),
-              ],
-            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildEmptyTimeline() {
+    return Center(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(PhosphorIconsRegular.filmStrip, size: 24, color: _textMuted),
+          const SizedBox(height: 8),
+          Text(
+            'Import a video to see the timeline',
+            style: GoogleFonts.inter(color: _textMuted, fontSize: 12),
           ),
         ],
       ),
@@ -1336,8 +2101,18 @@ class _TimelineHeader extends StatelessWidget {
           ),
           Icon(PhosphorIconsRegular.magnifyingGlassPlus, size: 12, color: _textMuted),
           const SizedBox(width: 12),
-          _ToolBarButton(icon: PhosphorIconsRegular.plus, tooltip: 'Add Track', onTap: () {}),
-          _ToolBarButton(icon: PhosphorIconsRegular.trash, tooltip: 'Delete Selected', onTap: () {}),
+          _ToolBarButton(
+            icon: PhosphorIconsRegular.plus,
+            tooltip: 'Add Track',
+            onTap: () => ref.read(localEditorProvider.notifier).addTrack(),
+          ),
+          _ToolBarButton(
+            icon: PhosphorIconsRegular.trash,
+            tooltip: 'Delete Selected',
+            onTap: state.selectedClipId != null
+                ? () => ref.read(localEditorProvider.notifier).deleteSelectedClip()
+                : () {},
+          ),
         ],
       ),
     );
@@ -1348,17 +2123,26 @@ class _TimelineRuler extends StatelessWidget {
   final double height;
   final double totalSeconds;
   final double zoom;
+  final void Function(double seconds)? onSeek;
 
-  const _TimelineRuler({required this.height, required this.totalSeconds, required this.zoom});
+  const _TimelineRuler({required this.height, required this.totalSeconds, required this.zoom, this.onSeek});
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      height: height,
-      color: _surfaceColor,
-      child: CustomPaint(
-        painter: _RulerPainter(totalSeconds: totalSeconds, zoom: zoom),
-        size: Size(double.infinity, height),
+    return GestureDetector(
+      onTapUp: (details) {
+        if (onSeek == null || totalSeconds <= 0) return;
+        final pixelsPerSecond = (800 * zoom) / totalSeconds;
+        final seconds = details.localPosition.dx / pixelsPerSecond;
+        onSeek!(seconds.clamp(0, totalSeconds));
+      },
+      child: Container(
+        height: height,
+        color: _surfaceColor,
+        child: CustomPaint(
+          painter: _RulerPainter(totalSeconds: totalSeconds, zoom: zoom),
+          size: Size(double.infinity, height),
+        ),
       ),
     );
   }
@@ -1372,6 +2156,7 @@ class _RulerPainter extends CustomPainter {
 
   @override
   void paint(Canvas canvas, Size size) {
+    if (totalSeconds <= 0) return;
     final paint = Paint()
       ..strokeWidth = 1
       ..style = PaintingStyle.stroke;
@@ -1414,7 +2199,7 @@ class _RulerPainter extends CustomPainter {
   }
 
   @override
-  bool shouldRepaint(covariant _RulerPainter oldDelegate) => oldDelegate.zoom != zoom;
+  bool shouldRepaint(covariant _RulerPainter oldDelegate) => oldDelegate.zoom != zoom || oldDelegate.totalSeconds != totalSeconds;
 }
 
 class _TrackHeader extends StatelessWidget {
@@ -1535,7 +2320,7 @@ class _TimelineTrackRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final pixelsPerSecond = (800 * zoom) / totalSeconds;
+    final pixelsPerSecond = totalSeconds > 0 ? (800 * zoom) / totalSeconds : 0;
 
     return Container(
       height: trackHeight,
@@ -1590,62 +2375,6 @@ class _TimelineClipWidget extends StatelessWidget {
             fontWeight: FontWeight.w500,
           ),
           overflow: TextOverflow.ellipsis,
-        ),
-      ),
-    );
-  }
-}
-
-// ─── Right Panel ─────────────────────────────────────────────────────────────
-class _RightPanelOld extends StatelessWidget {
-  final EditorState state;
-  final WidgetRef ref;
-
-  const _RightPanelOld({required this.state, required this.ref});
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: 280,
-      decoration: const BoxDecoration(
-        color: _surfaceColor,
-        border: Border(left: BorderSide(color: _borderColor)),
-      ),
-      child: DefaultTabController(
-        length: 4,
-        child: Column(
-          children: [
-            Container(
-              decoration: const BoxDecoration(
-                border: Border(bottom: BorderSide(color: _borderColor)),
-              ),
-              child: TabBar(
-                isScrollable: true,
-                labelColor: _accentColor,
-                unselectedLabelColor: _textMuted,
-                labelStyle: GoogleFonts.inter(fontSize: 11, fontWeight: FontWeight.w600),
-                unselectedLabelStyle: GoogleFonts.inter(fontSize: 11),
-                indicatorColor: _accentColor,
-                indicatorSize: TabBarIndicatorSize.label,
-                tabs: const [
-                  Tab(text: 'Properties'),
-                  Tab(text: 'Edit Info'),
-                  Tab(text: 'AI Decisions'),
-                  Tab(text: 'Style'),
-                ],
-              ),
-            ),
-            Expanded(
-              child: TabBarView(
-                children: [
-                  _PropertiesPanel(),
-                  _EditDecisionPanel(),
-                  _AiDecisionsPanel(),
-                  _StyleSettingsPanel(),
-                ],
-              ),
-            ),
-          ],
         ),
       ),
     );
@@ -1786,11 +2515,16 @@ class _ViralMomentCard extends StatelessWidget {
 
   Color get _typeColor {
     switch (type) {
-      case 'Comedy': return _warningColor;
-      case 'Dramatic': return _errorColor;
-      case 'Emotional': return _purpleColor;
-      case 'Surprise': return _accentColor;
-      default: return _textMuted;
+      case 'Comedy':
+        return _warningColor;
+      case 'Dramatic':
+        return _errorColor;
+      case 'Emotional':
+        return _purpleColor;
+      case 'Surprise':
+        return _accentColor;
+      default:
+        return _textMuted;
     }
   }
 
@@ -2093,6 +2827,85 @@ class _StyleOption extends StatelessWidget {
           ],
         ),
       ),
+    );
+  }
+}
+
+class _ExportOption extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final String subtitle;
+  final VoidCallback onTap;
+
+  const _ExportOption({
+    required this.icon,
+    required this.label,
+    required this.subtitle,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(8),
+      child: Container(
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          color: _cardColor,
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(color: _borderColor),
+        ),
+        child: Row(
+          children: [
+            Container(
+              width: 36,
+              height: 36,
+              decoration: BoxDecoration(
+                color: _accentColor.withOpacity(0.15),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Icon(icon, size: 16, color: _accentColor),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(label, style: GoogleFonts.inter(color: _textPrimary, fontSize: 13, fontWeight: FontWeight.w600)),
+                  Text(subtitle, style: GoogleFonts.inter(color: _textMuted, fontSize: 11)),
+                ],
+              ),
+            ),
+            Icon(PhosphorIconsRegular.caretRight, size: 14, color: _textMuted),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _MenuOption extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final VoidCallback onTap;
+  final bool isDestructive;
+
+  const _MenuOption({
+    required this.icon,
+    required this.label,
+    required this.onTap,
+    this.isDestructive = false,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final color = isDestructive ? _errorColor : _textPrimary;
+    return ListTile(
+      leading: Icon(icon, size: 18, color: isDestructive ? _errorColor : _textSecondary),
+      title: Text(label, style: GoogleFonts.inter(color: color, fontSize: 13)),
+      onTap: onTap,
+      dense: true,
     );
   }
 }

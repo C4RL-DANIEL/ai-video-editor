@@ -163,6 +163,8 @@ class HooksPageState {
   final String? selectedHookId;
   final String previewText;
 
+  bool get hasData => moment != null && hooks.isNotEmpty;
+
   HooksPageState copyWith({
     MomentInfo? moment,
     List<GeneratedHook>? hooks,
@@ -189,6 +191,64 @@ class HooksPageState {
   }
 }
 
+// ── Hook Generation Templates ──────────────────────────────────────
+const _hookTemplates = {
+  HookType.curiosity: [
+    "Wait until you see what happens next…",
+    "You won't believe what's about to unfold",
+    "This moment changes everything",
+    "Something incredible is about to happen",
+    "Watch closely — you'll miss it if you blink",
+    "The answer will surprise you",
+    "What happens next will blow your mind",
+    "I never expected this to happen",
+  ],
+  HookType.shock: [
+    "I can't believe what just happened 😳",
+    "Nobody saw this coming",
+    "This is absolutely insane",
+    "My jaw literally dropped watching this",
+    "Warning: you won't be ready for this",
+    "This is the most shocking thing I've seen",
+  ],
+  HookType.question: [
+    "Would you dare try this? 😱",
+    "What would you do in this situation?",
+    "Have you ever seen anything like this?",
+    "Why would anyone do this?",
+    "Can you guess what happens?",
+  ],
+  HookType.humor: [
+    "His face says it all 💀",
+    "I'm dying laughing at this reaction",
+    "When you realize what just happened 😂",
+    "This is comedy gold right here",
+  ],
+  HookType.emotional: [
+    "The most satisfying reaction I've ever captured",
+    "When life gives you the perfect moment 🎬",
+    "This gave me chills watching it back",
+    "You can see the pure joy in that moment",
+  ],
+  HookType.challenge: [
+    "Try not to laugh at this reaction challenge",
+    "Bet you can't watch this without smiling",
+    "I dare you to keep a straight face",
+  ],
+  HookType.promise: [
+    "Watch until the end — you won't be disappointed",
+    "This is worth every second of your time",
+    "The payoff at the end is absolutely worth it",
+    "Stick around for the best part",
+  ],
+  HookType.controversy: [
+    "This reaction broke the internet for a reason",
+    "Some people are saying this is fake… they're wrong",
+    "The internet is divided on this one",
+    "You won't see eye to eye with everyone on this",
+  ],
+};
+
 // ── Provider ────────────────────────────────────────────────────────
 final hooksPageProvider =
     StateNotifierProvider.family<HooksPageNotifier, HooksPageState, String>(
@@ -201,18 +261,20 @@ class HooksPageNotifier extends StateNotifier<HooksPageState> {
   }
 
   final String _momentId;
+  int _nextHookId = 1;
 
   void _loadData() {
     state = state.copyWith(isLoading: true);
     Future.delayed(const Duration(milliseconds: 600), () {
+      // No mock data — start with empty state
       state = state.copyWith(
         isLoading: false,
-        moment: _mockMoment,
-        hooks: _mockHooks,
-        previewText: _mockHooks.first.text,
-        selectedHookId: _mockHooks.first.id,
       );
     });
+  }
+
+  void loadMoment(MomentInfo moment) {
+    state = state.copyWith(moment: moment);
   }
 
   void setFilter(HookType filter) {
@@ -227,119 +289,58 @@ class HooksPageNotifier extends StateNotifier<HooksPageState> {
     );
   }
 
+  void updateHookText(String hookId, String newText) {
+    final updatedHooks = state.hooks.map((h) {
+      if (h.id == hookId) {
+        return GeneratedHook(
+          id: h.id,
+          text: newText,
+          type: h.type,
+          score: h.score,
+          isUsing: h.isUsing,
+        );
+      }
+      return h;
+    }).toList();
+    final isSelected = state.selectedHookId == hookId;
+    state = state.copyWith(
+      hooks: updatedHooks,
+      previewText: isSelected ? newText : state.previewText,
+    );
+  }
+
   void generateMore() {
+    if (state.moment == null) return;
     state = state.copyWith(isGenerating: true);
-    Future.delayed(const Duration(seconds: 2), () {
-      state = state.copyWith(isGenerating: false);
-      // TODO: Add more hooks from API
+    Future.delayed(const Duration(milliseconds: 800), () {
+      final random = math.Random();
+      final types = HookType.values.where((t) => t != HookType.all).toList();
+      final newHooks = <GeneratedHook>[];
+
+      // Generate 3-5 new hook variations
+      final count = 3 + random.nextInt(3);
+      for (var i = 0; i < count; i++) {
+        final type = types[random.nextInt(types.length)];
+        final templates = _hookTemplates[type] ?? [];
+        if (templates.isEmpty) continue;
+        final text = templates[random.nextInt(templates.length)];
+        final score = 55.0 + random.nextDouble() * 40;
+        newHooks.add(GeneratedHook(
+          id: 'gen_${_nextHookId++}',
+          text: text,
+          type: type,
+          score: double.parse(score.toStringAsFixed(1)),
+        ));
+      }
+
+      final allHooks = [...state.hooks, ...newHooks];
+      state = state.copyWith(
+        isGenerating: false,
+        hooks: allHooks,
+      );
     });
   }
 }
-
-// ── Mock Data ───────────────────────────────────────────────────────
-final _mockMoment = const MomentInfo(
-  id: 'moment_1',
-  timestamp: '02:14',
-  description:
-      'Subject displays genuine surprise reaction when shown unexpected reveal. High emotional peak with strong facial expression.',
-  score: 92,
-  startOffset: 134,
-  endOffset: 192,
-);
-
-final _mockHooks = [
-  const GeneratedHook(
-    id: 'h1',
-    text: "Wait until you see his reaction when the door opens…",
-    type: HookType.curiosity,
-    score: 92,
-    isUsing: true,
-  ),
-  const GeneratedHook(
-    id: 'h2',
-    text: "This reaction broke the internet for a reason",
-    type: HookType.controversy,
-    score: 87,
-  ),
-  const GeneratedHook(
-    id: 'h3',
-    text: "I can't believe what just happened 😳",
-    type: HookType.shock,
-    score: 84,
-  ),
-  const GeneratedHook(
-    id: 'h4',
-    text: "POV: You finally see what's behind the door",
-    type: HookType.curiosity,
-    score: 81,
-  ),
-  const GeneratedHook(
-    id: 'h5',
-    text: "Nobody expected what happened next",
-    type: HookType.shock,
-    score: 79,
-  ),
-  const GeneratedHook(
-    id: 'h6',
-    text: "Would YOU open the door? 😱",
-    type: HookType.question,
-    score: 76,
-  ),
-  const GeneratedHook(
-    id: 'h7',
-    text: "His face says it all 💀",
-    type: HookType.humor,
-    score: 74,
-  ),
-  const GeneratedHook(
-    id: 'h8',
-    text: "The most satisfying reaction I've ever captured",
-    type: HookType.emotional,
-    score: 72,
-  ),
-  const GeneratedHook(
-    id: 'h9',
-    text: "Watch until the end - you won't be disappointed",
-    type: HookType.promise,
-    score: 68,
-  ),
-  const GeneratedHook(
-    id: 'h10',
-    text: "Some people are saying this is fake… they're wrong",
-    type: HookType.controversy,
-    score: 65,
-  ),
-  const GeneratedHook(
-    id: 'h11',
-    text: "When life gives you the perfect moment 🎬",
-    type: HookType.emotional,
-    score: 63,
-  ),
-  const GeneratedHook(
-    id: 'h12',
-    text: "Try not to laugh at this reaction challenge",
-    type: HookType.humor,
-    score: 60,
-  ),
-  const GeneratedHook(
-    id: 'h13',
-    text: "The door was closed for a reason…",
-    type: HookType.curiosity,
-    score: 88,
-  ),
-  const GeneratedHook(
-    id: 'h14',
-    text: "You're about to witness something incredible",
-    type: HookType.promise,
-    score: 77,
-  ),
-  const GeneratedHook(
-    id: 'h15',
-    text: "This changes everything we thought we knew",
-    type: HookType.shock,
-    score: 71,
-  ),
-];
 
 // ══════════════════════════════════════════════════════════════════════
 // HOOKS PAGE
@@ -396,7 +397,7 @@ class HooksPage extends ConsumerWidget {
       ),
       body: state.isLoading
           ? _buildLoading()
-          : state.moment == null
+          : !state.hasData
               ? _buildEmpty()
               : isDesktop
                   ? _buildDesktopLayout(context, ref, state)
@@ -415,13 +416,19 @@ class HooksPage extends ConsumerWidget {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(PhosphorIconsRegular.magnifyingGlass,
+          Icon(PhosphorIconsRegular.sparkle,
               size: 48, color: _textTertiary),
           const SizedBox(height: 16),
           Text(
-            'No moment found',
+            'No hooks generated yet',
             style: GoogleFonts.inter(
                 fontSize: 16, fontWeight: FontWeight.w600, color: _textPrimary),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            'Generate hooks to get started',
+            style: GoogleFonts.inter(
+                fontSize: 14, color: _textSecondary),
           ),
         ],
       ),
@@ -431,6 +438,17 @@ class HooksPage extends ConsumerWidget {
   // ── Desktop Layout ──────────────────────────────────────────────
   Widget _buildDesktopLayout(
       BuildContext context, WidgetRef ref, HooksPageState state) {
+    final notifier = ref.read(hooksPageProvider(momentId).notifier);
+    void showSnack(String msg) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(msg, style: GoogleFonts.inter()),
+          duration: const Duration(seconds: 2),
+          backgroundColor: _surfaceColor,
+        ),
+      );
+    }
+
     return Row(
       children: [
         // Left: Moment info + hooks list
@@ -445,8 +463,7 @@ class HooksPage extends ConsumerWidget {
               _HookFilterTabs(
                 activeFilter: state.activeFilter,
                 hooks: state.hooks,
-                onFilterChanged:
-                    ref.read(hooksPageProvider(momentId).notifier).setFilter,
+                onFilterChanged: notifier.setFilter,
               ),
 
               // Hooks list
@@ -454,15 +471,16 @@ class HooksPage extends ConsumerWidget {
                 child: _HooksList(
                   hooks: state.filteredHooks,
                   selectedHookId: state.selectedHookId,
-                  onSelect: ref.read(hooksPageProvider(momentId).notifier).useHook,
+                  onSelect: notifier.useHook,
+                  onEdit: notifier.updateHookText,
+                  onNotify: showSnack,
                 ),
               ),
 
               // Generate more button
               _GenerateMoreButton(
                 isGenerating: state.isGenerating,
-                onGenerate:
-                    ref.read(hooksPageProvider(momentId).notifier).generateMore,
+                onGenerate: notifier.generateMore,
               ),
             ],
           ),
@@ -474,6 +492,7 @@ class HooksPage extends ConsumerWidget {
           child: _PreviewArea(
             hookText: state.previewText,
             moment: state.moment!,
+            onNotify: showSnack,
           ),
         ),
       ],
@@ -483,6 +502,17 @@ class HooksPage extends ConsumerWidget {
   // ── Mobile Layout ───────────────────────────────────────────────
   Widget _buildMobileLayout(
       BuildContext context, WidgetRef ref, HooksPageState state) {
+    final notifier = ref.read(hooksPageProvider(momentId).notifier);
+    void showSnack(String msg) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(msg, style: GoogleFonts.inter()),
+          duration: const Duration(seconds: 2),
+          backgroundColor: _surfaceColor,
+        ),
+      );
+    }
+
     return Column(
       children: [
         // Moment info
@@ -492,8 +522,7 @@ class HooksPage extends ConsumerWidget {
         _HookFilterTabs(
           activeFilter: state.activeFilter,
           hooks: state.hooks,
-          onFilterChanged:
-              ref.read(hooksPageProvider(momentId).notifier).setFilter,
+          onFilterChanged: notifier.setFilter,
         ),
 
         // Hooks list
@@ -501,7 +530,9 @@ class HooksPage extends ConsumerWidget {
           child: _HooksList(
             hooks: state.filteredHooks,
             selectedHookId: state.selectedHookId,
-            onSelect: ref.read(hooksPageProvider(momentId).notifier).useHook,
+            onSelect: notifier.useHook,
+            onEdit: notifier.updateHookText,
+            onNotify: showSnack,
           ),
         ),
 
@@ -514,8 +545,7 @@ class HooksPage extends ConsumerWidget {
         // Generate more button
         _GenerateMoreButton(
           isGenerating: state.isGenerating,
-          onGenerate:
-              ref.read(hooksPageProvider(momentId).notifier).generateMore,
+          onGenerate: notifier.generateMore,
         ),
       ],
     );
@@ -721,11 +751,15 @@ class _HooksList extends StatelessWidget {
     required this.hooks,
     required this.selectedHookId,
     required this.onSelect,
+    required this.onEdit,
+    required this.onNotify,
   });
 
   final List<GeneratedHook> hooks;
   final String? selectedHookId;
   final ValueChanged<String> onSelect;
+  final void Function(String hookId, String newText) onEdit;
+  final void Function(String message) onNotify;
 
   @override
   Widget build(BuildContext context) {
@@ -761,14 +795,86 @@ class _HooksList extends StatelessWidget {
           isSelected: isSelected,
           index: index,
           onSelect: () => onSelect(hook.id),
+          onEdit: () {
+            _showEditDialog(context, hook, onEdit);
+          },
+          onNotify: onNotify,
         );
       },
     );
   }
 }
 
+void _showEditDialog(
+    BuildContext context, GeneratedHook hook, void Function(String hookId, String newText) onEdit) {
+  final controller = TextEditingController(text: hook.text);
+  showDialog(
+    context: context,
+    builder: (ctx) => AlertDialog(
+      backgroundColor: _cardColor,
+      title: Text(
+        'Edit Hook',
+        style: GoogleFonts.inter(
+          fontSize: 16,
+          fontWeight: FontWeight.w600,
+          color: _textPrimary,
+        ),
+      ),
+      content: TextField(
+        controller: controller,
+        maxLines: 3,
+        style: GoogleFonts.inter(
+          fontSize: 14,
+          color: _textPrimary,
+        ),
+        decoration: InputDecoration(
+          hintText: 'Enter hook text...',
+          hintStyle: GoogleFonts.inter(color: _textTertiary),
+          border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(8),
+            borderSide: const BorderSide(color: _borderColor),
+          ),
+          enabledBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(8),
+            borderSide: const BorderSide(color: _borderColor),
+          ),
+          focusedBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(8),
+            borderSide: const BorderSide(color: _accentBlue),
+          ),
+        ),
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.of(ctx).pop(),
+          child: Text(
+            'Cancel',
+            style: GoogleFonts.inter(color: _textSecondary),
+          ),
+        ),
+        ElevatedButton(
+          onPressed: () {
+            final newText = controller.text.trim();
+            if (newText.isNotEmpty) {
+              onEdit(hook.id, newText);
+            }
+            Navigator.of(ctx).pop();
+          },
+          style: ElevatedButton.styleFrom(
+            backgroundColor: _accentBlue,
+            foregroundColor: Colors.white,
+          ),
+          child: Text(
+            'Save',
+            style: GoogleFonts.inter(fontWeight: FontWeight.w600),
+          ),
+        ),
+      ],
+    ),
+  );
+}
+
 // ══════════════════════════════════════════════════════════════════════
-// HOOK CARD
 // ══════════════════════════════════════════════════════════════════════
 class _HookCard extends StatelessWidget {
   const _HookCard({
@@ -776,12 +882,16 @@ class _HookCard extends StatelessWidget {
     required this.isSelected,
     required this.index,
     required this.onSelect,
+    this.onEdit,
+    this.onNotify,
   });
 
   final GeneratedHook hook;
   final bool isSelected;
   final int index;
   final VoidCallback onSelect;
+  final VoidCallback? onEdit;
+  final void Function(String message)? onNotify;
 
   @override
   Widget build(BuildContext context) {
@@ -941,9 +1051,7 @@ class _HookCard extends StatelessWidget {
 
                 // Edit button
                 OutlinedButton.icon(
-                  onPressed: () {
-                    // TODO: Open hook editor
-                  },
+                  onPressed: onEdit ?? () {},
                   icon:
                       Icon(PhosphorIconsRegular.pencilSimple, size: 16),
                   label: Text(
@@ -987,10 +1095,12 @@ class _PreviewArea extends StatelessWidget {
   const _PreviewArea({
     required this.hookText,
     required this.moment,
+    this.onNotify,
   });
 
   final String hookText;
   final MomentInfo moment;
+  final void Function(String message)? onNotify;
 
   @override
   Widget build(BuildContext context) {
@@ -1028,6 +1138,7 @@ class _PreviewArea extends StatelessWidget {
             child: Center(
               child: _PhoneMockup(
                 hookText: hookText,
+                onNotify: onNotify,
               ),
             ),
           ),
@@ -1165,9 +1276,10 @@ class _PreviewAreaCompact extends StatelessWidget {
 // PHONE MOCKUP (hook as opening text)
 // ══════════════════════════════════════════════════════════════════════
 class _PhoneMockup extends StatelessWidget {
-  const _PhoneMockup({required this.hookText});
+  const _PhoneMockup({required this.hookText, this.onNotify});
 
   final String hookText;
+  final void Function(String message)? onNotify;
 
   @override
   Widget build(BuildContext context) {
@@ -1281,14 +1393,23 @@ class _PhoneMockup extends StatelessWidget {
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Icon(PhosphorIconsRegular.heart,
-                      size: 20, color: Colors.white.withAlpha(150)),
+                  GestureDetector(
+                    onTap: () => onNotify?.call('❤️ Liked!'),
+                    child: Icon(PhosphorIconsRegular.heart,
+                        size: 20, color: Colors.white.withAlpha(150)),
+                  ),
                   const SizedBox(width: 24),
-                  Icon(PhosphorIconsRegular.chatCircle,
-                      size: 20, color: Colors.white.withAlpha(150)),
+                  GestureDetector(
+                    onTap: () => onNotify?.call('💬 Comments coming soon'),
+                    child: Icon(PhosphorIconsRegular.chatCircle,
+                        size: 20, color: Colors.white.withAlpha(150)),
+                  ),
                   const SizedBox(width: 24),
-                  Icon(PhosphorIconsRegular.shareFat,
-                      size: 20, color: Colors.white.withAlpha(150)),
+                  GestureDetector(
+                    onTap: () => onNotify?.call('📤 Share coming soon'),
+                    child: Icon(PhosphorIconsRegular.shareFat,
+                        size: 20, color: Colors.white.withAlpha(150)),
+                  ),
                 ],
               ),
             ),

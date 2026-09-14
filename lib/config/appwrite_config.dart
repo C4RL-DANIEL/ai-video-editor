@@ -27,9 +27,14 @@ abstract final class AppwriteConfig {
   static const String editDecisionsCollectionId = 'edit_decisions';
 }
 
-/// Creates a configured Appwrite [Client] instance.
+/// Singleton Appwrite client shared across the app.
+/// All services (auth, storage, database) should use this same instance
+/// so that session state (cookies, tokens) is shared.
+Client? _sharedClient;
+
 Client createAppwriteClient() {
-  return Client()
+  _sharedClient ??= Client()
     ..setEndpoint(AppwriteConfig.endpoint)
     ..setProject(AppwriteConfig.projectId);
+  return _sharedClient!;
 }
