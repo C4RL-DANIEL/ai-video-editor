@@ -54,7 +54,6 @@ class AppwriteAuthService {
       debugPrint('Unexpected signUp error: $e');
       return ApiResponse.error('Sign up failed: ${e.toString()}');
     }
-    }
   }
 
   /// Sign in with email and password.
