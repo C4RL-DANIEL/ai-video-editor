@@ -1,20 +1,25 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:phosphor_flutter/phosphor_flutter.dart';
 
-class LoginPage extends StatefulWidget {
+import 'auth_provider.dart';
+
+class LoginPage extends ConsumerStatefulWidget {
   const LoginPage({super.key});
 
   @override
-  State<LoginPage> createState() => _LoginPageState();
+  ConsumerState<LoginPage> createState() => _LoginPageState();
 }
 
-class _LoginPageState extends State<LoginPage> {
+class _LoginPageState extends ConsumerState<LoginPage> {
   final _formKey = GlobalKey<FormState>();
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
   bool _obscurePassword = true;
   bool _isLoading = false;
+  String? _errorMessage;
 
   @override
   void dispose() {
@@ -37,15 +42,40 @@ class _LoginPageState extends State<LoginPage> {
     );
   }
 
-  void _handleSignIn() {
-    if (_formKey.currentState?.validate() ?? false) {
-      setState(() => _isLoading = true);
-      // TODO: Implement actual authentication
-      Future.delayed(const Duration(seconds: 2), () {
-        if (mounted) {
-          setState(() => _isLoading = false);
-          Navigator.of(context).pushReplacementNamed('/dashboard');
-        }
+  Future<void> _handleSignIn() async {
+    if (!(_formKey.currentState?.validate() ?? false)) return;
+
+    setState(() {
+      _isLoading = true;
+      _errorMessage = null;
+    });
+
+    try {
+      final notifier = ref.read(authStateProvider.notifier);
+      final success = await notifier.signIn(
+        email: _emailController.text.trim(),
+        password: _passwordController.text,
+      );
+
+      if (!mounted) return;
+
+      if (success) {
+        // Auth state changed → GoRouter redirect will handle navigation
+        context.go('/dashboard');
+      } else {
+        final authService = ref.read(authServiceProvider);
+        setState(() {
+          _isLoading = false;
+          _errorMessage = authService.currentUser != null
+              ? 'Sign in failed. Please try again.'
+              : 'Invalid email or password.';
+        });
+      }
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _isLoading = false;
+        _errorMessage = 'Connection error. Please check your internet and try again.';
       });
     }
   }
@@ -122,6 +152,29 @@ class _LoginPageState extends State<LoginPage> {
                       ),
 
                       SizedBox(height: spacing * 1.5),
+
+                      // Error message
+                      if (_errorMessage != null) ...[
+                        Container(
+                          padding: const EdgeInsets.all(12),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFEF4444).withOpacity(0.1),
+                            borderRadius: BorderRadius.circular(10),
+                            border: Border.all(
+                              color: const Color(0xFFEF4444).withOpacity(0.3),
+                            ),
+                          ),
+                          child: Text(
+                            _errorMessage!,
+                            style: GoogleFonts.inter(
+                              fontSize: 13,
+                              color: const Color(0xFFEF4444),
+                            ),
+                            textAlign: TextAlign.center,
+                          ),
+                        ),
+                        const SizedBox(height: 16),
+                      ],
 
                       // Card container
                       Container(
@@ -316,9 +369,7 @@ class _LoginPageState extends State<LoginPage> {
                             ),
                           ),
                           GestureDetector(
-                            onTap: () {
-                              Navigator.of(context).pushNamed('/register');
-                            },
+                            onTap: () => context.push('/register'),
                             child: Text(
                               'Sign Up',
                               style: GoogleFonts.inter(

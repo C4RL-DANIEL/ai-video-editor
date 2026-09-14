@@ -1,15 +1,19 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:phosphor_flutter/phosphor_flutter.dart';
 
-class RegisterPage extends StatefulWidget {
+import 'auth_provider.dart';
+
+class RegisterPage extends ConsumerStatefulWidget {
   const RegisterPage({super.key});
 
   @override
-  State<RegisterPage> createState() => _RegisterPageState();
+  ConsumerState<RegisterPage> createState() => _RegisterPageState();
 }
 
-class _RegisterPageState extends State<RegisterPage> {
+class _RegisterPageState extends ConsumerState<RegisterPage> {
   final _formKey = GlobalKey<FormState>();
   final _nameController = TextEditingController();
   final _emailController = TextEditingController();
@@ -19,6 +23,7 @@ class _RegisterPageState extends State<RegisterPage> {
   bool _obscureConfirmPassword = true;
   bool _agreeToTerms = false;
   bool _isLoading = false;
+  String? _errorMessage;
 
   @override
   void dispose() {
@@ -29,7 +34,7 @@ class _RegisterPageState extends State<RegisterPage> {
     super.dispose();
   }
 
-  void _handleCreateAccount() {
+  Future<void> _handleCreateAccount() async {
     if (!_agreeToTerms) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
@@ -44,14 +49,36 @@ class _RegisterPageState extends State<RegisterPage> {
       );
       return;
     }
-    if (_formKey.currentState?.validate() ?? false) {
-      setState(() => _isLoading = true);
-      // TODO: Implement actual registration
-      Future.delayed(const Duration(seconds: 2), () {
-        if (mounted) {
-          setState(() => _isLoading = false);
-          Navigator.of(context).pushReplacementNamed('/dashboard');
-        }
+    if (!(_formKey.currentState?.validate() ?? false)) return;
+
+    setState(() {
+      _isLoading = true;
+      _errorMessage = null;
+    });
+
+    try {
+      final notifier = ref.read(authStateProvider.notifier);
+      final success = await notifier.signUp(
+        email: _emailController.text.trim(),
+        password: _passwordController.text,
+        name: _nameController.text.trim(),
+      );
+
+      if (!mounted) return;
+
+      if (success) {
+        context.go('/dashboard');
+      } else {
+        setState(() {
+          _isLoading = false;
+          _errorMessage = 'Registration failed. Email may already be in use.';
+        });
+      }
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _isLoading = false;
+        _errorMessage = 'Connection error. Please check your internet and try again.';
       });
     }
   }
@@ -86,7 +113,7 @@ class _RegisterPageState extends State<RegisterPage> {
                       Align(
                         alignment: Alignment.centerLeft,
                         child: GestureDetector(
-                          onTap: () => Navigator.of(context).pop(),
+                          onTap: () => context.pop(),
                           child: Padding(
                             padding: const EdgeInsets.all(8.0),
                             child: Icon(
@@ -146,6 +173,29 @@ class _RegisterPageState extends State<RegisterPage> {
                       ),
 
                       SizedBox(height: spacing * 1.5),
+
+                      // Error message
+                      if (_errorMessage != null) ...[
+                        Container(
+                          padding: const EdgeInsets.all(12),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFEF4444).withOpacity(0.1),
+                            borderRadius: BorderRadius.circular(10),
+                            border: Border.all(
+                              color: const Color(0xFFEF4444).withOpacity(0.3),
+                            ),
+                          ),
+                          child: Text(
+                            _errorMessage!,
+                            style: GoogleFonts.inter(
+                              fontSize: 13,
+                              color: const Color(0xFFEF4444),
+                            ),
+                            textAlign: TextAlign.center,
+                          ),
+                        ),
+                        const SizedBox(height: 16),
+                      ],
 
                       // Card container
                       Container(
@@ -392,7 +442,7 @@ class _RegisterPageState extends State<RegisterPage> {
                           ),
                           GestureDetector(
                             onTap: () {
-                              Navigator.of(context).pop();
+                              context.pop();
                             },
                             child: Text(
                               'Sign In',

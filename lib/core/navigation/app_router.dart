@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 
 // ── Feature screen imports ──────────────────────────────────────────
 import '../../features/splash/presentation/splash_page.dart';
+import '../../features/auth/presentation/auth_provider.dart';
 import '../../features/auth/presentation/login_page.dart';
 import '../../features/auth/presentation/register_page.dart';
 import '../../features/projects/presentation/projects_list_page.dart';
@@ -105,9 +106,6 @@ abstract final class RouteNames {
 
 // ── Auth abstraction ────────────────────────────────────────────────
 enum AuthStatus { authenticated, unauthenticated, loading }
-
-/// Replace with a Riverpod provider when real auth is wired up.
-AuthStatus get currentAuthStatus => AuthStatus.unauthenticated;
 
 // ── Shell navigator keys ────────────────────────────────────────────
 final GlobalKey<NavigatorState> _rootNavigatorKey =
@@ -221,15 +219,18 @@ final appRouterProvider = Provider<GoRouter>((ref) {
   return GoRouter(
     navigatorKey: _rootNavigatorKey,
     initialLocation: RoutePaths.splash,
-    debugLogDiagnostics: true,
+    debugLogDiagnostics: false,
 
     // ── Redirect logic ────────────────────────────────────────────
     redirect: (BuildContext context, GoRouterState state) {
       final location = state.matchedLocation;
-      final authStatus = currentAuthStatus;
 
-      // Still loading – stay on splash.
-      if (authStatus == AuthStatus.loading) {
+      // Read the auth state from Riverpod.
+      // During the first frame, the auth state may still be 'unknown'.
+      final authState = ref.read(authStateProvider);
+
+      // Still checking auth – stay on splash.
+      if (authState == AuthState.unknown) {
         return location == RoutePaths.splash ? null : RoutePaths.splash;
       }
 
@@ -239,12 +240,12 @@ final appRouterProvider = Provider<GoRouter>((ref) {
           location == RoutePaths.login ||
           location == RoutePaths.register;
 
-      if (authStatus == AuthStatus.unauthenticated && !isAuthRoute) {
-        return '${RoutePaths.login}?redirect=${Uri.encodeComponent(location)}';
+      if (authState == AuthState.unauthenticated && !isAuthRoute) {
+        return RoutePaths.login;
       }
 
       // Authenticated on splash → go to dashboard.
-      if (authStatus == AuthStatus.authenticated &&
+      if (authState == AuthState.authenticated &&
           location == RoutePaths.splash) {
         return RoutePaths.dashboard;
       }
