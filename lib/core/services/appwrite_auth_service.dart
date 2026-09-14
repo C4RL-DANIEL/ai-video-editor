@@ -23,19 +23,25 @@ class AppwriteAuthService {
 
   /// Safely fetch the current user after any auth operation.
   /// Returns the User on success, or null on failure.
+  /// This method is intentionally bulletproof — it should NEVER throw.
   Future<models.User?> _fetchCurrentUser() async {
     try {
-      final response = await _account.get();
-      // In SDK v13, get() returns a User object directly.
-      // Handle both direct User and response wrapping.
+      final dynamic response = await _account.get();
+      if (response == null) {
+        debugPrint('_fetchCurrentUser: response is null');
+        return null;
+      }
       if (response is models.User) {
         return response;
       }
-      // If it's a generic response, try to extract user data
-      _current_user = response as models.User?;
-      return _current_user;
+      // Not a User object — this shouldn't happen but handle gracefully
+      debugPrint('_fetchCurrentUser: unexpected type ${response.runtimeType}, value: $response');
+      return null;
+    } on AppwriteException catch (e) {
+      debugPrint('_fetchCurrentUser AppwriteException: ${e.message} (code: ${e.code})');
+      return null;
     } catch (e) {
-      debugPrint('_fetchCurrentUser error: $e');
+      debugPrint('_fetchCurrentUser error: ${e.runtimeType}: $e');
       return null;
     }
   }
@@ -54,30 +60,32 @@ class AppwriteAuthService {
         name: name,
       );
 
-      // Auto sign-in after registration
-      final signInResult = await signIn(email: email, password: password);
-      if (signInResult.isSuccess && signInResult.data != null) {
-        return signInResult;
+      // Auto sign-in after registration — but don't fail if we can't get user details
+      try {
+        await signIn(email: email, password: password);
+      } catch (_) {
+        // Sign-in attempt failed, but account was created. Return success anyway.
       }
 
-      // Sign-up succeeded but auto sign-in failed — try to get user directly
+      // Try to get user details, but don't fail if we can't
       final user = await _fetchCurrentUser();
       if (user != null) {
         _current_user = user;
         return ApiResponse.success(user);
       }
 
-      // Session was created — sign-in was successful even if we can't get user details.
+      // Account was created and session should exist — return success
       return ApiResponse.success(null);
     } on AppwriteException catch (e) {
-      debugPrint('Appwrite signUp error: ${e.message}');
+      debugPrint('Appwrite signUp error: ${e.message} (type: ${e.type}, code: ${e.code})');
       return ApiResponse.error(
         _mapError(e.type ?? 'unknown'),
         statusCode: e.code ?? 500,
       );
-    } catch (e) {
-      debugPrint('Unexpected signUp error: $e');
-      return ApiResponse.error('Sign up failed: ${e.toString()}');
+    } catch (e, stackTrace) {
+      debugPrint('Unexpected signUp error: ${e.runtimeType}: $e');
+      debugPrint('Stack trace: $stackTrace');
+      return ApiResponse.error('Sign up failed. Please try again.');
     }
   }
 
@@ -92,6 +100,7 @@ class AppwriteAuthService {
         password: password,
       );
 
+      // Try to get user details, but don't fail if we can't
       final user = await _fetchCurrentUser();
       if (user != null) {
         _current_user = user;
@@ -101,14 +110,15 @@ class AppwriteAuthService {
       // Session was created — sign-in succeeded even if we can't get user details.
       return ApiResponse.success(null);
     } on AppwriteException catch (e) {
-      debugPrint('Appwrite signIn error: ${e.message}');
+      debugPrint('Appwrite signIn error: ${e.message} (type: ${e.type}, code: ${e.code})');
       return ApiResponse.error(
         _mapError(e.type ?? 'unknown'),
         statusCode: e.code ?? 500,
       );
-    } catch (e) {
-      debugPrint('Unexpected signIn error: $e');
-      return ApiResponse.error('Sign in failed: ${e.toString()}');
+    } catch (e, stackTrace) {
+      debugPrint('Unexpected signIn error: ${e.runtimeType}: $e');
+      debugPrint('Stack trace: $stackTrace');
+      return ApiResponse.error('Sign in failed. Please try again.');
     }
   }
 

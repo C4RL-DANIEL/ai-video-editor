@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -73,9 +74,10 @@ class _LoginPageState extends ConsumerState<LoginPage> {
       }
     } catch (e) {
       if (!mounted) return;
+      debugPrint('Login page error: ${e.runtimeType}: $e');
       setState(() {
         _isLoading = false;
-        _errorMessage = 'Error: ${e.toString()}';
+        _errorMessage = 'Sign in failed. Please try again.';
       });
     }
   }
@@ -100,9 +102,10 @@ class _LoginPageState extends ConsumerState<LoginPage> {
       }
     } catch (e) {
       if (!mounted) return;
+      debugPrint('Google sign-in page error: ${e.runtimeType}: $e');
       setState(() {
         _isLoading = false;
-        _errorMessage = 'Google sign-in error: ${e.toString()}';
+        _errorMessage = 'Google sign-in failed. Please try again.';
       });
     }
   }
@@ -127,9 +130,10 @@ class _LoginPageState extends ConsumerState<LoginPage> {
       }
     } catch (e) {
       if (!mounted) return;
+      debugPrint('Apple sign-in page error: ${e.runtimeType}: $e');
       setState(() {
         _isLoading = false;
-        _errorMessage = 'Apple sign-in error: ${e.toString()}';
+        _errorMessage = 'Apple sign-in failed. Please try again.';
       });
     }
   }

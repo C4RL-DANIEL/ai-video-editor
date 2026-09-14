@@ -71,14 +71,15 @@ class _RegisterPageState extends ConsumerState<RegisterPage> {
       } else {
         setState(() {
           _isLoading = false;
-          _errorMessage = 'Registration failed. Email may already be in use.';
+          _errorMessage = 'Registration failed. Email may already be in use or password does not meet requirements (8+ chars, 1 uppercase, 1 number).';
         });
       }
     } catch (e) {
       if (!mounted) return;
+      debugPrint('Register page error: ${e.runtimeType}: $e');
       setState(() {
         _isLoading = false;
-        _errorMessage = 'Error: ${e.toString()}';
+        _errorMessage = 'Registration failed. Please try again.';
       });
     }
   }
