@@ -67,18 +67,8 @@ class AppwriteAuthService {
         return ApiResponse.success(user);
       }
 
-      return ApiResponse.success(
-        models.User(
-          id: '',
-          name: name,
-          email: email,
-          emailVerification: false,
-          status: true,
-          prefs: {},
-          createdAt: DateTime.now().toIso8601String(),
-          updatedAt: DateTime.now().toIso8601String(),
-        ),
-      );
+      // Session was created — sign-in was successful even if we can't get user details.
+      return ApiResponse.success(null);
     } on AppwriteException catch (e) {
       debugPrint('Appwrite signUp error: ${e.message}');
       return ApiResponse.error(

@@ -8,7 +8,7 @@ class ApiResponse<T> {
   });
 
   /// Creates a successful response.
-  factory ApiResponse.success(T data, {String? message, int statusCode = 200}) {
+  factory ApiResponse.success(T? data, {String? message, int statusCode = 200}) {
     return ApiResponse(
       statusCode: statusCode,
       data: data,
