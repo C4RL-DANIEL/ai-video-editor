@@ -290,9 +290,13 @@ class _AnalysisProgressPageState extends State<AnalysisProgressPage>
     final pid = widget.projectId;
     if (pid != null && pid.isNotEmpty) {
       context.push('/dashboard/projects/$pid/editor');
+    } else if (widget.sourceType == 'file') {
+      // Navigate to editor directly with the video file path
+      // The editor page should accept this and show the video
+      context.push('/upload');
     } else {
-      // Navigate back to projects list if no projectId
-      context.go('/dashboard/projects');
+      // For link-based uploads, go to projects list
+      context.go('/dashboard');
     }
   }
 
