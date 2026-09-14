@@ -69,35 +69,12 @@ class _CreateProjectPageState extends State<CreateProjectPage> {
   // ── Actions ──
 
   Future<void> _pickFile() async {
-    try {
-      final result = await FilePicker.platform.pickFiles(
-        type: FileType.video,
-        allowedExtensions: ['mp4', 'mov', 'mkv', 'webm', 'avi', 'm4v'],
-      );
-      if (result != null && result.files.isNotEmpty) {
-        setState(() {
-          _selectedSource = SourceType.file;
-          _selectedFileName = result.files.first.name;
-        });
-      }
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              'File picker not available on this platform',
-              style: GoogleFonts.inter(color: Colors.white),
-            ),
-            backgroundColor: AppColors.card,
-            behavior: SnackBarBehavior.floating,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(10),
-              side: const BorderSide(color: AppColors.border),
-            ),
-          ),
-        );
-      }
-    }
+    // Redirect to the Upload tab instead of using a separate file picker
+    // The Upload tab has the full upload + analysis flow
+    Navigator.of(context).pop(); // Close create project dialog
+    // Navigate to upload tab (index 1 in bottom nav)
+    // The parent dashboard will handle the tab switch
+    context.go('/upload');
   }
 
   void _selectLink() {
@@ -154,43 +131,15 @@ class _CreateProjectPageState extends State<CreateProjectPage> {
   void _startProcessing() {
     if (!_canSubmit) return;
 
-    // Create a new project
-    final project = Project(
-      id: DateTime.now().millisecondsSinceEpoch.toString(),
-      name: _nameController.text.trim(),
-      status: ProjectStatus.processing,
-      shortsCount: 0,
-      longFormCount: 0,
-      createdAt: DateTime.now(),
-    );
-
-    // Show processing feedback
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(
-          'Starting analysis pipeline…',
-          style: GoogleFonts.inter(color: Colors.white),
-        ),
-        backgroundColor: AppColors.success,
-        behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(10),
-        ),
-        duration: const Duration(seconds: 2),
-      ),
-    );
-
-    // Navigate to project detail after brief delay
-    Future.delayed(const Duration(milliseconds: 500), () {
-      if (!mounted) return;
-      // Pop back to the project list, then push detail
-      Navigator.of(context).pop();
-      Navigator.of(context).push(
-        MaterialPageRoute(
-          builder: (_) => ProjectDetailPage(project: project),
-        ),
-      );
-    });
+    if (_selectedSource == SourceType.link && _urlController.text.isNotEmpty) {
+      // For link-based: navigate to upload page with the URL pre-filled
+      Navigator.of(context).pop(); // Close create project
+      context.go('/upload'); // Go to upload tab where the link can be processed
+    } else {
+      // For file-based: redirect to upload tab
+      Navigator.of(context).pop(); // Close create project
+      context.go('/upload'); // Upload tab has the file picker + analysis flow
+    }
   }
 
   @override
