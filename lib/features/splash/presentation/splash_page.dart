@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:phosphor_flutter/phosphor_flutter.dart';
 
@@ -67,10 +68,8 @@ class _SplashPageState extends State<SplashPage> with SingleTickerProviderStateM
   }
 
   void _navigateNext() {
-    // TODO: Replace with real auth check
-    // final isAuthenticated = AuthService.instance.isAuthenticated;
-    // Navigator.of(context).pushReplacementNamed(isAuthenticated ? '/dashboard' : '/login');
-    Navigator.of(context).pushReplacementNamed('/dashboard');
+    // Use GoRouter for navigation (app uses GoRouter, not plain Navigator)
+    context.go('/login');
   }
 
   @override
