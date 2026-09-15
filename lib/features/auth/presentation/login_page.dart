@@ -134,7 +134,7 @@ class _LoginPageState extends ConsumerState<LoginPage> {
       if (!mounted) return;
       debugPrint('Apple sign-in page error: ${e.runtimeType}: $e');
       setState(() {
-        _isLoading = false,
+        _isLoading = false;
         _errorMessage = 'Apple sign-in failed. Please try again.';
       });
     }
