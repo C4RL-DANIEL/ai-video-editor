@@ -1,5 +1,9 @@
+import 'dart:io';
+
+import 'package:chewie/chewie.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:path/path.dart' as p;
 import 'package:phosphor_flutter/phosphor_flutter.dart';
 import 'package:video_player/video_player.dart';
 
@@ -9,10 +13,14 @@ class ShortPreviewPage extends StatefulWidget {
     super.key,
     required this.projectId,
     required this.shortId,
+    this.videoPath,
   });
 
   final String projectId;
   final String shortId;
+
+  /// Optional local file path for the video to preview.
+  final String? videoPath;
 
   @override
   State<ShortPreviewPage> createState() => _ShortPreviewPageState();
@@ -20,6 +28,7 @@ class ShortPreviewPage extends StatefulWidget {
 
 class _ShortPreviewPageState extends State<ShortPreviewPage> {
   VideoPlayerController? _videoController;
+  ChewieController? _chewieController;
   bool _isLoading = true;
   String? _errorMessage;
   bool _isPlaying = false;
@@ -39,6 +48,7 @@ class _ShortPreviewPageState extends State<ShortPreviewPage> {
 
   @override
   void dispose() {
+    _chewieController?.dispose();
     _videoController?.dispose();
     super.dispose();
   }
@@ -50,17 +60,40 @@ class _ShortPreviewPageState extends State<ShortPreviewPage> {
     });
 
     try {
-      // TODO: Fetch short document from Appwrite using widget.shortId
+      // Fetch short document from Appwrite using widget.shortId
       // For now, derive minimal data from IDs.
       _shortTitle = 'Short ${widget.shortId}';
       _shortDescription = 'Project: ${widget.projectId}';
 
-      // TODO: When a real video URL is available:
-      // _videoUrl = 'https://...';
-      // _videoController = VideoPlayerController.networkUrl(Uri.parse(_videoUrl!));
-      // await _videoController!.initialize();
-      // _totalDuration = _videoController!.value.duration;
-      // _videoController!.addListener(_videoListener);
+      // Initialize video from local file path if provided
+      final videoPath = widget.videoPath;
+      if (videoPath != null && videoPath.isNotEmpty) {
+        final file = File(videoPath);
+        if (await file.exists()) {
+          _videoUrl = videoPath;
+          _shortTitle = p.basenameWithoutExtension(videoPath);
+          _shortDescription = 'Project: ${widget.projectId}';
+
+          _videoController = VideoPlayerController.file(file);
+          await _videoController!.initialize();
+          _videoController!.addListener(_videoListener);
+
+          _chewieController = ChewieController(
+            videoPlayerController: _videoController!,
+            autoPlay: false,
+            looping: false,
+            showControls: false, // We use our own controls below
+            allowMuting: true,
+            materialProgressColors: ChewieProgressColors(
+              playedColor: const Color(0xFF3B82F6),
+              handleColor: const Color(0xFF3B82F6),
+              bufferedColor: const Color(0xFF3B82F6).withOpacity(0.3),
+            ),
+          );
+
+          _totalDuration = _videoController!.value.duration;
+        }
+      }
 
       if (!mounted) return;
       setState(() {
@@ -70,7 +103,7 @@ class _ShortPreviewPageState extends State<ShortPreviewPage> {
       if (!mounted) return;
       setState(() {
         _isLoading = false;
-        _errorMessage = 'Failed to load short video';
+        _errorMessage = 'Failed to load short video: $e';
       });
     }
   }
@@ -406,10 +439,10 @@ class _ShortPreviewPageState extends State<ShortPreviewPage> {
               alignment: Alignment.center,
               children: [
                 // Video player or placeholder
-                if (_videoController != null && _videoController!.value.isInitialized)
+                if (_chewieController != null && _videoController != null && _videoController!.value.isInitialized)
                   AspectRatio(
                     aspectRatio: _videoController!.value.aspectRatio,
-                    child: VideoPlayer(_videoController!),
+                    child: Chewie(controller: _chewieController!),
                   )
                 else ...[
                   // Empty state placeholder

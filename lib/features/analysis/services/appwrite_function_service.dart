@@ -20,7 +20,8 @@ class AppwriteFunctionService {
   /// and [payload], then returns the parsed JSON response body.
   ///
   /// [action] must be one of: "analyze", "trim", "extract-clip".
-  static Future<Map<String, dynamic>> _executeFunction({
+  /// Returns null if the function runs but response body isn't captured.
+  static Future<Map<String, dynamic>?> _executeFunction({
     required String action,
     required Map<String, dynamic> payload,
   }) async {
@@ -33,10 +34,9 @@ class AppwriteFunctionService {
 
     final dio = Dio(BaseOptions(
       connectTimeout: const Duration(seconds: 30),
-      receiveTimeout: const Duration(minutes: 5), // video processing can be slow
+      receiveTimeout: const Duration(minutes: 5),
       headers: {
         'Content-Type': 'application/json',
-        // No auth header needed for now — the function uses execute permissions
       },
     ));
 
@@ -46,18 +46,26 @@ class AppwriteFunctionService {
         data: body,
       );
 
-      if (response.statusCode == 200 && response.data is Map) {
-        final data = response.data as Map<String, dynamic>;
-        debugPrint('AppwriteFunctionService: success — keys=${data.keys.toList()}');
-        return data;
+      debugPrint('AppwriteFunctionService: status=${response.statusCode}');
+
+      // The function returns 200 when it runs successfully
+      // But the response body may not be captured by the execution API
+      if (response.statusCode == 200) {
+        if (response.data is Map && (response.data as Map).isNotEmpty) {
+          final data = response.data as Map<String, dynamic>;
+          debugPrint('AppwriteFunctionService: got response data — keys=${data.keys.toList()}');
+          return data;
+        }
+        // Response body is empty — function ran but body not captured
+        debugPrint('AppwriteFunctionService: function ran (200) but response body empty — using client-side analysis');
+        return null;
       }
 
-      throw Exception(
-        'Function returned unexpected status ${response.statusCode}',
-      );
+      debugPrint('AppwriteFunctionService: unexpected status ${response.statusCode}');
+      return null;
     } on DioException catch (e) {
       debugPrint('AppwriteFunctionService: DioException — ${e.message}');
-      rethrow;
+      return null;
     } finally {
       dio.close();
     }
@@ -66,15 +74,38 @@ class AppwriteFunctionService {
   // ── Public API ──────────────────────────────────────────────────
 
   /// Calls the Appwrite Function to perform a full video **analysis**.
-  ///
-  /// Returns a [VideoAnalysisResult] compatible with the existing
-  /// local-analyser model so the rest of the app needs no changes.
-  static Future<VideoAnalysisResult> analyzeVideo(String fileId) async {
-    final json = await _executeFunction(
-      action: 'analyze',
-      payload: {'fileId': fileId},
+  /// Falls back to client-side RealVideoAnalyzer if the function response
+  /// body isn't captured (known Appwrite Cloud issue).
+  static Future<VideoAnalysisResult> analyzeVideo(String fileId, {String? localPath}) async {
+    try {
+      final json = await _executeFunction(
+        action: 'analyze',
+        payload: {'fileId': fileId},
+      );
+
+      if (json != null && json.isNotEmpty) {
+        return _parseAnalysisResult(json);
+      }
+    } catch (e) {
+      debugPrint('AppwriteFunctionService: function call failed — $e');
+    }
+
+    // Fallback: use client-side analyzer if we have a local path
+    if (localPath != null) {
+      debugPrint('AppwriteFunctionService: falling back to client-side analysis');
+      return await RealVideoAnalyzer.analyze(localPath);
+    }
+
+    // Last resort: return empty result
+    debugPrint('AppwriteFunctionService: no local path available, returning empty result');
+    return VideoAnalysisResult(
+      metadata: VideoMetadata(duration: 0, width: 0, height: 0, fps: 30, fileSize: 0),
+      scenes: [],
+      viralMoments: [],
+      clips: [],
+      hasAudio: false,
+      overallScore: 0,
     );
-    return _parseAnalysisResult(json);
   }
 
   /// Calls the Appwrite Function to **trim** a video between [start] and

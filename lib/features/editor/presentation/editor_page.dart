@@ -646,8 +646,9 @@ class VideoPlayerNotifier extends StateNotifier<VideoPlayerState> {
 
 // ─── Editor Page ─────────────────────────────────────────────────────────────
 class EditorPage extends ConsumerStatefulWidget {
-  const EditorPage({super.key, this.projectId});
+  const EditorPage({super.key, this.projectId, this.videoPath});
   final String? projectId;
+  final String? videoPath;
 
   @override
   ConsumerState<EditorPage> createState() => _EditorPageState();
@@ -666,6 +667,13 @@ class _EditorPageState extends ConsumerState<EditorPage> {
   }
 
   void _loadProjectData() {
+    // Auto-load video if a videoPath was provided via constructor
+    final videoPath = widget.videoPath;
+    if (videoPath != null && videoPath.isNotEmpty) {
+      _loadVideoFromPath(videoPath);
+      return;
+    }
+
     final projectId = widget.projectId;
     if (projectId == null || projectId.isEmpty) return;
     // Attempt to load project name from provider
@@ -677,6 +685,29 @@ class _EditorPageState extends ConsumerState<EditorPage> {
         ref.read(localEditorProvider.notifier).state.copyWith(
               projectName: 'Project ${projectId.length > 8 ? projectId.substring(0, 8) : projectId}',
             );
+  }
+
+  Future<void> _loadVideoFromPath(String path) async {
+    try {
+      final file = File(path);
+      if (!await file.exists()) return;
+      // Update editor state
+      ref.read(localEditorProvider.notifier).loadVideoFile(path);
+      // Load into video player
+      await ref.read(videoPlayerProvider.notifier).loadVideo(path);
+      // Sync duration from video
+      final vpState = ref.read(videoPlayerProvider);
+      if (vpState.isInitialized && vpState.controller != null) {
+        final dur = vpState.controller!.value.duration;
+        ref.read(localEditorProvider.notifier).setTotalDuration(dur);
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Failed to load video: $e'), backgroundColor: _errorColor),
+        );
+      }
+    }
   }
 
   @override
@@ -860,6 +891,17 @@ class _EditorPageState extends ConsumerState<EditorPage> {
 
   void _showExportDialog(BuildContext context) {
     final editorState = ref.read(localEditorProvider);
+    if (editorState.videoFilePath == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Import a video first before exporting', style: GoogleFonts.inter(fontSize: 13)),
+          backgroundColor: _warningColor,
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+        ),
+      );
+      return;
+    }
     showDialog(
       context: context,
       builder: (ctx) => _ExportProgressDialog(
@@ -874,7 +916,7 @@ class _EditorPageState extends ConsumerState<EditorPage> {
                   children: [
                     const Icon(PhosphorIconsRegular.checkCircle, size: 16, color: Colors.white),
                     const SizedBox(width: 8),
-                    Text('Export complete!', style: GoogleFonts.inter(fontSize: 13)),
+                    Text('Export complete! Check the exports folder.', style: GoogleFonts.inter(fontSize: 13)),
                   ],
                 ),
                 backgroundColor: _successColor,
@@ -3259,14 +3301,47 @@ class _ExportProgressDialogState extends State<_ExportProgressDialog>
     });
   }
 
-  void _startExport() {
+  String? _exportedFilePath;
+
+  Future<void> _startExport() async {
     setState(() {
       _exporting = true;
       _error = null;
       _progress = 0.0;
       _currentStep = _steps[0];
+      _exportedFilePath = null;
     });
     _controller.forward(from: 0.0);
+
+    try {
+      // Perform the real file copy while the animation runs
+      final videoPath = widget.editorState.videoFilePath;
+      if (videoPath != null && videoPath.isNotEmpty) {
+        final sourceFile = File(videoPath);
+        if (await sourceFile.exists()) {
+          // Get the app documents directory
+          final appDir = await getApplicationDocumentsDirectory();
+          final exportsDir = Directory('${appDir.path}/exports');
+          if (!await exportsDir.exists()) {
+            await exportsDir.create(recursive: true);
+          }
+
+          // Build destination filename from project name + timestamp
+          final projectName = widget.editorState.projectName
+              .replaceAll(RegExp(r'[^\w\s\-]'), '')
+              .replaceAll(' ', '_');
+          final timestamp = DateTime.now().millisecondsSinceEpoch;
+          final ext = p.extension(videoPath);
+          final destPath = '${exportsDir.path}/${projectName}_$timestamp$ext';
+
+          await sourceFile.copy(destPath);
+          _exportedFilePath = destPath;
+        }
+      }
+    } catch (e) {
+      // Don't fail the UI animation; just record the error for the snackbar
+      _error = 'Export error: $e';
+    }
   }
 
   @override
@@ -3425,9 +3500,18 @@ class _ExportProgressDialogState extends State<_ExportProgressDialog>
                           ),
                           const SizedBox(height: 2),
                           Text(
-                            '${widget.editorState.totalEffectCount} effects applied • 1080p • H.264',
+                            '${widget.editorState.totalEffectCount} effects applied • ${_selectedResolution.label} • ${_selectedFormat.label}',
                             style: GoogleFonts.inter(color: _textMuted, fontSize: 10),
                           ),
+                          if (_exportedFilePath != null) ...[
+                            const SizedBox(height: 4),
+                            Text(
+                              _exportedFilePath!,
+                              style: GoogleFonts.inter(color: _accentColor, fontSize: 9),
+                              maxLines: 2,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ],
                         ],
                       ),
                     ),

@@ -1272,7 +1272,10 @@ class _AutoEditPageState extends State<_AutoEditPage> {
                     Navigator.pushReplacement(
                       context,
                       MaterialPageRoute(
-                        builder: (_) => EditorPage(projectId: null),
+                        builder: (_) => EditorPage(
+                          projectId: null,
+                          videoPath: widget.videoPath,
+                        ),
                       ),
                     );
                   },

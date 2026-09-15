@@ -132,26 +132,39 @@ class AppwriteAuthService {
         provider: OAuthProvider.google,
       );
 
-      // After browser closes and app receives callback, check auth state
-      // Give the session a moment to be established
-      await Future.delayed(const Duration(milliseconds: 500));
+      // After browser closes and app receives callback, give the session
+      // time to be fully established. The OAuth redirect flow involves
+      // Appwrite setting a session cookie/token which may take a moment.
+      // Retry up to 3 times with increasing delays.
+      models.User? user;
+      for (int attempt = 0; attempt < 3; attempt++) {
+        // Wait with increasing delay: 2s, 3s, 5s
+        final delays = [2000, 3000, 5000];
+        await Future.delayed(Duration(milliseconds: delays[attempt]));
 
-      final user = await _fetchCurrentUser();
-      if (user != null) {
-        _current_user = user;
-        return ApiResponse.success(user);
+        user = await _fetchCurrentUser();
+        if (user != null) {
+          _current_user = user;
+          debugPrint('Google sign-in: session verified on attempt ${attempt + 1}');
+          return ApiResponse.success(user);
+        }
+
+        debugPrint('Google sign-in: attempt ${attempt + 1} failed to verify session, retrying...');
       }
 
-      // Even if we can't get user details, the session might exist
-      // Try checking if there's a session
+      // All attempts to get user failed — try listing sessions as fallback
       try {
         final sessions = await _account.listSessions();
         if (sessions.sessions.isNotEmpty) {
+          debugPrint('Google sign-in: found ${sessions.sessions.length} active session(s) via listSessions');
+          // Session exists but _account.get() failed; still a success
           return ApiResponse.success(null);
         }
-      } catch (_) {}
+      } catch (e) {
+        debugPrint('Google sign-in: listSessions also failed: $e');
+      }
 
-      return ApiResponse.error('Google sign-in completed but could not verify session.');
+      return ApiResponse.error('Google sign-in completed but could not verify session. Please try signing in again.');
     } on AppwriteException catch (e) {
       debugPrint('Appwrite Google sign-in error: ${e.message} (type: ${e.type}, code: ${e.code})');
       return ApiResponse.error(
@@ -170,12 +183,35 @@ class AppwriteAuthService {
       await _account.createOAuth2Session(
         provider: OAuthProvider.apple,
       );
-      final user = await _fetchCurrentUser();
-      if (user != null) {
-        _current_user = user;
-        return ApiResponse.success(user);
+
+      // Same retry pattern as Google sign-in for OAuth session establishment
+      models.User? user;
+      for (int attempt = 0; attempt < 3; attempt++) {
+        final delays = [2000, 3000, 5000];
+        await Future.delayed(Duration(milliseconds: delays[attempt]));
+
+        user = await _fetchCurrentUser();
+        if (user != null) {
+          _current_user = user;
+          debugPrint('Apple sign-in: session verified on attempt ${attempt + 1}');
+          return ApiResponse.success(user);
+        }
+
+        debugPrint('Apple sign-in: attempt ${attempt + 1} failed to verify session, retrying...');
       }
-      return ApiResponse.error('Apple sign-in completed but could not fetch user info.');
+
+      // Fallback: try listing sessions
+      try {
+        final sessions = await _account.listSessions();
+        if (sessions.sessions.isNotEmpty) {
+          debugPrint('Apple sign-in: found ${sessions.sessions.length} active session(s) via listSessions');
+          return ApiResponse.success(null);
+        }
+      } catch (e) {
+        debugPrint('Apple sign-in: listSessions also failed: $e');
+      }
+
+      return ApiResponse.error('Apple sign-in completed but could not verify session.');
     } on AppwriteException catch (e) {
       debugPrint('Appwrite Apple sign-in error: ${e.message}');
       return ApiResponse.error(

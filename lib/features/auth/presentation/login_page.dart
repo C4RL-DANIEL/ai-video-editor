@@ -87,9 +87,12 @@ class _LoginPageState extends ConsumerState<LoginPage> {
 
     try {
       final notifier = ref.read(authStateProvider.notifier);
+      // signInWithGoogle opens the browser for OAuth, waits for the callback,
+      // then retries session verification internally. This can take up to ~10s.
       final error = await notifier.signInWithGoogle();
       if (!mounted) return;
       if (error == null) {
+        // Auth state changed → GoRouter redirect will handle navigation
         context.go('/dashboard');
       } else {
         setState(() {
@@ -115,6 +118,8 @@ class _LoginPageState extends ConsumerState<LoginPage> {
 
     try {
       final notifier = ref.read(authStateProvider.notifier);
+      // signInWithApple opens the browser for OAuth, waits for the callback,
+      // then retries session verification internally. This can take up to ~10s.
       final error = await notifier.signInWithApple();
       if (!mounted) return;
       if (error == null) {
@@ -129,7 +134,7 @@ class _LoginPageState extends ConsumerState<LoginPage> {
       if (!mounted) return;
       debugPrint('Apple sign-in page error: ${e.runtimeType}: $e');
       setState(() {
-        _isLoading = false;
+        _isLoading = false,
         _errorMessage = 'Apple sign-in failed. Please try again.';
       });
     }

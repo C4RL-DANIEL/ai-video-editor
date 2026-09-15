@@ -6,11 +6,11 @@ import '../presentation/project_providers.dart';
 
 /// Concrete [ProjectService] backed by Appwrite TablesDB.
 class AppwriteProjectService implements ProjectService {
-  final Databases _databases;
+  final TablesDB _tablesDB;
   final String _dbId = AppwriteConfig.databaseId;
-  final String _colId = AppwriteConfig.projectsCollectionId;
+  final String _tableId = AppwriteConfig.projectsCollectionId;
 
-  AppwriteProjectService(Client client) : _databases = Databases(client);
+  AppwriteProjectService(Client client) : _tablesDB = TablesDB(client);
 
   // ── Helpers ──
 
@@ -45,15 +45,15 @@ class AppwriteProjectService implements ProjectService {
   @override
   Future<List<Project>> fetchProjects() async {
     try {
-      final result = await _databases.listDocuments(
+      final result = await _tablesDB.listRows(
         databaseId: _dbId,
-        collectionId: _colId,
+        tableId: _tableId,
         queries: [
           Query.orderDesc('createdAt'),
           Query.limit(100),
         ],
       );
-      return result.documents.map((d) => _rowToProject(d.data)).toList();
+      return result.rows.map((r) => _rowToProject(r.data)).toList();
     } on AppwriteException catch (e) {
       dev.log('Appwrite fetchProjects error: ${e.message}');
       return []; // Graceful degradation
@@ -66,12 +66,12 @@ class AppwriteProjectService implements ProjectService {
   @override
   Future<Project> getProject(String id) async {
     try {
-      final doc = await _databases.getDocument(
+      final row = await _tablesDB.getRow(
         databaseId: _dbId,
-        collectionId: _colId,
-        documentId: id,
+        tableId: _tableId,
+        rowId: id,
       );
-      return _rowToProject(doc.data);
+      return _rowToProject(row.data);
     } on AppwriteException catch (e) {
       throw StateError('Failed to get project: ${e.message}');
     }
@@ -81,10 +81,10 @@ class AppwriteProjectService implements ProjectService {
   Future<Project> createProject(String name, {String? description}) async {
     try {
       final now = DateTime.now().toIso8601String();
-      final doc = await _databases.createDocument(
+      final row = await _tablesDB.createRow(
         databaseId: _dbId,
-        collectionId: _colId,
-        documentId: ID.unique(),
+        tableId: _tableId,
+        rowId: ID.unique(),
         data: {
           'name': name,
           'description': description ?? '',
@@ -99,7 +99,7 @@ class AppwriteProjectService implements ProjectService {
           Permission.write(Role.any()),
         ],
       );
-      return _rowToProject(doc.data);
+      return _rowToProject(row.data);
     } on AppwriteException catch (e) {
       throw StateError('Failed to create project: ${e.message}');
     }
@@ -120,13 +120,13 @@ class AppwriteProjectService implements ProjectService {
       if (description != null) data['description'] = description;
       if (status != null) data['status'] = status.value;
 
-      final doc = await _databases.updateDocument(
+      final row = await _tablesDB.updateRow(
         databaseId: _dbId,
-        collectionId: _colId,
-        documentId: id,
+        tableId: _tableId,
+        rowId: id,
         data: data,
       );
-      return _rowToProject(doc.data);
+      return _rowToProject(row.data);
     } on AppwriteException catch (e) {
       throw StateError('Failed to update project: ${e.message}');
     }
@@ -135,10 +135,10 @@ class AppwriteProjectService implements ProjectService {
   @override
   Future<void> deleteProject(String id) async {
     try {
-      await _databases.deleteDocument(
+      await _tablesDB.deleteRow(
         databaseId: _dbId,
-        collectionId: _colId,
-        documentId: id,
+        tableId: _tableId,
+        rowId: id,
       );
     } on AppwriteException catch (e) {
       throw StateError('Failed to delete project: ${e.message}');
