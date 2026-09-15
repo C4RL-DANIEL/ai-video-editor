@@ -118,7 +118,7 @@ class AppwriteProjectService implements ProjectService {
       projectId: projectId,
       viralMoments: const [],
       transcript: const TranscriptData(segments: [], fullText: ''),
-      contentMap: const ContentMap(scenes: []),
+      contentMap: const ContentMap(),
       analyzedAt: DateTime.now(),
     );
   }
